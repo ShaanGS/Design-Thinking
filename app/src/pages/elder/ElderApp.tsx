@@ -30,7 +30,7 @@ export default function ElderApp() {
       setLocal({ e, at: Date.now() });
       void reload();
       return e;
-    } catch (err) { toast((err as Error).message, "sos"); return null; }
+    } catch (err) { toast((err as Error).message, "warn"); return null; }
   }, [reload, toast]);
 
   // The server pushes the live emergency; right after pressing SOS we show our own copy until the push arrives.

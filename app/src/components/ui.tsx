@@ -66,7 +66,7 @@ export function EmptyState({ icon, title, children, action }: { icon?: ReactNode
   );
 }
 
-const AVATAR_COLORS = ["bg-brand text-ink", "bg-ink text-white", "bg-paper-2 text-ink", "bg-info-50 text-info", "bg-teal-50 text-teal-700"];
+const AVATAR_COLORS = ["bg-paper-2 text-ink"];
 export function Avatar({ name, size = 40, online, className }: { name: string; size?: number; online?: boolean; className?: string }) {
   const i = [...name].reduce((n, c) => n + c.charCodeAt(0), 0) % AVATAR_COLORS.length;
   return (
@@ -111,7 +111,7 @@ export function Modal({ open, onClose, title, children, wide }: { open: boolean;
       <div role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}
         className={cx("max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-white p-5 shadow-lift animate-slidein safe-bottom sm:rounded-2xl sm:p-6", wide ? "sm:max-w-3xl" : "sm:max-w-lg")}>
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h3 className="text-xl font-bold">{title}</h3>
+          <h3 className="text-[20px] font-semibold">{title}</h3>
           <button aria-label="Close" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full hover:bg-ink/5"><X className="h-5 w-5" /></button>
         </div>
         {children}
@@ -121,7 +121,7 @@ export function Modal({ open, onClose, title, children, wide }: { open: boolean;
 }
 
 /* ---------- Toasts ---------- */
-type ToastT = { id: number; text: string; tone: "ok" | "sos" | "info" };
+type ToastT = { id: number; text: string; tone: "ok" | "sos" | "info" | "warn" };
 const ToastCtx = createContext<(text: string, tone?: ToastT["tone"]) => void>(() => {});
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [list, setList] = useState<ToastT[]>([]);
@@ -136,7 +136,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div className="pointer-events-none fixed inset-x-0 top-3 z-[2000] flex flex-col items-center gap-2 px-4 safe-top">
         {list.map((t) => (
-          <div key={t.id} role="status" className={cx("pointer-events-auto flex max-w-md items-center gap-2.5 rounded-xl bg-ink px-4 py-3 text-[15px] font-medium text-white shadow-lift animate-slidein")}><span className={cx("h-2 w-2 shrink-0 rounded-full", t.tone === "sos" ? "bg-sos" : t.tone === "ok" ? "bg-teal-100" : "bg-brand")} />{t.text}</div>
+          <div key={t.id} role="status" className={cx("pointer-events-auto flex max-w-md items-center gap-2.5 rounded-xl bg-ink px-4 py-3 text-[15px] font-medium text-white shadow-lift animate-slidein")}><span className={cx("h-2 w-2 shrink-0 rounded-full", t.tone === "sos" ? "bg-sos" : t.tone === "ok" ? "bg-teal-100" : t.tone === "warn" ? "bg-[#FFB45C]" : "bg-brand")} />{t.text}</div>
         ))}
       </div>
     </ToastCtx.Provider>

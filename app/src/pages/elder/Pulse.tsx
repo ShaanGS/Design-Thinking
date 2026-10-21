@@ -18,7 +18,7 @@ export default function Pulse() {
   async function save(bpm: number) {
     setResult(bpm);
     try { await api.post<Vital>("/api/vitals", { type: "hr", value: bpm, source: "Face Pulse" }); reload(); toast(t("சேமிக்கப்பட்டது. குடும்பத்துக்கு தெரியும்.", "Saved. Your family can see it."), "ok"); }
-    catch (e) { toast((e as Error).message, "sos"); }
+    catch (e) { toast((e as Error).message, "warn"); }
   }
   const fine = result != null && result >= 50 && result <= 110;
 

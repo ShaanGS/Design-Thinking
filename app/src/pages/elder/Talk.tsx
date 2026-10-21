@@ -30,7 +30,7 @@ export default function Talk() {
   const stopRef = useRef<() => void>(() => {});
   const endRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { api.get<ChatTurn[]>("/api/chat").then(setTurns).catch((e) => { setTurns([]); toast(e.message, "sos"); }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { api.get<ChatTurn[]>("/api/chat").then(setTurns).catch((e) => { setTurns([]); toast(e.message, "warn"); }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => { stopRef.current(); stopSpeaking(); }, []);
   useLive<ChatTurn>("chat", (c) => setTurns((l) => (l && !l.some((x) => x.id === c.id) ? [...l, c] : l)));
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [turns?.length, sending]);
@@ -45,7 +45,7 @@ export default function Talk() {
       setTurns((l) => { const base = l || []; const add = [r.user, r.reply].filter((x) => !base.some((b) => b.id === x.id)); return [...base, ...add]; });
       if (voice) speak(r.reply.text, r.reply.english || undefined);
       if (r.emergency || r.action === "log_meds") reload();
-    } catch (e) { toast((e as Error).message, "sos"); setText(m); }
+    } catch (e) { toast((e as Error).message, "warn"); setText(m); }
     finally { setSending(false); }
   }
 
@@ -53,7 +53,7 @@ export default function Talk() {
     if (listening) { stopRef.current(); return; }
     stopSpeaking();
     setListening(true);
-    stopRef.current = listen(lang === "ta" ? "ta-IN" : "en-IN", (heard) => void send(heard), (err) => { setListening(false); if (err) toast(err, "sos"); });
+    stopRef.current = listen(lang === "ta" ? "ta-IN" : "en-IN", (heard) => void send(heard), (err) => { setListening(false); if (err) toast(err, "warn"); });
   }
 
   const name = data?.patient.nickname || "Paati";

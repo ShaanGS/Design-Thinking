@@ -1,11 +1,11 @@
-// Family app (guardian): shell with sidebar / bottom tabs, live overview, emergency takeover banner.
+// Family app (guardian): left rail / bottom tabs, live overview, and the emergency strip.
 import { useEffect, useRef } from "react";
 import { NavLink, Route, Routes, useLocation, useNavigate, Link } from "react-router-dom";
-import { Home as HomeIcon, FileHeart, Pill, CalendarDays, Users, Siren, ChevronRight, RefreshCw } from "lucide-react";
+import { Home as HomeIcon, FileText, Pill, CalendarDays, Users, ArrowRight, RefreshCw } from "lucide-react";
 import { useOverview } from "../../lib/data";
 import { useConnected } from "../../lib/socket";
 import { useAuth } from "../../lib/auth";
-import { Avatar, Button, Logo, Spinner, cx, useToast } from "../../components/ui";
+import { Button, Logo, Spinner, cx, useToast } from "../../components/ui";
 import { CONDITION_INFO } from "../../../shared/types";
 import VaultPage from "../vault/VaultPage";
 import { FamilyCtx, ACTIVE_STATUSES } from "./ctx";
@@ -16,8 +16,8 @@ import Visits from "./Visits";
 import Family from "./Family";
 
 const TABS = [
-  { to: "/family", label: "Home", icon: HomeIcon, end: true },
-  { to: "/family/vault", label: "Vault", icon: FileHeart },
+  { to: "/family", label: "Today", icon: HomeIcon, end: true },
+  { to: "/family/vault", label: "Records", icon: FileText },
   { to: "/family/meds", label: "Medicines", icon: Pill },
   { to: "/family/visits", label: "Visits", icon: CalendarDays },
   { to: "/family/family", label: "Family", icon: Users },
@@ -52,7 +52,7 @@ export default function FamilyApp() {
       <div className="grid h-full place-items-center p-6 text-center">
         {error ? (
           <div className="flex flex-col items-center gap-3">
-            <p className="font-semibold">Couldn't load the family dashboard</p>
+            <p className="font-semibold">Couldn't load the family app</p>
             <p className="text-sm text-ink-2">{error}</p>
             <Button variant="outline" icon={<RefreshCw className="h-4 w-4" />} onClick={() => reload()}>Try again</Button>
           </div>
@@ -62,66 +62,62 @@ export default function FamilyApp() {
   }
 
   const p = data.patient;
+  const onEmergencyPage = loc.pathname.startsWith("/family/emergency");
   return (
     <FamilyCtx.Provider value={{ data, reload }}>
       <div className="min-h-full lg:flex">
-        {/* Desktop sidebar */}
-        <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-line bg-white px-4 py-5 lg:flex">
-          <Logo sub="Family" />
-          <div className="mt-6 flex items-center gap-3 rounded-2xl bg-paper p-3">
-            <Avatar name={p.nickname} size={44} />
-            <div className="min-w-0">
-              <div className="truncate font-semibold">{p.nickname}</div>
-              <div className="truncate text-xs text-ink-2">{p.name} · {p.age}</div>
-            </div>
+        {/* Desktop rail */}
+        <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-line bg-white px-5 py-6 lg:flex">
+          <Logo size={32} sub="Family" />
+          <div className="mt-8">
+            <div className="text-[13px] text-ink-2">Caring for</div>
+            <div className="font-display text-[22px] font-semibold leading-tight">{p.nickname}</div>
+            <div className="text-[13px] text-ink-2">{p.name}, {p.age}</div>
           </div>
-          <nav className="mt-6 flex flex-col gap-1">
-            {TABS.map((t) => (
-              <NavLink key={t.to} to={t.to} end={t.end}
-                className={({ isActive }) => cx("flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] font-semibold transition-colors", isActive ? "bg-ink text-white" : "text-ink-2 hover:bg-ink/5 hover:text-ink")}>
-                <t.icon className="h-5 w-5" />{t.label}
-                {t.to === "/family/vault" && data.insightsCount > 0 && <span className="ml-auto rounded-full bg-sos px-2 text-xs text-white">{data.insightsCount}</span>}
-              </NavLink>
-            ))}
+          <nav className="-mx-2 mt-6 flex flex-col">
             {em && (
-              <NavLink to="/family/emergency" className={({ isActive }) => cx("mt-2 flex items-center gap-3 rounded-xl px-3 py-2.5 font-semibold", isActive ? "bg-sos text-white" : "bg-sos-50 text-sos")}>
-                <Siren className="h-5 w-5" />Emergency
+              <NavLink to="/family/emergency" className={({ isActive }) => cx("mb-1 flex items-center gap-3 rounded-lg px-2 py-2 text-[15px] font-semibold text-sos", isActive && "bg-sos-50")}>
+                <span className="relative flex h-5 w-5 items-center justify-center"><span className="h-2.5 w-2.5 rounded-full bg-sos animate-blink" /></span>Emergency
               </NavLink>
             )}
+            {TABS.map((t) => (
+              <NavLink key={t.to} to={t.to} end={t.end}
+                className={({ isActive }) => cx("relative flex items-center gap-3 rounded-lg px-2 py-2 text-[15px] transition-colors",
+                  isActive ? "bg-paper font-semibold text-ink before:absolute before:-left-3 before:top-1.5 before:bottom-1.5 before:w-[3px] before:rounded-full before:bg-ink" : "text-ink-2 hover:text-ink")}>
+                <t.icon className="h-[18px] w-[18px]" strokeWidth={1.75} />{t.label}
+                {t.to === "/family/vault" && data.insightsCount > 0 && <span className="ml-auto text-[13px] text-ink-3 tnum" title="Questions for the doctor">{data.insightsCount}</span>}
+              </NavLink>
+            ))}
           </nav>
-          <div className="mt-auto flex items-center gap-2 text-xs text-ink-2">
-            <span className={cx("h-2 w-2 rounded-full", connected ? "bg-teal" : "bg-warn")} />
-            {connected ? "Live updates on" : "Reconnecting…"}
-            <span className="ml-auto truncate">{user?.name}</span>
+          <div className="mt-auto border-t border-line pt-4 text-[13px] text-ink-2">
+            <div className="flex items-center gap-2"><span className={cx("h-2 w-2 rounded-full", connected ? "bg-teal" : "bg-warn animate-blink")} />{connected ? "Live" : "Reconnecting…"}</div>
+            <div className="mt-1 truncate text-ink-3">Signed in as {user?.name}</div>
           </div>
         </aside>
 
-        <div className="min-w-0 flex-1 pb-24 lg:pb-10">
+        <div className="min-w-0 flex-1 pb-24 lg:pb-12">
           {/* Mobile top bar */}
-          <header className="sticky top-0 z-[500] flex items-center gap-3 border-b border-line bg-paper/90 px-4 py-3 backdrop-blur safe-top lg:hidden">
-            <Avatar name={p.nickname} size={36} />
+          <header className="sticky top-0 z-[500] flex items-center gap-3 border-b border-line bg-white px-4 py-2.5 safe-top lg:hidden">
+            <img src="/icons/icon.svg" alt="" width={28} height={28} style={{ borderRadius: 7 }} />
             <div className="min-w-0 flex-1 leading-tight">
-              <div className="truncate font-display text-lg font-bold">{p.nickname}'s care</div>
-              <div className="flex items-center gap-1.5 text-xs text-ink-2"><span className={cx("h-1.5 w-1.5 rounded-full", connected ? "bg-teal" : "bg-warn")} />{connected ? "Live" : "Reconnecting…"} · {data.family.name}</div>
+              <div className="truncate font-display text-[19px] font-semibold">{p.nickname}</div>
+              <div className="flex items-center gap-1.5 text-[12px] text-ink-2"><span className={cx("h-1.5 w-1.5 rounded-full", connected ? "bg-teal" : "bg-warn")} />{connected ? "Live" : "Reconnecting…"} · {data.family.name}</div>
             </div>
-            <img src="/icons/icon.svg" alt="" width={30} height={30} className="rounded-lg" />
           </header>
 
-          {em && !loc.pathname.startsWith("/family/emergency") && (
-            <Link to="/family/emergency" className="mx-4 mt-4 flex items-center gap-3 rounded-2xl bg-sos px-4 py-3 text-white shadow-card sm:mx-6 lg:mx-8">
-              <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/15 animate-pulsering"><Siren className="h-5 w-5" /></span>
-              <div className="min-w-0 flex-1">
-                <div className="font-bold">{p.nickname} pressed SOS</div>
-                <div className="truncate text-sm text-white/85">
-                  {em.triage ? CONDITION_INFO[em.triage.condition]?.label : "Finding the right hospital…"}
-                  {em.etaLeftMin != null && em.status === "dispatched" ? ` · ambulance in ${em.etaLeftMin} min` : ""}
-                </div>
-              </div>
-              <ChevronRight className="h-5 w-5 shrink-0" />
+          {em && !onEmergencyPage && (
+            <Link to="/family/emergency" className="flex items-center gap-3 bg-sos px-4 py-3 text-white sm:px-6 lg:px-10">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-white animate-blink" />
+              <span className="min-w-0 flex-1 truncate text-[15px]">
+                <b>{p.nickname} pressed the help button.</b>{" "}
+                {em.triage ? CONDITION_INFO[em.triage.condition]?.label : "Finding the right hospital"}
+                {em.etaLeftMin != null && em.status === "dispatched" ? ` · ambulance in ${em.etaLeftMin} min` : ""}
+              </span>
+              <span className="hidden shrink-0 font-semibold sm:inline">Open live view</span><ArrowRight className="h-5 w-5 shrink-0" />
             </Link>
           )}
 
-          <main className="mx-auto max-w-6xl px-4 pt-4 sm:px-6 lg:px-8 lg:pt-8">
+          <main className="mx-auto max-w-[72rem] px-4 pt-5 sm:px-6 lg:px-10 lg:pt-10">
             <Routes>
               <Route index element={<Home />} />
               <Route path="vault/*" element={<VaultPage />} />
@@ -135,14 +131,15 @@ export default function FamilyApp() {
         </div>
 
         {/* Mobile bottom tabs */}
-        <nav className="fixed inset-x-0 bottom-0 z-[600] grid grid-cols-5 border-t border-line bg-white/95 backdrop-blur safe-bottom lg:hidden">
+        <nav className="fixed inset-x-0 bottom-0 z-[600] grid grid-cols-5 border-t border-line bg-white safe-bottom lg:hidden">
           {TABS.map((t) => (
             <NavLink key={t.to} to={t.to} end={t.end}
-              className={({ isActive }) => cx("relative flex flex-col items-center gap-0.5 pb-2 pt-2.5 text-[11px] font-semibold", isActive ? "text-ink" : "text-ink-3")}>
+              className={({ isActive }) => cx("relative flex flex-col items-center gap-1 pb-2 pt-2.5 text-[11px]", isActive ? "font-semibold text-ink" : "text-ink-3")}>
               {({ isActive }) => (<>
-                <t.icon className={cx("h-6 w-6", isActive && "text-brand-600")} strokeWidth={isActive ? 2.4 : 2} />
+                {isActive && <span className="absolute inset-x-5 top-0 h-[3px] rounded-b bg-ink" />}
+                <t.icon className="h-[22px] w-[22px]" strokeWidth={isActive ? 2.1 : 1.75} />
                 {t.label}
-                {t.to === "/family/vault" && data.insightsCount > 0 && <span className="absolute right-[22%] top-1.5 h-2 w-2 rounded-full bg-sos" />}
+                {t.to === "/family/vault" && data.insightsCount > 0 && <span className="absolute right-[24%] top-2 h-2 w-2 rounded-full bg-brand ring-2 ring-white" />}
               </>)}
             </NavLink>
           ))}

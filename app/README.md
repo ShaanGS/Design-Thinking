@@ -9,6 +9,10 @@ A full-stack, installable web app (PWA) for elders, their families and hospitals
 | **Hospital** (Dr. Priya, ER) | Incoming patients with an AI pre-arrival brief and red flags, "why this hospital" routing, break-glass record access, network beds, medicine stock and relays | `/hospital` |
 | **Doctor** (no login) | Read-only lifetime record from a 24-hour share link or QR | `/share/:token` |
 
+## Design
+
+The interface follows [`DESIGN.md`](DESIGN.md): a "signage-grade" system built for a 72-year-old reading Tamil first (blue-black ink, turmeric yellow, red only for emergencies), Indian-foundry fonts bundled offline (Anek, Hind Madurai), and doses shown as medicine blister strips.
+
 ## What's inside
 
 - **Health Vault.** Photograph or upload prescriptions, lab reports, discharge summaries and scans (images or PDF). Claude reads each paper (handwriting too), builds a dated timeline and lab trends, and **cross-checks every paper together**: falling kidney function versus the metformin dose, interactions between prescriptions from different doctors, duplicate brands, rising cholesterol. Ask questions in English or Tamil with source citations. Generate a doctor brief and share link.

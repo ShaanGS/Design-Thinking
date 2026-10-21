@@ -100,7 +100,7 @@ function Console() {
       const out = await api.post<Emergency>(`/api/emergencies/${e.id}/${action}`);
       net.setEmergencies((l) => l.map((x) => (x.id === out.id ? out : x)));
       toast(action === "ready" ? "Team marked ready. The family can see it." : action === "admit" ? "Patient received. Family notified." : "Case closed.", "ok");
-    } catch (err) { toast((err as Error).message, "sos"); }
+    } catch (err) { toast((err as Error).message, "warn"); }
     finally { setBusy(null); }
   }
 
@@ -109,7 +109,7 @@ function Console() {
     setPending(key);
     net.setHospitals((hs) => hs.map((h) => (h.id === own.id ? { ...h, ...("icuBeds" in body ? { icuBeds: body.icuBeds! } : {}), ...("erBeds" in body ? { erBeds: body.erBeds! } : {}), caps: { ...h.caps, ...(body.caps || {}) } } : h)));
     try { await api.patch(`/api/hospitals/${own.id}`, body); }
-    catch (err) { toast((err as Error).message, "sos"); void net.reload(); }
+    catch (err) { toast((err as Error).message, "warn"); void net.reload(); }
     finally { setPending(null); }
   }
   async function setStock(item: string, qty: number) {
@@ -117,7 +117,7 @@ function Console() {
     setPending(item);
     net.setHospitals((hs) => hs.map((h) => (h.id === own.id ? { ...h, inventory: h.inventory.map((i) => (i.item === item ? { ...i, qty, updatedAt: new Date().toISOString() } : i)) } : h)));
     try { await api.patch(`/api/hospitals/${own.id}/inventory/${item}`, { qty }); }
-    catch (err) { toast((err as Error).message, "sos"); void net.reload(); }
+    catch (err) { toast((err as Error).message, "warn"); void net.reload(); }
     finally { setPending(null); }
   }
   async function relay(inv: InventoryItem) {
@@ -127,7 +127,7 @@ function Console() {
       const r = await api.post<Relay>("/api/relays", { item: inv.item, qty: Math.max(inv.min - inv.qty, 5), toId: own.id });
       const from = hospitals.find((h) => h.id === r.fromId)?.short || "a nearby hospital";
       toast(`${r.qty} × ${r.label} coming from ${from} · ~${r.etaMin} min`, "ok");
-    } catch (err) { toast((err as Error).message, "sos"); }
+    } catch (err) { toast((err as Error).message, "warn"); }
     finally { setPending(null); }
   }
 

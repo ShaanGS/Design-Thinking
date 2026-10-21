@@ -24,7 +24,7 @@ export function EscalationCall() {
   const ok = async () => {
     setBusy(true);
     try { await api.post("/api/demo/escalation-answer"); setOpen(false); reload(); toast("Thank you! Your family has been told you're fine.", "ok"); }
-    catch (e) { toast((e as Error).message, "sos"); }
+    catch (e) { toast((e as Error).message, "warn"); }
     finally { setBusy(false); stopSpeaking(); }
   };
   return (

@@ -27,7 +27,7 @@ export default function Landing() {
   async function go(p: Promise<AuthRes>, key: string) {
     setBusy(key);
     try { const r = await p; signIn(r.token, r.user); if (r.code) toast(`Family created. Share code ${r.code} with relatives.`, "ok"); nav(homeFor(r.user)); }
-    catch (e) { toast((e as Error).message, "sos"); }
+    catch (e) { toast((e as Error).message, "warn"); }
     finally { setBusy(null); }
   }
 

@@ -59,14 +59,14 @@ export default function Home() {
     if (!checkin) return;
     setBusy(a);
     try { await api.post(`/api/checkins/${checkin.id}/answer`, { answer: a }); if (a === "ok") toast(t("குடும்பத்துக்கு சொல்லிவிட்டேன்", "Your family has been told you're OK"), "ok"); reload(); }
-    catch (e) { toast((e as Error).message, "sos"); }
+    catch (e) { toast((e as Error).message, "warn"); }
     finally { setBusy(null); }
   }
   async function tookSlot() {
     if (!next.slot) return;
     setBusy("took");
     try { await api.post("/api/doses/slot", { slot: next.slot }); try { navigator.vibrate?.(60); } catch { /* ignore */ } toast(t("நன்று! குறித்துக்கொண்டேன்", "Well done! Noted."), "ok"); reload(); }
-    catch (e) { toast((e as Error).message, "sos"); }
+    catch (e) { toast((e as Error).message, "warn"); }
     finally { setBusy(null); }
   }
   function hear() {
@@ -81,7 +81,7 @@ export default function Home() {
   async function toggleFall() {
     if (fallOn) { setFallOn(false); return; }
     const ok = await enableMotion();
-    if (!ok) { toast(t("இந்த போனில் சென்சார் அனுமதி இல்லை", "Motion sensor isn't available here"), "sos"); return; }
+    if (!ok) { toast(t("இந்த போனில் சென்சார் அனுமதி இல்லை", "Motion sensor isn't available here"), "warn"); return; }
     setFallOn(true); toast(t("விழுதல் கண்டறிதல் இயக்கப்பட்டது", "Fall detection is on"), "ok");
   }
 

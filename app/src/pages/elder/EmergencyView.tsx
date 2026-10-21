@@ -24,7 +24,7 @@ export function SymptomPicker({ emergency }: { emergency: Emergency }) {
     if (sent) return;
     setSent(c);
     try { await api.post(`/api/sos/${emergency.id}/symptom`, { condition: c }); }
-    catch (e) { toast((e as Error).message, "sos"); setSent(null); }
+    catch (e) { toast((e as Error).message, "warn"); setSent(null); }
   };
   useEffect(() => {
     const t = setInterval(() => setLeft((l) => l - 1), 1000);
@@ -108,7 +108,7 @@ export function EmergencyScreen({ emergency }: { emergency: Emergency }) {
   const cancel = async () => {
     setCancelling(true);
     try { await api.post(`/api/sos/${emergency.id}/cancel`); toast(lang === "ta" ? "ரத்து செய்யப்பட்டது. குடும்பத்துக்கு தெரிவிக்கப்பட்டது." : "Cancelled. Your family has been told you're OK.", "ok"); }
-    catch (e) { toast((e as Error).message, "sos"); }
+    catch (e) { toast((e as Error).message, "warn"); }
     finally { setCancelling(false); }
   };
 
