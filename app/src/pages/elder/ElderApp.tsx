@@ -37,6 +37,12 @@ export default function ElderApp() {
   const live = data?.emergency && ACTIVE.includes(data.emergency.status) ? data.emergency : null;
   const emergency = live ?? (local && Date.now() - local.at < 5000 && ACTIVE.includes(local.e.status) ? local.e : null);
   useEffect(() => { if (live && local && live.id === local.e.id) setLocal(null); }, [live, local]);
+  const overlayOn = !!emergency;
+  useEffect(() => {
+    if (!overlayOn) return;
+    const prev = document.body.style.overflow; document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [overlayOn]);
   const needsSymptom = emergency && emergency.status === "triage" && !emergency.symptomText;
 
   const ctx: ElderCtx = useMemo(() => ({ lang, setLang, data, reload: () => void reload(), raiseSOS, fallOn, setFallOn }), [lang, setLang, data, reload, raiseSOS, fallOn]);

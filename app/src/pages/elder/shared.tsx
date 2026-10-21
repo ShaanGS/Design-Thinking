@@ -42,7 +42,7 @@ export function SubScreen({ ta, en, children, tone = "paper" }: { ta: string; en
   const nav = useNavigate();
   const { lang } = useElder();
   return (
-    <div className={cx("flex min-h-full flex-col", tone === "white" ? "bg-white" : "bg-paper")}>
+    <div className={cx("flex min-h-[100dvh] flex-col", tone === "white" ? "bg-white" : "bg-paper")}>
       <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-line bg-white/95 px-4 py-3 backdrop-blur safe-top">
         <button onClick={() => nav("/elder")} aria-label={lang === "ta" ? "பின்செல்" : "Back"}
           className="flex h-14 items-center gap-2 rounded-2xl bg-ink px-4 text-lg font-bold text-white active:scale-[.98]">

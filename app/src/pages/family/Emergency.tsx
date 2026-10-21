@@ -53,6 +53,26 @@ export default function EmergencyPage() {
   const meResponding = e.responders.some((r) => r.name === user?.name);
   const triageLabel = e.triage ? CONDITION_INFO[e.triage.condition]?.label ?? e.triage.label : "Working out what happened…";
 
+  const actions = (
+<Card className="p-5">
+            <div className="flex flex-col gap-3">
+              <Button variant="sos" size="xl" className="w-full" loading={busy} disabled={meResponding} icon={meResponding ? <Check className="h-5 w-5" /> : <Navigation className="h-5 w-5" />} onClick={respond}>
+                {meResponding ? "You're on your way" : "I'm on my way"}
+              </Button>
+              {chosen ? (
+                <a href={`tel:${chosen.phone.replace(/\s/g, "")}`}>
+                  <span className="flex w-full items-center gap-3 rounded-xl border border-line bg-white px-4 py-3 transition hover:border-ink-3">
+                    <Phone className="h-5 w-5 shrink-0 text-teal" />
+                    <span className="min-w-0 flex-1"><span className="block font-semibold">Call {chosen.short} ER</span><span className="block font-mono text-sm text-ink-2 tnum">{chosen.phone}</span></span>
+                  </span>
+                </a>
+              ) : <Button variant="outline" size="lg" disabled>Hospital not chosen yet</Button>}
+              {e.teamReady && <div className="flex items-center gap-2 rounded-xl bg-teal-50 px-3 py-2 text-sm font-semibold text-teal"><HospitalIcon className="h-4 w-4" />ER team is ready and waiting</div>}
+              {chosen && nearest && chosen.id !== nearest.id && <p className="text-xs text-ink-2">Going to {chosen.short} ({chosen.kind.toLowerCase()}), not {nearest.short}.</p>}
+            </div>
+          </Card>
+  );
+
   async function respond() {
     setBusy(true);
     try { await api.post(`/api/sos/${e!.id}/respond`); toast("The family and hospital know you're coming", "ok"); }
@@ -96,6 +116,8 @@ export default function EmergencyPage() {
           })}
         </ol>
       </Card>
+
+      <div className="lg:hidden">{actions}</div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="flex min-w-0 flex-col gap-6">
@@ -144,23 +166,7 @@ export default function EmergencyPage() {
         </div>
 
         <div className="flex min-w-0 flex-col gap-6">
-          <Card className="p-5">
-            <div className="flex flex-col gap-3">
-              <Button variant="sos" size="xl" className="w-full" loading={busy} disabled={meResponding} icon={meResponding ? <Check className="h-5 w-5" /> : <Navigation className="h-5 w-5" />} onClick={respond}>
-                {meResponding ? "You're on your way" : "I'm on my way"}
-              </Button>
-              {chosen ? (
-                <a href={`tel:${chosen.phone.replace(/\s/g, "")}`}>
-                  <span className="flex w-full items-center gap-3 rounded-xl border border-line bg-white px-4 py-3 transition hover:border-ink-3">
-                    <Phone className="h-5 w-5 shrink-0 text-teal" />
-                    <span className="min-w-0 flex-1"><span className="block font-semibold">Call {chosen.short} ER</span><span className="block font-mono text-sm text-ink-2 tnum">{chosen.phone}</span></span>
-                  </span>
-                </a>
-              ) : <Button variant="outline" size="lg" disabled>Hospital not chosen yet</Button>}
-              {e.teamReady && <div className="flex items-center gap-2 rounded-xl bg-teal-50 px-3 py-2 text-sm font-semibold text-teal"><HospitalIcon className="h-4 w-4" />ER team is ready and waiting</div>}
-              {chosen && nearest && chosen.id !== nearest.id && <p className="text-xs text-ink-2">Going to {chosen.short} ({chosen.kind.toLowerCase()}), not {nearest.short}.</p>}
-            </div>
-          </Card>
+          <div className="hidden lg:block">{actions}</div>
 
           <Card>
             <CardHeader icon={<Users className="h-5 w-5" />} title="Family responding" subtitle={e.responders.length ? `${e.responders.length} on the way` : "Nobody has confirmed yet"} />
@@ -176,7 +182,7 @@ export default function EmergencyPage() {
             </ul>
           </Card>
 
-          <Timeline items={emFeed.filter((f) => new Date(f.at).getTime() >= new Date(e.startedAt).getTime() - 5000).reverse()} live />
+          <Timeline items={emFeed.filter((f) => new Date(f.at).getTime() >= new Date(e.startedAt).getTime() - 1500).sort((a, b) => a.at.localeCompare(b.at))} live />
         </div>
       </div>
     </div>

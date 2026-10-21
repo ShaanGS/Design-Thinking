@@ -84,7 +84,7 @@ export default function Home() {
   const SlotIcon = next.slot ? SLOT_ICON[next.slot] : PartyPopper;
 
   return (
-    <div className="flex min-h-full flex-col bg-paper">
+    <div className="flex min-h-[100dvh] flex-col bg-paper">
       {/* Header */}
       <header className="flex items-center justify-between px-4 pb-1 pt-4 safe-top">
         <div className="flex items-center gap-2">

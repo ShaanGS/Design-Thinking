@@ -46,12 +46,12 @@ export function SymptomPicker({ emergency }: { emergency: Emergency }) {
               className={cx("flex min-h-[124px] flex-col items-start justify-between gap-2 rounded-3xl border-2 bg-paper p-4 text-left transition active:scale-[.98]",
                 sent === c ? "border-sos bg-sos-50" : "border-line hover:border-sos", sent && sent !== c && "opacity-40")}>
               <I className={cx("h-9 w-9", tone)} strokeWidth={2.2} />
-              <span className="text-[22px] font-bold leading-tight"><Bi ta={CONDITION_INFO[c].ta} en={CONDITION_INFO[c].en} /></span>
+              <span className="text-[21px] font-bold leading-tight [overflow-wrap:anywhere]"><Bi ta={CONDITION_INFO[c].ta} en={CONDITION_INFO[c].en} /></span>
             </button>
           ))}
           <button onClick={() => send("unknown")} disabled={!!sent}
-            className={cx("flex min-h-[124px] flex-col items-start justify-between gap-2 rounded-3xl border-2 border-dashed border-ink-3 bg-white p-4 text-left active:scale-[.98]", sent && sent !== "unknown" && "opacity-40")}>
-            <HelpCircle className="h-9 w-9 text-ink-2" strokeWidth={2.2} />
+            className={cx("col-span-2 flex min-h-[88px] items-center gap-4 rounded-3xl border-2 border-dashed border-ink-3 bg-white p-4 text-left active:scale-[.98]", sent && sent !== "unknown" && "opacity-40")}>
+            <HelpCircle className="h-9 w-9 shrink-0 text-ink-2" strokeWidth={2.2} />
             <span className="text-[22px] font-bold leading-tight"><Bi ta="தெரியவில்லை" en="Not sure" /></span>
           </button>
         </div>
