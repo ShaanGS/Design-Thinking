@@ -1,15 +1,15 @@
 // Hospital console: incoming Saathi patients, routing explanation, network capacity and medicine relays.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Route, Routes, useNavigate } from "react-router-dom";
-import { Activity, BedDouble, Clock3, LogOut, PackageX, Radio, Siren } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { useConnected } from "../../lib/socket";
-import { Badge, Button, Card, EmptyState, Logo, Spinner, useToast, cx } from "../../components/ui";
+import { Logo, Spinner, useToast, cx } from "../../components/ui";
 import { fmtTime } from "../../lib/format";
 import type { Emergency, Hospital, HospitalCaps, InventoryItem, Relay } from "../../../shared/types";
 import { isActive, useNetwork } from "./useNetwork";
-import IncomingCard from "./IncomingCard";
+import IncomingRow from "./IncomingCard";
 import RoutePanel from "./RoutePanel";
 import RecordModal from "./RecordModal";
 import CapacityBoard from "./CapacityBoard";
@@ -134,68 +134,83 @@ function Console() {
   return (
     <div className="min-h-full bg-paper">
       {/* Top bar */}
-      <header className="sticky top-0 z-[500] border-b border-line bg-white/95 backdrop-blur safe-top">
-        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 sm:px-6">
-          <Logo size={32} label={false} />
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-lg font-bold leading-tight sm:text-xl">{own ? own.name : "Saathi network"} <span className="font-sans text-base font-medium text-ink-3">· Emergency</span></h1>
-            <p className="truncate text-xs text-ink-2">Saathi hospital network · Chennai South{own ? ` · ${own.kind}` : ""}</p>
-          </div>
-          <span className={cx("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold", connected ? "bg-teal-50 text-teal" : "bg-warn-50 text-warn")}>
-            <span className={cx("h-2 w-2 rounded-full", connected ? "bg-teal animate-pulse" : "bg-warn")} />{connected ? "Live" : "Reconnecting"}
+      <header className="sticky top-0 z-[500] border-b border-line bg-white safe-top">
+        <div className="mx-auto flex max-w-[1600px] items-center gap-3 px-4 py-2.5 sm:px-6">
+          <Logo size={28} label={false} />
+          <h1 className="min-w-0 flex-1 truncate text-[19px] font-semibold leading-tight">
+            <span className="hidden sm:inline">{own ? own.name : "Saathi network"}</span><span className="sm:hidden">{own ? own.short : "Saathi"}</span>
+            <span className="font-sans text-[15px] font-normal text-ink-2"> · Emergency</span>
+          </h1>
+          <span className={cx("inline-flex items-center gap-1.5 text-[13px] font-semibold", connected ? "text-teal" : "text-warn")}>
+            <span className={cx("h-2 w-2 rounded-full", connected ? "bg-teal" : "bg-warn animate-blink")} />{connected ? "Live" : "Reconnecting"}
           </span>
-          <div className="hidden text-right text-sm sm:block"><div className="font-semibold leading-tight">{user?.name}</div><div className="text-xs text-ink-3">{user?.relation || "Staff"}</div></div>
-          <Button variant="ghost" size="sm" icon={<LogOut className="h-4 w-4" />} onClick={async () => { await signOut(); nav("/"); }}>Sign out</Button>
+          <span className="hidden h-5 w-px bg-line sm:block" />
+          <div className="hidden text-right text-[13px] leading-tight sm:block"><div className="font-semibold">{user?.name}</div><div className="text-ink-3">{user?.relation || "Staff"}</div></div>
+          <button className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[14px] font-semibold text-ink-2 hover:bg-paper hover:text-ink" onClick={async () => { await signOut(); nav("/"); }}>
+            <LogOut className="h-4 w-4" strokeWidth={1.75} /><span className="hidden sm:inline">Sign out</span>
+          </button>
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-[1600px] flex-col gap-5 px-4 py-5 sm:px-6">
+      <main className="mx-auto flex max-w-[1600px] flex-col gap-5 px-4 py-4 sm:px-6 sm:py-5">
         {!net.loaded ? <div className="grid h-60 place-items-center"><Spinner className="h-8 w-8" /></div> : <>
-          {net.error && <div className="rounded-xl bg-sos-50 px-4 py-3 text-sm font-semibold text-sos">{net.error}</div>}
+          {net.error && <p className="rounded-[10px] border border-line bg-white px-4 py-3 text-[14px]"><span className="font-semibold">Couldn't load the network.</span> <span className="text-ink-2">{net.error}</span></p>}
 
-          {/* KPIs */}
-          <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Kpi icon={<Siren className="h-5 w-5" />} label="Incoming to you" value={mine.length} tone={mine.length ? "sos" : undefined} sub={`${elsewhere.length} elsewhere in the network`} />
-            <Kpi icon={<Clock3 className="h-5 w-5" />} label="Minutes saved today" value={savedToday} tone={savedToday ? "ok" : undefined} sub="by need-matched routing" />
-            <Kpi icon={<BedDouble className="h-5 w-5" />} label="Free ICU beds" value={freeIcu} tone={freeIcu <= 3 ? "warn" : undefined} sub={own ? `${own.icuBeds} here · ${hospitals.length} hospitals` : `${hospitals.length} hospitals`} />
-            <Kpi icon={<PackageX className="h-5 w-5" />} label="Low-stock alerts" value={lowItems.length} tone={lowItems.length ? "warn" : "ok"} sub={own ? `${ownLow} at ${own.short}` : "across the network"} />
-          </section>
+          {/* Summary strip */}
+          <dl className="grid grid-cols-2 gap-y-3 rounded-xl border border-line bg-white px-4 py-3 sm:flex sm:flex-wrap sm:items-end sm:gap-x-0 sm:px-5">
+            <Figure label="Coming to you" value={mine.length} sub={elsewhere.length ? `${elsewhere.length} elsewhere` : "none elsewhere"} alert={mine.length > 0} />
+            <Figure label="Minutes saved today" value={savedToday} sub="by need-matched routing" />
+            <Figure label="Free ICU beds" value={freeIcu} sub={own ? `${own.icuBeds} here, ${hospitals.length} hospitals` : `${hospitals.length} hospitals`} warn={freeIcu <= 3} />
+            <Figure label="Items below minimum" value={lowItems.length} sub={own ? `${ownLow} here` : "across the network"} warn={ownLow > 0} href="#capacity" />
+          </dl>
 
-          <section className="grid gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-            {/* Incoming */}
-            <div className="flex min-w-0 flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <h2 className="flex items-center gap-2 text-xl font-bold"><Radio className="h-5 w-5 text-sos" />Incoming patients</h2>
-                {mine.length > 0 && <Badge tone="sos" dot>{mine.length} active</Badge>}
-              </div>
-              {mine.length ? mine.map((e) => (
-                <IncomingCard key={e.id} e={e} file={files[e.patientId]} hospitals={hospitals} ownId={ownId} selected={selected?.id === e.id}
-                  onSelect={() => setSelectedId(e.id)} onAction={(a) => act(e, a)} busy={busy} onOpenRecord={() => setRecordFor(e.patientId)} fresh={fresh.has(e.id)} />
-              )) : (
-                <Card className="p-4"><EmptyState icon={<Activity className="h-6 w-6" />} title="No patients on the way">When a Saathi member raises an SOS and is routed here, the case appears instantly with a pre-arrival brief, allergies, blood thinners and kidney function, before the ambulance arrives.</EmptyState></Card>
-              )}
-
-              {elsewhere.length > 0 && <>
-                <h3 className="mt-2 text-xs font-bold uppercase tracking-[0.08em] text-ink-3">Elsewhere in the network</h3>
-                {elsewhere.map((e) => (
-                  <IncomingCard key={e.id} e={e} file={undefined} hospitals={hospitals} ownId={ownId} selected={selected?.id === e.id}
-                    onSelect={() => setSelectedId(e.id)} onAction={() => {}} busy={null} onOpenRecord={() => {}} />
-                ))}
-              </>}
-
-              {closedToday.length > 0 && (
-                <div className="rounded-2xl border border-line bg-white px-4 py-3">
-                  <h3 className="mb-1.5 text-xs font-bold uppercase tracking-[0.08em] text-ink-3">Handled today</h3>
-                  <ul className="flex flex-col gap-1 text-sm">
-                    {closedToday.map((e) => <li key={e.id} className="flex justify-between gap-2"><span className="truncate">{e.triage?.label || "Emergency"}</span><span className="shrink-0 font-mono text-xs text-ink-3">{fmtTime(e.startedAt)} · saved {e.route?.savedMin ?? 0}′</span></li>)}
+          <section className="grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+            {/* Incoming queue */}
+            <div className="flex min-w-0 flex-col gap-5">
+              <div className="rounded-xl border border-line bg-white">
+                <header className="flex items-baseline justify-between gap-3 border-b border-line px-4 py-3 sm:px-5">
+                  <h2 className="text-[20px] font-semibold leading-tight">Incoming</h2>
+                  <span className="text-[13px] text-ink-3">{mine.length ? `${mine.length} on the way · soonest first` : "Nothing on the way"}</span>
+                </header>
+                {mine.length ? (
+                  <ul>
+                    {[...mine].sort(byEta).map((e) => (
+                      <IncomingRow key={e.id} e={e} file={files[e.patientId]} hospitals={hospitals} ownId={ownId} selected={selected?.id === e.id}
+                        onSelect={() => setSelectedId(e.id)} onAction={(a) => act(e, a)} busy={busy} onOpenRecord={() => setRecordFor(e.patientId)} fresh={fresh.has(e.id)} />
+                    ))}
                   </ul>
-                </div>
-              )}
+                ) : (
+                  <p className="px-4 py-5 text-[15px] text-ink-2 sm:px-5">No patients are on the way. When an SOS is routed to {own?.short || "this hospital"}, the patient appears here at once with their allergies, blood thinners, kidney function and a pre-arrival brief.</p>
+                )}
+
+                {elsewhere.length > 0 && <>
+                  <h3 className="border-t border-line bg-paper px-4 py-2 text-[13px] font-semibold text-ink-2 sm:px-5">Elsewhere in the network</h3>
+                  <ul>
+                    {[...elsewhere].sort(byEta).map((e) => (
+                      <IncomingRow key={e.id} e={e} file={undefined} hospitals={hospitals} ownId={ownId} selected={selected?.id === e.id}
+                        onSelect={() => setSelectedId(e.id)} onAction={() => {}} busy={null} onOpenRecord={() => {}} />
+                    ))}
+                  </ul>
+                </>}
+
+                {closedToday.length > 0 && <>
+                  <h3 className="border-t border-line bg-paper px-4 py-2 text-[13px] font-semibold text-ink-2 sm:px-5">Handled today</h3>
+                  <ul className="text-[14px]">
+                    {closedToday.map((e) => (
+                      <li key={e.id} className="grid grid-cols-[5.5rem_1fr_auto] gap-x-4 border-t border-line px-4 py-2 first:border-t-0 sm:px-5">
+                        <span className="font-mono text-[12px] leading-6 text-ink-3">{fmtTime(e.startedAt)}</span>
+                        <span className="truncate">{e.triage?.label || "Emergency"}</span>
+                        <span className="text-ink-2 tnum">{e.route?.savedMin ?? 0} min saved</span>
+                      </li>
+                    ))}
+                  </ul>
+                </>}
+              </div>
             </div>
 
-            {/* Map + relays */}
-            <div className="flex min-w-0 flex-col gap-5 lg:sticky lg:top-[84px] lg:self-start">
-              <RoutePanel e={selected} file={selectedFile} hospitals={hospitals} />
+            {/* Route + relays */}
+            <div className="flex min-w-0 flex-col gap-5 lg:sticky lg:top-[68px] lg:self-start">
+              <div className={cx(!selected && "hidden lg:block")}><RoutePanel e={selected} file={selectedFile} hospitals={hospitals} /></div>
               <RelaysList relays={relays} hospitals={hospitals} ownId={ownId} demoSpeed={info?.demoSpeed || 1} now={now} />
             </div>
           </section>
@@ -210,15 +225,22 @@ function Console() {
   );
 }
 
-function Kpi({ icon, label, value, sub, tone }: { icon: React.ReactNode; label: string; value: number; sub: string; tone?: "ok" | "warn" | "sos" }) {
+const etaKey = (e: Emergency) => (e.status === "admitted" ? 1e6 : e.status === "arrived" ? -1 : e.etaLeftMin ?? 1e5);
+const byEta = (a: Emergency, b: Emergency) => etaKey(a) - etaKey(b);
+
+function Figure({ label, value, sub, alert, warn, href }: { label: string; value: number; sub: string; alert?: boolean; warn?: boolean; href?: string }) {
+  const body = (
+    <>
+      <dt className="text-[13px] text-ink-2">{label}</dt>
+      <dd className="flex items-baseline gap-2">
+        <span className={cx("font-display text-[30px] font-semibold leading-none tnum", alert ? "text-sos" : warn ? "text-warn" : "text-ink")} style={{ fontStretch: "85%" }}>{value}</span>
+        <span className="text-[13px] text-ink-3">{sub}</span>
+      </dd>
+    </>
+  );
   return (
-    <Card className="flex items-start gap-3 p-4">
-      <div className={cx("grid h-10 w-10 shrink-0 place-items-center rounded-xl", tone === "sos" ? "bg-sos-50 text-sos" : tone === "warn" ? "bg-warn-50 text-warn" : tone === "ok" ? "bg-teal-50 text-teal" : "bg-paper-2 text-ink-2")}>{icon}</div>
-      <div className="min-w-0">
-        <div className="text-[11px] font-bold uppercase tracking-wide text-ink-3">{label}</div>
-        <div className={cx("font-display text-3xl font-bold leading-tight tnum", tone === "sos" && "text-sos", tone === "warn" && "text-warn", tone === "ok" && "text-teal")}>{value}</div>
-        <div className="text-xs leading-snug text-ink-2">{sub}</div>
-      </div>
-    </Card>
+    <div className="min-w-0 pr-3 sm:border-r sm:border-line sm:px-5 sm:first:pl-0 sm:last:border-r-0">
+      {href ? <a href={href} className="block hover:opacity-80">{body}</a> : body}
+    </div>
   );
 }
