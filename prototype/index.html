@@ -1,0 +1,1012 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Saathi Golden Hour</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+Thambi+2:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&family=Noto+Sans+Tamil:wght@400;600&display=swap">
+<style>
+/* Layout: presenter strip on top, then a "stage" holding three live screens:
+   Paati's phone · Karthik's phone · hospital network console. Narrow screens show one at a time. */
+:root{
+  --bg:#EAF0ED; --surface:#FFFFFF; --surface-2:#F4F7F5; --ink:#13221E; --ink-2:#4B5D57; --line:#D3DDD8;
+  --brand:#D98E04; --brand-ink:#7A4E00; --brand-soft:#FCEFD3;
+  --sos:#D62839; --sos-soft:#FBE2E5; --ok:#12775A; --ok-soft:#DCF1E8;
+  --warn:#AE5A06; --warn-soft:#FCEEDB; --info:#1E5E8A; --info-soft:#E0EDF6;
+  --bezel:#1A2622; --map-road:#D9E2DE; --map-bg:#F2F6F4;
+  --f-display:"Baloo Thambi 2","Noto Sans Tamil",ui-rounded,system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Noto Sans Tamil",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --f-tamil:"Noto Sans Tamil","Baloo Thambi 2",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1513; --surface:#16211E; --surface-2:#1C2925; --ink:#E4EDEA; --ink-2:#9BAFA8; --line:#2A3A35;
+  --brand:#F0B13A; --brand-ink:#F6CD78; --brand-soft:#3A2C10;
+  --sos:#FF5B6B; --sos-soft:#3B191E; --ok:#3CC594; --ok-soft:#12302A; --warn:#F0A04B; --warn-soft:#3A2A13;
+  --info:#6AAEDF; --info-soft:#132A3B; --bezel:#040807; --map-road:#2A3935; --map-bg:#121C19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1513; --surface:#16211E; --surface-2:#1C2925; --ink:#E4EDEA; --ink-2:#9BAFA8; --line:#2A3A35;
+  --brand:#F0B13A; --brand-ink:#F6CD78; --brand-soft:#3A2C10;
+  --sos:#FF5B6B; --sos-soft:#3B191E; --ok:#3CC594; --ok-soft:#12302A; --warn:#F0A04B; --warn-soft:#3A2A13;
+  --info:#6AAEDF; --info-soft:#132A3B; --bezel:#040807; --map-road:#2A3935; --map-bg:#121C19; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--f-body);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.ta{font-family:var(--f-tamil)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.1}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* Header */
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding-block:14px 10px}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+.brand-mark{width:36px;height:36px;border-radius:12px;background:var(--brand);display:grid;place-items:center;color:#fff}
+.brand h1{font-size:26px;letter-spacing:.2px}
+.brand small{display:block;font:500 12px/1.2 var(--f-body);color:var(--ink-2);letter-spacing:.06em;text-transform:uppercase}
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;flex-wrap:wrap}
+.tabs button{border:0;background:transparent;padding:6px 12px;border-radius:9px;font-weight:500;font-size:14px;color:var(--ink-2)}
+.tabs button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.sync{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px var(--ok-soft)}
+
+/* Presenter strip */
+.presenter{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding-block:10px;border-block:1px solid var(--line);background:var(--surface-2)}
+.presenter .lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);font-weight:600}
+.chip{border:1px solid var(--line);background:var(--surface);padding:6px 11px;border-radius:999px;font-size:13px;font-weight:500}
+.chip:hover{border-color:var(--ink-2)}
+.chip.primary{background:var(--brand);border-color:var(--brand);color:#1d1300;font-weight:600}
+.chip.ghost{background:transparent}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:transparent;padding:6px 10px;font-size:13px;color:var(--ink-2)}
+.seg button[aria-pressed="true"]{background:var(--info-soft);color:var(--info);font-weight:600}
+.pgroup{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+
+/* Stage */
+.stage{display:grid;gap:22px;padding-block:22px 40px;grid-template-columns:340px 340px minmax(0,1fr);align-items:start}
+.pane-title{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0 6px 8px}
+.pane-title h2{font-size:17px;font-weight:700}
+.pane-title span{font-size:12px;color:var(--ink-2)}
+@media (max-width:1180px){.stage{grid-template-columns:repeat(2,minmax(0,340px));justify-content:center}.pane-hospital{grid-column:1/-1}}
+@media (max-width:760px){.stage{grid-template-columns:minmax(0,1fr)}}
+body[data-view="patient"] .pane:not(.pane-patient),
+body[data-view="guardian"] .pane:not(.pane-guardian),
+body[data-view="hospital"] .pane:not(.pane-hospital){display:none}
+body:not([data-view="stage"]) .stage{grid-template-columns:minmax(0,1fr);max-width:560px;margin-inline:auto}
+body[data-view="hospital"] .stage{max-width:1180px}
+
+/* Phone frame */
+.phone{background:var(--surface);border:10px solid var(--bezel);border-radius:38px;height:700px;overflow:hidden;display:flex;flex-direction:column;position:relative;box-shadow:0 18px 40px -24px rgba(10,30,25,.45)}
+@media (max-width:760px){body:not([data-view="stage"]) .phone{border-width:0;border-radius:18px;height:auto;min-height:620px}}
+.statusbar{display:flex;justify-content:space-between;padding:10px 18px 4px;font:500 12px var(--f-mono);color:var(--ink-2)}
+.screen{flex:1;overflow-y:auto;padding:6px 18px 18px;display:flex;flex-direction:column;gap:14px;min-height:0}
+
+/* Patient */
+.greet .ta{font-size:22px;font-weight:600;line-height:1.25}
+.greet p{margin:2px 0 0;color:var(--ink-2);font-size:14px}
+.card{background:var(--surface-2);border:1px solid var(--line);border-radius:20px;padding:14px}
+.medrow{display:flex;align-items:center;gap:10px;padding:5px 0}
+.pill{width:26px;height:14px;border-radius:8px;flex:none;border:1px solid rgba(0,0,0,.15)}
+.medname{font-weight:600;font-size:15px}
+.medsub{font-size:12px;color:var(--ink-2)}
+.bigbtn{width:100%;border:0;border-radius:16px;padding:14px 12px;font-weight:600;font-size:17px;display:flex;flex-direction:column;align-items:center;gap:0;line-height:1.2}
+.bigbtn .ta{font-size:19px}
+.bigbtn small{font-size:13px;font-weight:500;opacity:.85}
+.btn-ok{background:var(--ok);color:#fff}
+.btn-sos{background:var(--sos);color:#fff}
+.btn-soft{background:var(--surface);border:1px solid var(--line)}
+.row{display:flex;gap:8px;align-items:center}
+.iconbtn{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:8px 10px;display:inline-flex;gap:6px;align-items:center;font-size:13px}
+.sos-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;padding:6px 0}
+.sos{--p:0;width:190px;height:190px;border-radius:50%;border:0;padding:0;position:relative;touch-action:none;user-select:none;-webkit-user-select:none;
+  background:conic-gradient(var(--ink) calc(var(--p)*1turn),transparent 0);display:grid;place-items:center}
+.sos-inner{width:174px;height:174px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff6b78,var(--sos) 60%);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 10px 30px -8px var(--sos);pointer-events:none}
+.sos-inner .ta{font-size:40px;font-weight:700;line-height:1}
+.sos-inner b{font:700 22px var(--f-display);letter-spacing:.06em}
+.sos-inner small{font-size:12px;opacity:.9}
+.hint{font-size:13px;color:var(--ink-2);text-align:center}
+.calm{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding-top:6px}
+.breathe{width:110px;height:110px;border-radius:50%;background:var(--ok-soft);display:grid;place-items:center;animation:breathe 6s ease-in-out infinite}
+.breathe div{width:62px;height:62px;border-radius:50%;background:var(--ok)}
+@keyframes breathe{0%,100%{transform:scale(.82)}50%{transform:scale(1)}}
+.calm h3{font-size:24px}
+.checks{display:flex;flex-direction:column;gap:8px;width:100%;text-align:left}
+.check{display:flex;gap:10px;align-items:flex-start;background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.check .ic{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;color:#fff;background:var(--ink-2)}
+.check.done .ic{background:var(--ok)}
+.check .ta{font-weight:600;font-size:15px;display:block}
+.check small{color:var(--ink-2);font-size:12.5px}
+.overlay{position:absolute;inset:0;background:color-mix(in srgb,var(--surface) 96%,transparent);display:flex;flex-direction:column;gap:12px;padding:56px 18px 18px;z-index:5;overflow-y:auto}
+.overlay h3{font-size:24px}
+.symgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sym{border:2px solid var(--line);background:var(--surface-2);border-radius:16px;padding:14px 8px;text-align:center;display:flex;flex-direction:column;gap:2px;min-height:84px;justify-content:center}
+.sym .ta{font-size:18px;font-weight:600}
+.sym small{color:var(--ink-2)}
+.sym:hover{border-color:var(--sos)}
+.say{display:flex;gap:8px}
+.say input{flex:1;min-width:0;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:inherit;background:var(--surface);color:var(--ink)}
+.callui{background:var(--ink);color:var(--bg);border-radius:22px;padding:22px 18px;text-align:center;display:flex;flex-direction:column;gap:10px}
+.callui .ta{font-size:18px}
+.banner{background:var(--info-soft);color:var(--info);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.banner .ta{font-weight:600}
+.badge{white-space:nowrap;display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600}
+.b-sos{background:var(--sos-soft);color:var(--sos)}.b-ok{background:var(--ok-soft);color:var(--ok)}
+.b-warn{background:var(--warn-soft);color:var(--warn)}.b-info{background:var(--info-soft);color:var(--info)}
+.b-brand{background:var(--brand-soft);color:var(--brand-ink)}
+
+/* Guardian */
+.g-head{display:flex;align-items:center;gap:12px}
+.avatar{width:46px;height:46px;border-radius:50%;background:var(--brand-soft);color:var(--brand-ink);display:grid;place-items:center;font:700 18px var(--f-display);flex:none}
+.g-head h3{font-size:20px}
+.g-head p{margin:0;font-size:13px;color:var(--ink-2)}
+.alertcard{background:var(--sos);color:#fff;border-radius:20px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.alertcard h3{font-size:21px}
+.alertcard p{margin:0;font-size:13.5px;opacity:.95}
+.alertcard.okcard{background:var(--ok)}
+.stepper{display:flex;flex-direction:column;gap:0}
+.step{display:flex;gap:10px;align-items:flex-start;position:relative;padding-bottom:12px}
+.step:not(:last-child)::after{content:"";position:absolute;left:9px;top:20px;bottom:0;width:2px;background:var(--line)}
+.step .sd{width:20px;height:20px;border-radius:50%;border:2px solid var(--line);background:var(--surface);flex:none;z-index:1}
+.step.done .sd{background:var(--ok);border-color:var(--ok)}
+.step.now .sd{background:var(--sos);border-color:var(--sos);animation:pulse 1.4s infinite}
+.step.done:not(:last-child)::after{background:var(--ok)}
+.step b{font-weight:600;font-size:14px;display:block}
+.step small{color:var(--ink-2);font-size:12.5px}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--sos) 55%,transparent)}100%{box-shadow:0 0 0 10px transparent}}
+.tl{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.tl li{display:grid;grid-template-columns:62px 1fr;gap:8px;font-size:13.5px;align-items:baseline}
+.tl time{font:500 12px var(--f-mono);color:var(--ink-2)}
+.tl .k-sos{color:var(--sos);font-weight:600}.tl .k-ok{color:var(--ok);font-weight:600}.tl .k-info{color:var(--info)}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center;font-size:11px;color:var(--ink-2)}
+.week i{display:block;height:28px;border-radius:9px;margin-bottom:3px;background:var(--line)}
+.week i.y{background:var(--ok)}.week i.n{background:var(--sos)}.week i.p{background:repeating-linear-gradient(45deg,var(--line) 0 5px,var(--surface) 5px 10px)}
+.sect{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);font-weight:600;margin-bottom:6px}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:9px 12px;font-weight:600;font-size:14px}
+.btn.solid{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.okb{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn:disabled{opacity:.55;cursor:default}
+.ladder{display:flex;flex-direction:column;gap:6px}
+.ladder div{display:flex;gap:8px;align-items:center;font-size:13.5px;padding:7px 10px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2)}
+.ladder div.on{color:var(--ink);border-color:var(--warn);background:var(--warn-soft)}
+.ladder div.ok{color:var(--ok);border-color:var(--ok);background:var(--ok-soft)}
+
+/* Hospital console */
+.console{background:var(--surface);border:1px solid var(--line);border-radius:22px;overflow:hidden}
+.c-head{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.c-head h3{font-size:19px}
+.c-head p{margin:0;font-size:12.5px;color:var(--ink-2)}
+.c-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:0}
+.c-grid>section{padding:16px 18px;min-width:0}
+.c-grid>section+section{border-left:1px solid var(--line)}
+@media (max-width:900px){.c-grid{grid-template-columns:minmax(0,1fr)}.c-grid>section+section{border-left:0;border-top:1px solid var(--line)}}
+.incoming{display:flex;flex-direction:column;gap:12px}
+.inc-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.inc-top h3{font-size:22px}
+.eta{text-align:right}
+.eta b{display:block;font:500 34px/1 var(--f-mono);color:var(--sos)}
+.eta small{font-size:12px;color:var(--ink-2)}
+.redflags{display:flex;flex-direction:column;gap:6px}
+.flag{border-left:4px solid var(--sos);background:var(--sos-soft);padding:7px 10px;border-radius:0 10px 10px 0;font-size:13.5px}
+.flag b{color:var(--sos)}
+.flag.w{border-color:var(--warn);background:var(--warn-soft)}.flag.w b{color:var(--warn)}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.fact{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+.fact small{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+.fact b{font-size:14px;font-weight:600}
+.brief{font-size:14px;background:var(--info-soft);border-radius:12px;padding:10px 12px;color:var(--ink)}
+.brief b{color:var(--info)}
+.empty{border:1.5px dashed var(--line);border-radius:16px;padding:22px;text-align:center;color:var(--ink-2);display:flex;flex-direction:column;gap:6px}
+.empty b{color:var(--ink);font-size:16px}
+.mapbox{background:var(--map-bg);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.mapbox svg{display:block;width:100%;height:auto}
+.why{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.why-row{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:8px;align-items:center;font-size:13px;padding:7px 10px;border-radius:10px;border:1px solid var(--line);background:var(--surface)}
+.why-row.pick{border-color:var(--ok);background:var(--ok-soft)}
+.why-row .rk{font:500 12px var(--f-mono);color:var(--ink-2)}
+.why-row small{display:block;color:var(--ink-2);font-size:12px}
+.why-row .sc{font:500 13px var(--f-mono);text-align:right}
+.saved{font-family:var(--f-display);font-size:20px;color:var(--ok);font-weight:700}
+.inv{padding:16px 18px;border-top:1px solid var(--line)}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:720px}
+th,td{padding:8px 8px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}
+th{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2);font-weight:600}
+td:first-child,th:first-child{text-align:left}
+td .y{color:var(--ok);font-weight:700}td .n{color:var(--ink-2)}
+td.low{color:var(--warn);font-weight:700}td.zero{color:var(--sos);font-weight:700}
+tr.target td{background:var(--ok-soft)}
+.mini{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:2px 8px;font-size:12px;font-weight:600;margin-left:6px}
+.relays{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.relay{font-size:13px;padding:8px 10px;border-radius:10px;background:var(--brand-soft);color:var(--brand-ink)}
+
+/* Captions + toast + modal */
+.caption{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));max-width:min(760px,calc(100% - 32px));background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:16px;font-size:16px;z-index:30;box-shadow:0 12px 30px -10px rgba(0,0,0,.4)}
+.caption b{color:var(--brand)}
+.toast{position:fixed;right:max(16px,env(safe-area-inset-right,0px));top:calc(16px + env(safe-area-inset-top,0px));background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:14px;z-index:40;box-shadow:0 10px 24px -12px rgba(0,0,0,.35);max-width:320px}
+.modal{position:fixed;inset:0;background:rgba(8,16,14,.55);display:grid;place-items:center;z-index:50;padding:16px}
+.qrcard{background:#fff;color:#111;border-radius:18px;padding:18px;width:min(380px,100%);display:flex;flex-direction:column;gap:10px;max-height:calc(100% - 20px);overflow-y:auto}
+.qrcard h3{font-size:20px;color:#111}
+.qrcard .strip{background:#D62839;color:#fff;border-radius:10px;padding:6px 10px;font-weight:700;font-size:14px;display:flex;justify-content:space-between}
+.qrrow{display:flex;gap:12px;align-items:flex-start}
+#qr{flex:none;max-width:154px;font-size:12px;background:#fff;padding:6px;border:1px solid #ddd;border-radius:8px}
+#qr img,#qr canvas{display:block;width:140px;height:140px}
+.qrfacts{font-size:12.5px;line-height:1.4}
+.qrfacts b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#666;margin-top:4px}
+.foot{padding-block:0 60px;color:var(--ink-2);font-size:13px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="wrap top">
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 21s-7.5-4.6-9.3-9.4C1.4 8.2 3.6 4.5 7.2 4.5c2 0 3.6 1.1 4.8 2.8 1.2-1.7 2.8-2.8 4.8-2.8 3.6 0 5.8 3.7 4.5 7.1C19.5 16.4 12 21 12 21z" fill="#fff"/><path d="M6 12h3l1.5-3 3 6 1.5-3h3" stroke="#D98E04" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div><h1>Saathi</h1><small>Golden-hour network · prototype</small></div>
+  </div>
+  <nav class="tabs" aria-label="Choose screen">
+    <button data-view="stage">All screens</button>
+    <button data-view="patient">Paati's phone</button>
+    <button data-view="guardian">Karthik's phone</button>
+    <button data-view="hospital">Hospital console</button>
+  </nav>
+  <div class="sync" id="sync"><span class="dot"></span><span id="syncText">Live sync on</span></div>
+</header>
+
+<div class="wrap presenter" id="presenter">
+  <span class="lbl">Demo scenarios</span>
+  <div class="pgroup">
+    <button class="chip primary" data-scn="cardiac" data-story="1">Play the 2 AM story</button>
+    <button class="chip" data-scn="cardiac">Chest pain</button>
+    <button class="chip" data-scn="snake">Snake bite</button>
+    <button class="chip" data-scn="fall">Fall on blood thinner</button>
+    <button class="chip" data-scn="breath">Breathless</button>
+    <button class="chip" data-scn="silent">Missed tablets</button>
+    <button class="chip ghost" id="resetBtn">Reset</button>
+  </div>
+  <span class="lbl">Alert sent from</span>
+  <div class="seg" id="srcSeg" role="group" aria-label="Alert source">
+    <button data-src="pendant" aria-pressed="true">Pendant</button>
+    <button data-src="missed call">Missed call</button>
+    <button data-src="app">App</button>
+    <button data-src="fall sensor">Fall sensor</button>
+  </div>
+</div>
+
+<main class="wrap stage">
+  <!-- PATIENT -->
+  <div class="pane pane-patient">
+    <div class="pane-title"><h2>Kamala Paati, 72</h2><span>Tambaram · elder</span></div>
+    <div class="phone" id="pPhone">
+      <div class="statusbar"><span data-clock>--:--</span><span>Saathi</span></div>
+      <div class="screen" id="pIdle">
+        <div class="greet"><div class="ta" id="pGreet">வணக்கம், கமலா பாட்டி</div><p>Good morning, Kamala Paati</p></div>
+        <div id="pBanner"></div>
+        <div class="card" id="pMeds"></div>
+        <div class="sos-wrap">
+          <button class="sos" id="sosBtn" aria-label="Hold for 2 seconds to call for help"><div class="sos-inner"><span class="ta">உதவி</span><b>HELP</b><small>hold 2 seconds</small></div></button>
+          <div class="hint"><span class="ta">2 விநாடி அழுத்திப் பிடிக்கவும்</span><br>Press and hold. Family and ambulance are called together.</div>
+        </div>
+        <div class="row" style="justify-content:center;gap:8px;flex-wrap:wrap">
+          <button class="iconbtn" id="qrBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v7M14 20h3"/></svg>My emergency card</button>
+          <button class="iconbtn" id="fallBtn" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6M5 9l3 3M19 9l-3 3M4 20h16"/></svg><span id="fallTxt">Fall detection: off</span></button>
+        </div>
+      </div>
+      <div class="screen" id="pActive" hidden></div>
+      <div class="overlay" id="pOverlay" hidden></div>
+    </div>
+  </div>
+
+  <!-- GUARDIAN -->
+  <div class="pane pane-guardian">
+    <div class="pane-title"><h2>Karthik (son)</h2><span>Bengaluru · 350 km away</span></div>
+    <div class="phone">
+      <div class="statusbar"><span data-clock>--:--</span><span>Saathi Family</span></div>
+      <div class="screen" id="gScreen"></div>
+    </div>
+  </div>
+
+  <!-- HOSPITAL -->
+  <div class="pane pane-hospital">
+    <div class="pane-title"><h2>Hospital network console</h2><span>Chennai South · 5 hospitals</span></div>
+    <div class="console">
+      <div class="c-head" id="hHead"></div>
+      <div class="c-grid">
+        <section id="hIncoming"></section>
+        <section>
+          <div class="sect">Need-matched routing</div>
+          <div class="mapbox" id="hMap"></div>
+          <div id="hWhy"></div>
+        </section>
+      </div>
+      <div class="inv">
+        <div class="row" style="justify-content:space-between;flex-wrap:wrap;margin-bottom:8px">
+          <div class="sect" style="margin:0">Network stock and capability (live)</div>
+          <span class="badge b-info">Updated daily by each pharmacy · 30 seconds</span>
+        </div>
+        <div class="tablewrap" id="hInv"></div>
+        <div class="relays" id="hRelays"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="wrap foot">
+  Prototype by Group 4 for the Design Thinking course. All patient data is sample data and every hospital is fictional. Demo time runs fast: 1 second is about 1 minute. Tabs in the same browser stay in sync. On the published claude.ai link, devices signed in to the same account sync too, so Paati's screen can be a real phone and the console can be the projector.
+</footer>
+
+<div class="caption" id="caption" hidden></div>
+<div class="toast" id="toast" hidden></div>
+<div class="modal" id="qrModal" hidden>
+  <div class="qrcard" role="dialog" aria-label="Emergency card">
+    <div class="strip"><span>SAATHI EMERGENCY CARD</span><span>Scan me</span></div>
+    <div class="qrrow">
+      <div id="qr"></div>
+      <div class="qrfacts">
+        <b>Name</b>Kamala Ramasamy · F · 72
+        <b>Blood group</b>B+
+        <b>Allergies</b><span style="color:#D62839;font-weight:700">Penicillin, Sulfa drugs</span>
+        <b>Blood thinner</b>Clopidogrel 75 mg
+      </div>
+    </div>
+    <div class="qrfacts"><b>Conditions</b>Type 2 diabetes · Hypertension · Coronary artery disease (stent 2022)
+      <b>Call</b>Karthik (son) +91 90000 00001 · Meena (neighbour) +91 90000 00002</div>
+    <div style="font-size:12px;color:#555">Stick this on the fridge or keep it in the wallet. Any phone camera can read it with no internet and no app. Sample data.</div>
+    <button class="btn solid" id="qrClose" style="background:#111;color:#fff">Close</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+(() => {
+"use strict";
+
+/* ---------- Static data (sample patient, fictional hospitals) ---------- */
+const PATIENT = {
+  name: "Kamala Ramasamy", age: 72, sex: "F", blood: "B+",
+  conditions: ["Type 2 diabetes (12 yrs)", "Hypertension", "Coronary artery disease, stent 2022"],
+  meds: [
+    { n: "Clopidogrel 75 mg", when: "am", c: "#F2D16B", note: "blood thinner" },
+    { n: "Metformin 500 mg", when: "am", c: "#FFFFFF", note: "sugar" },
+    { n: "Amlodipine 5 mg", when: "am", c: "#F4B6C2", note: "BP" },
+    { n: "Metformin 500 mg", when: "pm", c: "#FFFFFF", note: "sugar" },
+    { n: "Atorvastatin 20 mg", when: "pm", c: "#B7D3F2", note: "cholesterol" },
+  ],
+  allergies: "Penicillin (rash), Sulfa drugs",
+  vitals: "BP 148/88 · fasting sugar 162 mg/dL (home, 2 days ago)",
+  contacts: "Karthik (son) +91 90000 00001 · Meena (neighbour) +91 90000 00002",
+};
+
+const HOSP = [
+  { id: "h1", name: "Anbu Nagar PHC", short: "Anbu Nagar PHC", km: 1.6, x: -1.0, y: -0.9, cath: 0, ct: 0, neuro: 0, vent: 0, icu: 0, asv: 4, tnk: 0, upd: "07:30" },
+  { id: "h2", name: "Kovil Street Govt. Hospital", short: "Kovil St GH", km: 2.4, x: 1.5, y: 1.4, cath: 0, ct: 1, neuro: 0, vent: 1, icu: 2, asv: 22, tnk: 0, upd: "08:05" },
+  { id: "h5", name: "Lotus General Hospital", short: "Lotus General", km: 3.6, x: 2.0, y: -2.4, cath: 0, ct: 1, neuro: 0, vent: 1, icu: 3, asv: 2, tnk: 1, upd: "06:50" },
+  { id: "h3", name: "Saraswathi Multispeciality", short: "Saraswathi", km: 4.9, x: -3.4, y: 2.3, cath: 1, ct: 1, neuro: 0, vent: 1, icu: 1, asv: 0, tnk: 3, upd: "07:55" },
+  { id: "h4", name: "Cauvery Heart & Trauma Centre", short: "Cauvery H&T", km: 7.8, x: 5.2, y: -3.9, cath: 1, ct: 1, neuro: 1, vent: 1, icu: 4, asv: 8, tnk: 6, upd: "08:10" },
+];
+const H = id => HOSP.find(h => h.id === id);
+
+const COND = {
+  cardiac: { label: "Suspected heart attack", ta: "நெஞ்சு வலி", en: "Chest pain", needs: ["cath"], need: "cath lab for angioplasty", clock: 130 },
+  snake:   { label: "Snakebite, possible envenomation", ta: "பாம்பு கடி", en: "Snake bite", needs: ["asv"], need: "8–10 vials of anti-snake venom", clock: 1120 },
+  fall:    { label: "Head injury while on a blood thinner", ta: "கீழே விழுந்தேன்", en: "I fell down", needs: ["ct", "neuro"], need: "CT scan + neurosurgeon", clock: 365 },
+  breath:  { label: "Acute breathlessness", ta: "மூச்சுத் திணறல்", en: "Can't breathe", needs: ["icu", "vent"], need: "ICU bed with ventilator", clock: 1410 },
+  unknown: { label: "Emergency, cause not yet known", ta: "தெரியவில்லை", en: "Not sure", needs: ["icu"], need: "an ICU bed", clock: null },
+};
+const NEED_NAME = { cath: "cath lab", ct: "CT", neuro: "neurosurgeon", icu: "ICU bed", vent: "ventilator", asv: "enough anti-venom" };
+const BRIEF = {
+  cardiac: "Suspected ACS in known CAD (LAD stent 2022). <b>Already on clopidogrel</b>, so factor it into the loading dose. Diabetic: pain may be atypical, check CBG. <b>Penicillin allergy.</b>",
+  snake: "Snakebite, right ankle (patient report). <b>On clopidogrel</b>, so watch for bleeding if haemotoxic. Run 20WBCT on arrival. Keep ASV ready.",
+  fall: "Fall at home, struck head. <b>On clopidogrel (antiplatelet)</b>: high risk of intracranial bleed. Urgent CT head; alert neurosurgery.",
+  breath: "Acute breathlessness in a diabetic, hypertensive CAD patient. Consider ACS or heart failure. Reserve an ICU bed and ventilator. <b>Penicillin allergy.</b>",
+  unknown: "Cause not stated. Full history attached. <b>On clopidogrel. Penicillin allergy.</b> Diabetic.",
+};
+
+const SPEED_KMH = 24, DISPATCH_MIN = 3, TRANSFER_PENALTY = 45, NO_ICU_PENALTY = 15;
+const STORAGE_KEY = "saathi-demo-state-v1";
+const deviceId = Math.random().toString(36).slice(2, 10);
+
+/* ---------- Helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const now = () => Date.now();
+const fmtClock = m => { m = ((Math.round(m) % 1440) + 1440) % 1440; const h = Math.floor(m / 60), mm = m % 60; const ap = h < 12 ? "AM" : "PM"; const h12 = h % 12 || 12; return `${String(h12).padStart(2, "0")}:${String(mm).padStart(2, "0")} ${ap}`; };
+const realMinutes = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); };
+const etaMin = km => Math.round(km / SPEED_KMH * 60 + DISPATCH_MIN);
+const set = (el, html) => { if (el && el._h !== html) { el.innerHTML = html; el._h = html; } };
+
+/* ---------- State + sync ---------- */
+function fresh(v = 0) {
+  return { v, t: now(), by: deviceId, sos: null, silent: null, checkin: null, meds: { am: null, pm: null }, relays: [], events: [], notice: null };
+}
+let state = fresh();
+try { const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); if (saved && typeof saved.v === "number") state = saved; } catch (e) {}
+
+const newer = (a, b) => a && typeof a.v === "number" && (a.v > b.v || (a.v === b.v && a.t > b.t));
+let chan = null;
+try { chan = "BroadcastChannel" in window ? new BroadcastChannel("saathi-demo") : null; } catch (e) {}
+let room = null, peerCount = 1;
+
+function persist() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {} }
+function broadcast() {
+  try { chan && chan.postMessage(state); } catch (e) {}
+  if (room) room.presence({ s: state }).catch(() => {});
+}
+function commit(mut) {
+  const s = JSON.parse(JSON.stringify(state));
+  mut(s);
+  s.v = state.v + 1; s.t = now(); s.by = deviceId;
+  if (s.events.length > 14) s.events = s.events.slice(-14);
+  if (s.relays.length > 6) s.relays = s.relays.slice(-6);
+  state = s; persist(); broadcast(); render();
+}
+function adopt(s) {
+  if (!newer(s, state)) return;
+  state = s; persist(); render();
+  if (room) room.presence({ s: state }).catch(() => {});
+}
+if (chan) chan.onmessage = e => adopt(e.data);
+window.addEventListener("storage", e => { if (e.key === STORAGE_KEY && e.newValue) { try { adopt(JSON.parse(e.newValue)); } catch (x) {} } });
+
+const capCache = {};
+function useCap(name) {
+  if (!capCache[name]) capCache[name] = (window.claude && typeof window.claude.use === "function") ? window.claude.use(name).catch(() => null) : Promise.resolve(null);
+  return capCache[name];
+}
+useCap("room").then(r => {
+  if (!r) return;
+  room = r;
+  room.onPeers(ch => {
+    peerCount = ch.peers.length || 1;
+    for (const p of ch.peers) { if (!p.sameTab && p.presence && p.presence.s) adopt(p.presence.s); }
+    renderSync();
+  }, () => { room = null; renderSync(); });
+  room.presence({ s: state }).catch(() => {});
+  renderSync();
+});
+function renderSync() {
+  $("#syncText").textContent = room ? (peerCount > 1 ? `Live sync · ${peerCount} screens connected` : "Live sync · open on a 2nd device") : "Live sync · this browser's tabs";
+}
+
+/* ---------- Domain logic ---------- */
+function inventory(at = now()) {
+  const inv = {};
+  HOSP.forEach(h => inv[h.id] = { asv: h.asv, tnk: h.tnk, inbound: 0 });
+  for (const r of state.relays) {
+    inv[r.from].asv -= r.n;
+    if (at >= r.t + r.eta * 1000) inv[r.to].asv += r.n; else inv[r.to].inbound += r.n;
+  }
+  return inv;
+}
+function has(h, need, inv) {
+  if (need === "asv") return inv[h.id].asv >= 10;
+  if (need === "icu") return h.icu > 0;
+  return !!h[need];
+}
+function route(cond) {
+  const c = COND[cond], inv = inventory();
+  const rank = HOSP.map(h => {
+    const eta = etaMin(h.km);
+    const missing = c.needs.filter(n => !has(h, n, inv));
+    let score = eta + (missing.length ? TRANSFER_PENALTY : 0);
+    if (!missing.length && h.icu === 0 && cond !== "unknown") score += NO_ICU_PENALTY;
+    return { id: h.id, eta, score, miss: missing };
+  }).sort((a, b) => a.score - b.score);
+  const pick = rank[0];
+  const nearest = HOSP.slice().sort((a, b) => a.km - b.km)[0];
+  const nr = rank.find(r => r.id === nearest.id);
+  return { id: pick.id, eta: pick.eta, nearest: nearest.id, saved: Math.max(0, nr.score - pick.score), rank };
+}
+function rulesTriage(text) {
+  const t = (text || "").toLowerCase();
+  const R = [
+    ["snake", ["snake", "பாம்பு", "pambu", "paambu", "saanp", "सांप", "bite", "கடி", "kadi"]],
+    ["fall", ["fell", "fall", "slip", "விழு", "வழுக்", "vizhu", "vilu", "head", "தலை", "thalai", "गिर", "gir gay"]],
+    ["breath", ["breath", "மூச்சு", "moochu", "mochu", "saans", "सांस", "gasp", "chok", "திணற"]],
+    ["cardiac", ["chest", "heart", "நெஞ்சு", "nenju", "இதய", "idhayam", "सीने", "seene", "दिल", "dil", "left arm", "arm pain", "sweat", "வியர்", "vervai"]],
+  ];
+  for (const [c, words] of R) if (words.some(w => t.includes(w))) return { cond: c, src: "keyword match", conf: 0.7 };
+  return { cond: "unknown", src: "no match", conf: 0.3 };
+}
+
+/* ---------- Actions ---------- */
+let source = "pendant";
+function startSOS(src, cond, story) {
+  commit(s => {
+    const t = now();
+    s.silent = null; s.checkin = null; s.notice = null;
+    s.events = [];
+    s.sos = { t, src, story: !!story, clock0: cond && COND[cond].clock != null ? COND[cond].clock : realMinutes(), cond: null, triT: null, tri: null, route: null, text: null };
+    if (cond) applyTriage(s, cond, { src: "symptom + history", conf: 0.85 }, t);
+  });
+}
+function applyTriage(s, cond, meta, t = now()) {
+  s.sos.cond = cond;
+  s.sos.triT = t;
+  s.sos.tri = { src: meta.src, conf: meta.conf, why: meta.why || null, en: meta.en || null };
+  s.sos.route = route(cond);
+}
+function pushEvent(k, d) { commit(s => { if (["g_ack", "h_ready", "h_recv"].includes(k) && s.events.some(e => e.k === k)) return; s.events.push({ t: now(), k, d: d || null }); }); }
+
+function startSilent() {
+  commit(s => { s.sos = null; s.checkin = null; s.notice = null; s.events = []; s.meds = { am: null, pm: null }; s.silent = { t: now(), res: null }; });
+}
+function resetAll() { commit(s => { Object.assign(s, fresh(s.v)); }); stopStory(); toast("Demo reset"); }
+
+/* ---------- Derived timing ---------- */
+const SCALE = 1000; // 1 demo minute = 1 real second
+function sosInfo(s = state) {
+  const o = s.sos; if (!o) return null;
+  const el = (now() - o.t) / SCALE;
+  const tri = o.triT ? (o.triT - o.t) / SCALE : null;
+  const arriveAt = o.route ? tri + 2 + o.route.eta : null;
+  const recv = s.events.find(e => e.k === "h_recv");
+  let phase = "matching";
+  if (o.route && el >= tri + 2) phase = "enroute";
+  if (arriveAt != null && el >= arriveAt) phase = "arrived";
+  if (recv) phase = "admitted";
+  const etaLeft = arriveAt != null ? Math.max(0, Math.ceil(arriveAt - el)) : null;
+  return { el, tri, arriveAt, phase, etaLeft, clock: m => fmtClock(o.clock0 + m) };
+}
+function timeline() {
+  const s = state, out = [];
+  if (s.sos) {
+    const o = s.sos, i = sosInfo(), add = (off, cls, txt) => { if (off <= i.el) out.push({ off, cls, txt, at: i.clock(off) }); };
+    add(0, "k-sos", `SOS from Paati's ${o.src}`);
+    add(0.3, "", "Karthik and Meena (neighbour) called together · 108 alerted");
+    if (o.route) {
+      const c = COND[o.cond], h = H(o.route.id);
+      add(i.tri, "k-info", `${o.text ? `Paati said: “${o.text}”. ` : ""}Triage: ${c.label}`);
+      add(i.tri + 1, "", `Medical passport sent to ${h.short} ER`);
+      add(i.tri + 2, "k-info", `Routed to ${h.short} (${h.km} km): has ${c.need}`);
+      add(i.tri + 2, "", `Ambulance TN-108-217 dispatched · ETA ${o.route.eta} min`);
+      if (i.arriveAt != null) add(i.arriveAt, "k-ok", `Arrived at ${h.short}`);
+    }
+    for (const e of s.events) {
+      const off = (e.t - o.t) / SCALE;
+      const txt = { g_ack: "Karthik: “I'm on it”, now on the way", h_ready: `${o.route ? H(o.route.id).short : "Hospital"} ER: team ready and waiting`, h_recv: "Received by ER team · treatment started", cancel: "Cancelled by Paati (false alarm)" }[e.k];
+      if (txt) out.push({ off, cls: e.k === "h_ready" || e.k === "h_recv" ? "k-ok" : "", txt, at: i.clock(Math.max(0, off)) });
+    }
+  }
+  return out.sort((a, b) => a.off - b.off);
+}
+const SILENT_STEPS = [
+  { at: 0, clock: "09:00", txt: "Morning tablets not confirmed" },
+  { at: 5, clock: "09:15", txt: "Saathi phones Paati in Tamil · no answer" },
+  { at: 10, clock: "09:30", txt: "Neighbour Meena alerted and goes to check" },
+  { at: 15, clock: "09:35", txt: "Karthik notified" },
+  { at: 20, clock: "09:42", txt: "Meena: Paati was dizzy, sugar 62 mg/dL. Gave juice; she's OK now. Logged for her doctor." },
+];
+function silentInfo() {
+  const sl = state.silent; if (!sl) return null;
+  const el = ((sl.resT || now()) - sl.t) / SCALE;
+  const step = SILENT_STEPS.reduce((acc, st, idx) => el >= st.at ? idx : acc, 0);
+  const resolved = sl.res || (step >= 4 ? "meena" : null);
+  return { el, step, resolved, clock: fmtClock(540 + Math.min(el, 20) * 2.1) };
+}
+
+/* ---------- Render: patient ---------- */
+function renderPatient() {
+  const s = state, i = sosInfo(), si = silentInfo();
+  const active = !!s.sos;
+  $("#pIdle").hidden = active;
+  $("#pActive").hidden = !active;
+
+  const h = new Date().getHours();
+  $("#pGreet").textContent = h < 12 ? "காலை வணக்கம், கமலா பாட்டி" : "வணக்கம், கமலா பாட்டி";
+
+  // Banner: guardian check-in
+  let banner = "";
+  if (s.checkin && !s.checkin.ok) banner = `<div class="banner"><span class="ta">கார்த்திக் உங்களை விசாரிக்கிறார்</span><span>Karthik is checking on you</span><button class="bigbtn btn-ok" data-act="ci-ok"><span class="ta">நான் நலம்</span><small>I'm OK</small></button></div>`;
+  set($("#pBanner"), banner);
+
+  // Medicines
+  const slot = h < 15 ? "am" : "pm";
+  const taken = s.meds[slot];
+  const meds = PATIENT.meds.filter(m => m.when === slot);
+  set($("#pMeds"), `
+    <div class="row" style="justify-content:space-between"><div><div class="ta" style="font-weight:600;font-size:17px">${slot === "am" ? "காலை மாத்திரைகள்" : "இரவு மாத்திரைகள்"}</div><div class="medsub">${slot === "am" ? "Morning" : "Night"} tablets · ${meds.length}</div></div>
+    <button class="iconbtn" data-act="speak" aria-label="Read reminder aloud"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>Hear</button></div>
+    ${meds.map(m => `<div class="medrow"><span class="pill" style="background:${m.c}"></span><div><div class="medname">${esc(m.n)}</div><div class="medsub">${esc(m.note)}</div></div></div>`).join("")}
+    ${taken ? `<div class="badge b-ok" style="margin-top:6px">Taken at ${esc(taken)} ✓ Karthik can see this</div>` : `<button class="bigbtn btn-ok" style="margin-top:8px" data-act="took" data-slot="${slot}"><span class="ta">சாப்பிட்டேன் ✓</span><small>I took them</small></button>`}`);
+
+  // Active SOS screen
+  if (active) {
+    const o = s.sos, c = o.cond ? COND[o.cond] : null, hh = o.route ? H(o.route.id) : null;
+    const g = s.events.some(e => e.k === "g_ack"), ready = s.events.some(e => e.k === "h_ready");
+    const head = i.phase === "admitted" || i.phase === "arrived"
+      ? `<h3 class="ta">மருத்துவர்கள் உங்களுடன்</h3><div>You're at ${esc(hh.short)}. Doctors are with you.</div>`
+      : `<h3 class="ta">உதவி வருகிறது</h3><div>Help is on the way. Breathe slowly with the circle.</div>`;
+    set($("#pActive"), `
+      <div class="calm">
+        <div class="breathe" aria-hidden="true"><div></div></div>
+        ${head}
+      </div>
+      <div class="checks">
+        <div class="check done"><span class="ic">✓</span><div><span class="ta">கார்த்திக், மீனாவுக்கு தெரியும்</span><small>${g ? "Karthik is on it" : "Karthik and Meena have been called"}</small></div></div>
+        <div class="check ${o.route ? "done" : ""}"><span class="ic">${o.route ? "✓" : "…"}</span><div><span class="ta">ஆம்புலன்ஸ் வருகிறது</span><small>${!o.route ? "Finding the right hospital…" : (i.phase === "arrived" || i.phase === "admitted") ? `Reached ${esc(hh.short)}` : `Ambulance arriving in <span class="mono" data-eta>–</span> min`}</small></div></div>
+        ${hh ? `<div class="check ${ready ? "done" : ""}"><span class="ic">${ready ? "✓" : "…"}</span><div><span class="ta">${esc(hh.short)} தயார்</span><small>${ready ? `${esc(hh.short)} doctors are ready for you` : `${esc(hh.short)} has your records`}</small></div></div>` : ""}
+        <div class="check"><span class="ic">!</span><div><span class="ta">கதவைத் திறந்து வையுங்கள்</span><small>Keep the door unlocked and your medicine box ready</small></div></div>
+      </div>
+      ${i.el < 10 && i.phase !== "admitted" ? `<button class="bigbtn btn-soft" data-act="cancel"><span class="ta">தவறுதலாக அழுத்தினேன்</span><small>Pressed by mistake · cancel</small></button>` : ""}`);
+  }
+
+  // Overlays: symptom picker (SOS without cause) or Saathi IVR call (silent check)
+  const ov = $("#pOverlay");
+  let ovHtml = "";
+  if (active && !s.sos.cond) {
+    ovHtml = `<h3 class="ta">என்ன ஆச்சு?</h3><div style="margin-top:-8px">What happened? <span class="badge b-sos">Help is already being called</span></div>
+      <div class="symgrid">${["cardiac", "breath", "fall", "snake"].map(k => `<button class="sym" data-act="sym" data-c="${k}"><span class="ta">${COND[k].ta}</span><small>${COND[k].en}</small></button>`).join("")}</div>
+      <form class="say" id="sayForm"><input id="sayInput" autocomplete="off" placeholder="Or say it in your words (any language)" aria-label="Describe what happened"><button class="btn solid" type="submit">Send</button></form>
+      <button class="bigbtn btn-soft" data-act="sym" data-c="unknown"><span class="ta">தெரியவில்லை</span><small>Not sure · continuing automatically in <span class="mono" data-symleft>10</span>s</small></button>`;
+  } else if (!active && si && !si.resolved && si.step >= 1 && si.step < 4) {
+    ovHtml = `<div class="callui"><div class="mono" style="opacity:.75">Incoming call · Saathi</div>
+      <div class="ta">“பாட்டி, காலை மாத்திரை சாப்பிட்டீர்களா? நலமா?”</div><div style="opacity:.8;font-size:14px">“Paati, did you take your morning tablets? Are you well?”</div></div>
+      <button class="bigbtn btn-ok" data-act="silent-ok"><span class="ta">ஆம், நலம்</span><small>Yes, I'm fine (press 1)</small></button>
+      <button class="bigbtn btn-sos" data-act="silent-help"><span class="ta">உதவி வேண்டும்</span><small>I need help (press 9)</small></button>`;
+  } else if (fallPending) {
+    ovHtml = `<h3>Fall detected</h3><div class="ta" style="font-size:18px">நீங்கள் விழுந்தீர்களா?</div><div>Calling for help in <b class="mono" id="fallLeft">10</b> s unless you're OK.</div>
+      <button class="bigbtn btn-ok" data-act="fall-ok"><span class="ta">நான் நலம்</span><small>I'm OK, cancel</small></button>
+      <button class="bigbtn btn-sos" data-act="fall-help"><span class="ta">உதவி</span><small>Get help now</small></button>`;
+  }
+  const keepInput = ov.contains(document.activeElement) && document.activeElement.id === "sayInput";
+  if (!keepInput || !ovHtml) { set(ov, ovHtml); }
+  ov.hidden = !ovHtml;
+}
+
+/* ---------- Render: guardian ---------- */
+function renderGuardian() {
+  const s = state, i = sosInfo(), si = silentInfo();
+  let status = `<span class="badge b-ok">Safe</span>`;
+  if (s.sos) status = i.phase === "admitted" ? `<span class="badge b-info">With doctors</span>` : `<span class="badge b-sos">SOS active</span>`;
+  else if (si && !si.resolved) status = `<span class="badge b-warn">Checking on Amma</span>`;
+  let html = `<div class="g-head"><div class="avatar">அ</div><div><h3>Amma</h3><p>Kamala · Tambaram, Chennai</p></div><div style="margin-left:auto">${status}</div></div>`;
+
+  if (s.sos) {
+    const o = s.sos, hh = o.route ? H(o.route.id) : null, c = o.cond ? COND[o.cond] : null;
+    const acked = s.events.some(e => e.k === "g_ack");
+    const steps = [
+      ["Alert sent", "You, Meena and 108 notified", true],
+      ["Right hospital matched", hh ? `${hh.short} · ${c.need}` : "Matching Amma's needs to live hospital data…", !!o.route],
+      ["Ambulance on the way", o.route ? `ETA ${o.route.eta} min` : "", i.phase !== "matching"],
+      ["Reached hospital", hh ? hh.short : "", i.phase === "arrived" || i.phase === "admitted"],
+      ["With doctors", "Treatment started", i.phase === "admitted"],
+    ];
+    const cur = steps.findIndex(st => !st[2]);
+    html += `<div class="alertcard ${i.phase === "admitted" ? "okcard" : ""}">
+      <div class="mono" style="font-size:12px;opacity:.85">${esc(i.clock(0))} · via ${esc(o.src)}</div>
+      <h3>${i.phase === "admitted" ? "Amma is with the ER team" : "Amma pressed SOS"}</h3>
+      <p>${c ? esc(c.label) : "Waiting for Amma to say what happened…"}${o.route && i.phase !== "admitted" ? ` · arriving in <b class="mono" data-eta>–</b> min` : ""}</p></div>
+      <div class="stepper">${steps.map((st, k) => `<div class="step ${st[2] ? "done" : k === cur ? "now" : ""}"><span class="sd"></span><div><b>${st[0]}</b><small>${esc(st[1])}</small></div></div>`).join("")}</div>
+      <div class="btnrow"><button class="btn ${acked ? "" : "solid"}" data-act="g-ack" ${acked ? "disabled" : ""}>${acked ? "You're on it ✓" : "I'm on it"}</button><button class="btn" data-act="g-call">Call Amma</button><button class="btn" data-act="g-callh" ${hh ? "" : "disabled"}>Call hospital</button></div>
+      <div><div class="sect">Live timeline</div><ul class="tl">${timeline().map(e => `<li><time>${esc(e.at)}</time><span class="${e.cls}">${esc(e.txt)}</span></li>`).join("")}</ul></div>`;
+  } else {
+    if (s.notice) html += `<div class="card" style="font-size:14px"><b>${esc(s.notice)}</b></div>`;
+    if (si) {
+      html += `<div><div class="sect">Silent check · ${esc(si.clock)}</div><div class="ladder">${SILENT_STEPS.map((st, k) => {
+        if (k > si.step && !(si.resolved && k === 4 && si.resolved === "meena")) return "";
+        const cls = si.resolved === "meena" && k === si.step ? "ok" : k === si.step ? "on" : "";
+        return `<div class="${cls}"><span class="mono">${st.clock}</span>${esc(st.txt)}</div>`;
+      }).join("")}${si.resolved === "paati" ? `<div class="ok"><span class="mono">✓</span>Paati answered the Saathi call: "I'm fine". Tablets taken.</div>` : ""}</div></div>`;
+    }
+    const today = s.meds.am ? "y" : (new Date().getHours() >= 11 ? "n" : "p");
+    html += `<div class="card"><div class="sect">Today</div>
+      <div class="medrow"><span class="badge ${s.meds.am ? "b-ok" : "b-warn"}">${s.meds.am ? "✓ " + esc(s.meds.am) : "Pending"}</span><span>Morning tablets (3)</span></div>
+      <div class="medrow"><span class="badge ${s.meds.pm ? "b-ok" : "b-info"}">${s.meds.pm ? "✓ " + esc(s.meds.pm) : "9:00 PM"}</span><span>Night tablets (2)</span></div></div>
+      <div class="card"><div class="sect">This week · 5 of 6 days on time</div>
+      <div class="week">${[["Mon", "y"], ["Tue", "y"], ["Wed", "n"], ["Thu", "y"], ["Fri", "y"], ["Sat", "y"], ["Today", today]].map(([d, c]) => `<div><i class="${c}"></i>${d}</div>`).join("")}</div></div>
+      <div class="card" style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap"><div><b>Metformin 500 mg</b><div class="medsub">4 days left at the current pace</div></div><button class="btn" data-act="g-refill">Reorder</button></div>
+      <div class="btnrow"><button class="btn solid" data-act="g-checkin" ${s.checkin && !s.checkin.ok ? "disabled" : ""}>${s.checkin && !s.checkin.ok ? "Waiting for Amma…" : "Check on Amma"}</button><button class="btn" data-act="g-call">Call Amma</button></div>
+      ${s.checkin && s.checkin.ok ? `<div class="badge b-ok">Amma replied "I'm OK" at ${esc(s.checkin.ok)}</div>` : ""}`;
+  }
+  set($("#gScreen"), html);
+}
+
+/* ---------- Render: hospital ---------- */
+function renderHospital() {
+  const s = state, i = sosInfo(), o = s.sos;
+  const hh = o && o.route ? H(o.route.id) : null;
+  set($("#hHead"), hh
+    ? `<div><h3>${esc(hh.name)} · Emergency</h3><p>Incoming via Saathi · pre-arrival record shared with consent (break-glass access logged)</p></div><span class="badge ${i.phase === "admitted" ? "b-ok" : "b-sos"}">${i.phase === "admitted" ? "Patient received" : "1 incoming"}</span>`
+    : `<div><h3>Saathi network · Chennai South</h3><p>5 hospitals sharing live capability and critical-drug stock</p></div><span class="badge b-ok">All systems normal</span>`);
+
+  // Incoming
+  let inc;
+  if (o && o.route) {
+    const c = COND[o.cond], ready = s.events.some(e => e.k === "h_ready"), recv = s.events.some(e => e.k === "h_recv");
+    inc = `<div class="incoming">
+      <div class="inc-top"><div><div class="sect" style="margin:0">Incoming patient</div><h3>${PATIENT.name}, ${PATIENT.age}${PATIENT.sex}</h3>
+        <div class="row" style="flex-wrap:wrap;margin-top:6px"><span class="badge b-sos">${esc(c.label)}</span><span class="badge b-info">Triage: ${esc(o.tri.src)} · ${Math.round(o.tri.conf * 100)}%</span></div></div>
+        <div class="eta">${recv ? `<b style="color:var(--ok)">IN ER</b>` : i.phase === "arrived" ? `<b>ARRIVED</b>` : `<b data-eta>–</b><small>min · ambulance ETA</small>`}</div></div>
+      ${o.text ? `<div class="flag w"><b>Patient said:</b> “${esc(o.text)}”${o.tri.en ? ` (${esc(o.tri.en)})` : ""}</div>` : ""}
+      <div class="redflags"><div class="flag"><b>ALLERGY</b> · ${esc(PATIENT.allergies)}</div><div class="flag"><b>ANTIPLATELET</b> · Clopidogrel 75 mg daily (last dose this morning)</div></div>
+      <div class="facts">
+        <div class="fact"><small>Blood group</small><b>${PATIENT.blood}</b></div>
+        <div class="fact"><small>Conditions</small><b>T2DM · HTN · CAD (stent)</b></div>
+        <div class="fact"><small>Last home vitals</small><b>BP 148/88 · FBS 162</b></div>
+        <div class="fact"><small>Family</small><b>${s.events.some(e => e.k === "g_ack") ? "Son on the way ✓" : "Son notified"}</b></div>
+      </div>
+      <div class="brief"><b>Pre-arrival brief.</b> ${BRIEF[o.cond]}</div>
+      <div><div class="sect">Current medicines</div><div style="font-size:13.5px">${PATIENT.meds.map(m => esc(m.n) + (m.when === "pm" ? " (night)" : "")).join(" · ")}</div></div>
+      <div class="btnrow">
+        <button class="btn ${ready ? "" : "solid"}" data-act="h-ready" ${ready ? "disabled" : ""}>${ready ? "Team ready ✓" : o.cond === "cardiac" ? "Page cath lab team" : "Mark team ready"}</button>
+        <button class="btn ${recv ? "" : "okb"}" data-act="h-recv" ${recv || i.phase === "enroute" || i.phase === "matching" ? "disabled" : ""}>${recv ? "Received ✓" : "Patient received"}</button>
+      </div></div>`;
+  } else if (o) {
+    inc = `<div class="empty"><b>SOS received, matching a hospital…</b>Waiting for symptom or triage. Passport ready to send.</div>`;
+  } else {
+    inc = `<div class="empty"><b>No incoming patients</b>When a Saathi member raises an SOS, the receiving ER sees their critical facts and pre-arrival brief here before the ambulance arrives.<div style="margin-top:6px"><button class="chip primary" data-scn="cardiac" data-story="1">Play the 2 AM story</button></div></div>`;
+  }
+  set($("#hIncoming"), inc);
+
+  // Map
+  const S = 26, cx = 200, cy = 128, P = h => [cx + h.x * S, cy + h.y * S];
+  const pick = o && o.route ? H(o.route.id) : null, near = HOSP.slice().sort((a, b) => a.km - b.km)[0];
+  const labelPos = { h1: [-8, -12, "end"], h2: [10, 4, "start"], h5: [10, 4, "start"], h3: [0, 22, "middle"], h4: [-10, 4, "end"] };
+  let svg = `<svg viewBox="0 0 400 256" role="img" aria-label="Map of Paati's home and network hospitals">
+    <rect width="400" height="256" fill="var(--map-bg)"/>
+    <g stroke="var(--map-road)" stroke-width="7" stroke-linecap="round" fill="none"><path d="M0 150 C120 140 260 120 400 96"/><path d="M150 0 C160 90 190 180 170 256"/><path d="M40 256 C120 200 300 60 360 0"/></g>
+    <path d="M0 225 C90 215 120 245 230 240 C300 236 340 256 400 246 L400 256 L0 256Z" fill="var(--info-soft)"/>`;
+  if (o && o.route) {
+    const [nx, ny] = P(near), [px, py] = P(pick);
+    if (near.id !== pick.id) svg += `<line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="var(--ink-2)" stroke-width="2" stroke-dasharray="4 4"/>`;
+    svg += `<line x1="${cx}" y1="${cy}" x2="${px}" y2="${py}" stroke="var(--ok)" stroke-width="4" stroke-linecap="round"/>`;
+  }
+  for (const h of HOSP) {
+    const [x, y] = P(h), lp = labelPos[h.id], isPick = pick && pick.id === h.id;
+    svg += `<g><rect x="${x - 8}" y="${y - 8}" width="16" height="16" rx="4" fill="${isPick ? "var(--ok)" : "var(--surface)"}" stroke="${isPick ? "var(--ok)" : "var(--ink-2)"}" stroke-width="1.5"/>
+      <path d="M${x} ${y - 4.5}v9M${x - 4.5} ${y}h9" stroke="${isPick ? "#fff" : "var(--sos)"}" stroke-width="2.2"/>
+      <text x="${x + lp[0]}" y="${y + lp[1]}" text-anchor="${lp[2]}" font-size="12" font-family="IBM Plex Sans, system-ui, sans-serif" font-weight="${isPick ? 700 : 500}" fill="var(--ink)">${esc(h.short)} · ${h.km} km</text></g>`;
+  }
+  svg += `<g><circle cx="${cx}" cy="${cy}" r="9" fill="var(--brand)" stroke="var(--surface)" stroke-width="3"/><text x="${cx}" y="${cy + 24}" text-anchor="middle" font-size="11" font-weight="700" font-family="IBM Plex Sans, system-ui, sans-serif" fill="var(--brand-ink)">Paati's home</text></g>`;
+  svg += `<g id="amb" ${o && o.route ? "" : 'style="display:none"'}><circle r="11" fill="var(--sos)"/><path d="M-5 0h10M0 -5v10" stroke="#fff" stroke-width="2.4"/></g></svg>`;
+  set($("#hMap"), svg);
+
+  // Why panel
+  let why = "";
+  if (o && o.route) {
+    const c = COND[o.cond], nr = o.route.rank.find(r => r.id === o.route.nearest);
+    why = `<div class="why"><div class="row" style="justify-content:space-between;flex-wrap:wrap"><div style="font-size:13.5px"><b>Needs:</b> ${esc(c.need)}</div>${o.route.saved > 0 ? `<div class="saved">~${o.route.saved} min saved</div>` : ""}</div>
+      ${o.route.rank.map((r, k) => { const h = H(r.id); return `<div class="why-row ${k === 0 ? "pick" : ""}"><span class="rk">${k + 1}</span><div><b>${esc(h.short)}</b> · ${h.km} km · ${r.eta} min drive<small>${r.miss.length ? "Missing " + r.miss.map(m => NEED_NAME[m]).join(", ") + ` → transfer (+${TRANSFER_PENALTY} min)` : k === 0 ? "Has everything needed · chosen" : "Capable"}</small></div><span class="sc">${r.score} min</span></div>`; }).join("")}
+      <div style="font-size:12.5px;color:var(--ink-2)">Score = drive time + ${TRANSFER_PENALTY} min if the hospital would have to refer her onward. ${nr && nr.miss.length ? `The nearest (${esc(H(nr.id).short)}) can't treat this.` : ""} The paramedic can always override.</div></div>`;
+  } else {
+    why = `<div class="why"><p style="margin:0;font-size:13.5px;color:var(--ink-2)">Saathi ranks hospitals by <b style="color:var(--ink)">time to definitive treatment</b>, not distance. A hospital that would have to refer the patient onward gets a +${TRANSFER_PENALTY} min penalty.</p></div>`;
+  }
+  set($("#hWhy"), why);
+
+  // Inventory
+  const inv = inventory();
+  const yes = v => v ? `<span class="y">✓</span>` : `<span class="n">—</span>`;
+  const relaying = new Set(state.relays.filter(r => now() < r.t + r.eta * 1000).map(r => r.to));
+  set($("#hInv"), `<table><thead><tr><th>Hospital</th><th>Dist.</th><th>Cath lab</th><th>CT</th><th>Neuro</th><th>ICU beds</th><th>Ventilator</th><th>Anti-snake venom</th><th>Tenecteplase</th><th>Updated</th></tr></thead><tbody>
+    ${HOSP.map(h => { const a = inv[h.id].asv, inb = inv[h.id].inbound; return `<tr class="${pick && pick.id === h.id ? "target" : ""}"><td><b>${esc(h.short)}</b></td><td class="mono">${h.km} km</td><td>${yes(h.cath)}</td><td>${yes(h.ct)}</td><td>${yes(h.neuro)}</td>
+      <td class="mono ${h.icu === 0 ? "zero" : h.icu === 1 ? "low" : ""}">${h.icu}</td><td>${yes(h.vent)}</td>
+      <td class="mono ${a === 0 ? "zero" : a < 10 ? "low" : ""}">${a} vials${inb ? ` <span class="badge b-brand">+${inb} in transit</span>` : ""}${a < 10 && !relaying.has(h.id) && donor(h.id, inv) ? `<button class="mini" data-act="relay" data-to="${h.id}">Relay</button>` : ""}</td>
+      <td class="mono ${h.tnk === 0 ? "zero" : h.tnk < 2 ? "low" : ""}">${h.tnk}</td><td class="mono">${h.upd}</td></tr>`; }).join("")}
+    </tbody></table>`);
+  set($("#hRelays"), state.relays.map(r => { const done = now() >= r.t + r.eta * 1000; return `<div class="relay"><b>Medicine relay:</b> ${r.n} vials of anti-snake venom from ${esc(H(r.from).short)} to ${esc(H(r.to).short)} · ${done ? "delivered ✓" : `courier ETA ${r.eta} min`}</div>`; }).join(""));
+}
+function donor(to, inv) {
+  const t = H(to);
+  return HOSP.filter(h => h.id !== to && inv[h.id].asv - 10 >= 10)
+    .sort((a, b) => Math.hypot(a.x - t.x, a.y - t.y) - Math.hypot(b.x - t.x, b.y - t.y))[0] || null;
+}
+
+/* ---------- Captions for the auto-played story ---------- */
+const STORY = [
+  [0, "<b>2:10 AM.</b> Kamala Paati wakes up with chest pain. She presses her Saathi pendant. No unlocking, no number to remember."],
+  [2.5, "In seconds, <b>Karthik in Bengaluru and neighbour Meena are called together</b>, and 108 is alerted."],
+  [5, "Saathi reads her passport: stent in 2022, on clopidogrel. <b>Suspected heart attack. She needs a cath lab.</b>"],
+  [8, "The nearest hospital is a PHC with no cath lab. Saathi routes her to <b>Saraswathi, 4.9 km, cath lab ready</b>, avoiding a ~45 min transfer."],
+  [11.5, "Saraswathi's ER gets the <b>brief before she arrives</b>: blood thinner, penicillin allergy, diabetic."],
+  [14.5, "Karthik taps <b>I'm on it</b>. The ER pages the cath lab team, and Karthik sees it live."],
+  [19, "She arrives to a waiting team, <b>well inside the golden hour</b>. One press, three people in sync."],
+];
+let storyTimers = [];
+function stopStory() { storyTimers.forEach(clearTimeout); storyTimers = []; }
+function playStory() {
+  stopStory();
+  startSOS("pendant", "cardiac", true);
+  const at = (sec, fn) => storyTimers.push(setTimeout(fn, sec * 1000));
+  at(14, () => pushEvent("g_ack"));
+  at(15.5, () => pushEvent("h_ready"));
+  const arrive = 2 + etaMin(H("h3").km);
+  at(arrive + 2.5, () => pushEvent("h_recv"));
+}
+function renderCaption() {
+  const cap = $("#caption"), o = state.sos;
+  if (!o || !o.story) { cap.hidden = true; return; }
+  const el = (now() - o.t) / 1000;
+  const line = STORY.filter(s => el >= s[0]).pop();
+  if (!line || el > 30) { cap.hidden = true; return; }
+  set(cap, line[1]); cap.hidden = false;
+}
+
+/* ---------- Tick: countdowns + ambulance ---------- */
+function tick() {
+  const i = sosInfo(), si = silentInfo();
+  const clock = i ? i.clock(i.el) : si ? si.clock : fmtClock(realMinutes());
+  document.querySelectorAll("[data-clock]").forEach(e => e.textContent = clock);
+  if (i) {
+    document.querySelectorAll("[data-eta]").forEach(e => e.textContent = i.etaLeft ?? "–");
+    const left = document.querySelector("[data-symleft]"); if (left) left.textContent = Math.max(0, Math.ceil(10 - i.el));
+    const amb = document.getElementById("amb");
+    if (amb && state.sos.route) {
+      const h = H(state.sos.route.id), start = i.tri + 2, dur = state.sos.route.eta;
+      const p = Math.min(1, Math.max(0, (i.el - start) / dur));
+      const x = 200 + h.x * 26 * p, y = 128 + h.y * 26 * p;
+      amb.setAttribute("transform", `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
+    }
+    // Patient didn't pick a symptom in 10 s: continue with "unknown"
+    const typing = triaging || (document.activeElement && document.activeElement.id === "sayInput") || ($("#sayInput") && $("#sayInput").value.trim());
+    if (state.sos && !state.sos.cond && i.el >= 10 && !typing) commit(s => { if (s.sos && !s.sos.cond) applyTriage(s, "unknown", { src: "no answer, history only", conf: 0.3 }); });
+  }
+  if (fallPending) {
+    const left = Math.max(0, Math.ceil(10 - (now() - fallPending) / 1000));
+    const el = document.getElementById("fallLeft"); if (el) el.textContent = left;
+    if (left <= 0) { fallPending = 0; startSOS("fall sensor", "fall"); }
+  }
+}
+
+function render() { renderPatient(); renderGuardian(); renderHospital(); renderCaption(); tick(); }
+
+/* ---------- Voice ---------- */
+function speak() {
+  try {
+    const synth = window.speechSynthesis; if (!synth) return toast("Voice isn't available in this browser");
+    const voices = synth.getVoices();
+    const ta = voices.find(v => /^ta/i.test(v.lang));
+    const en = voices.find(v => /en-IN/i.test(v.lang)) || voices.find(v => /^en/i.test(v.lang));
+    const slot = new Date().getHours() < 15 ? "am" : "pm";
+    const u = new SpeechSynthesisUtterance(ta
+      ? (slot === "am" ? "பாட்டி, காலை மாத்திரை நேரம். மஞ்சள் மாத்திரை, வெள்ளை மாத்திரை, இளஞ்சிவப்பு மாத்திரை. சாப்பிட்டதும் பச்சை பொத்தானை அழுத்துங்கள்." : "பாட்டி, இரவு மாத்திரை நேரம். சாப்பிட்டதும் பச்சை பொத்தானை அழுத்துங்கள்.")
+      : (slot === "am" ? "Paati, it is time for your morning tablets. The yellow one, the white one and the pink one. Press the green button after you take them." : "Paati, it is time for your night tablets. Press the green button after you take them."));
+    u.voice = ta || en || null; u.lang = ta ? ta.lang : (en ? en.lang : "en-IN"); u.rate = 0.9;
+    synth.cancel(); synth.speak(u);
+    if (!ta) toast("No Tamil voice on this device, so reading in English");
+  } catch (e) { toast("Voice isn't available here"); }
+}
+
+/* ---------- AI triage (Claude, when available) with keyword fallback ---------- */
+async function triageText(text) {
+  const rule = rulesTriage(text);
+  const sample = await useCap("sample");
+  if (!sample) return rule;
+  const prompt = `You help route elderly emergency patients in India to the right hospital. Patient: 72-year-old woman with type 2 diabetes, hypertension, coronary artery disease (stent 2022), on clopidogrel. She just pressed SOS and said (may be Tamil, Hindi, English or mixed): """${text.slice(0, 300)}"""
+Classify the most likely emergency category for routing. Reply with JSON only:
+{"condition":"cardiac"|"breath"|"snake"|"fall"|"unknown","confidence":0-1,"english":"translation of what she said, under 12 words"}`;
+  try {
+    const r = await Promise.race([sample.json(prompt, { modelTier: "quick" }), new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 9000))]);
+    if (r && COND[r.condition]) return { cond: r.condition, src: "AI triage (Claude)", conf: Math.min(1, Math.max(0, +r.confidence || 0.6)), en: typeof r.english === "string" ? r.english.slice(0, 120) : null };
+  } catch (e) {}
+  return rule;
+}
+
+/* ---------- Fall detection (real accelerometer where the browser allows it) ---------- */
+let triaging = false;
+let fallPending = 0, fallOn = false, lastSpike = 0;
+function onMotion(e) {
+  const a = e.accelerationIncludingGravity; if (!a) return;
+  const g = Math.sqrt((a.x || 0) ** 2 + (a.y || 0) ** 2 + (a.z || 0) ** 2);
+  if (g > 28 && now() - lastSpike > 15000 && !state.sos && !fallPending) { lastSpike = now(); fallPending = now(); render(); }
+}
+async function toggleFall() {
+  if (fallOn) { window.removeEventListener("devicemotion", onMotion); fallOn = false; }
+  else {
+    try { if (typeof DeviceMotionEvent.requestPermission === "function" && (await DeviceMotionEvent.requestPermission()) !== "granted") return toast("Motion permission was declined"); } catch (e) { return toast("Motion sensors aren't available here"); }
+    window.addEventListener("devicemotion", onMotion); fallOn = true; toast("Fall detection on. Drop the phone onto a pillow to test.");
+  }
+  $("#fallTxt").textContent = `Fall detection: ${fallOn ? "on" : "off"}`;
+}
+if ("DeviceMotionEvent" in window && "ontouchstart" in window) $("#fallBtn").hidden = false;
+
+/* ---------- Hold-to-SOS ---------- */
+const sosBtn = $("#sosBtn");
+let holdStart = 0, holdRaf = 0;
+function holdLoop() {
+  const p = Math.min(1, (now() - holdStart) / 1600);
+  sosBtn.style.setProperty("--p", p);
+  if (p >= 1) { endHold(); if (navigator.vibrate) navigator.vibrate([200, 80, 200]); startSOS("app", null); return; }
+  holdRaf = requestAnimationFrame(holdLoop);
+}
+function beginHold(e) { if (state.sos || holdStart) return; e.preventDefault(); holdStart = now(); holdRaf = requestAnimationFrame(holdLoop); }
+function endHold() { holdStart = 0; cancelAnimationFrame(holdRaf); sosBtn.style.setProperty("--p", 0); }
+sosBtn.addEventListener("pointerdown", e => { try { sosBtn.setPointerCapture(e.pointerId); } catch (x) {} beginHold(e); });
+["pointerup", "pointercancel", "lostpointercapture"].forEach(t => sosBtn.addEventListener(t, endHold));
+sosBtn.addEventListener("keydown", e => { if ((e.key === " " || e.key === "Enter") && !e.repeat) beginHold(e); });
+sosBtn.addEventListener("keyup", endHold);
+sosBtn.addEventListener("contextmenu", e => e.preventDefault());
+
+/* ---------- Event delegation ---------- */
+const stamp = () => fmtClock(realMinutes());
+document.addEventListener("click", async e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.view) return setView(b.dataset.view);
+  if (b.dataset.scn) {
+    stopStory();
+    if (b.dataset.story) return playStory();
+    if (b.dataset.scn === "silent") return startSilent();
+    return startSOS(source, b.dataset.scn, false);
+  }
+  if (b.dataset.src) { source = b.dataset.src; document.querySelectorAll("#srcSeg button").forEach(x => x.setAttribute("aria-pressed", x === b)); return; }
+  switch (b.dataset.act) {
+    case "took": return commit(s => { s.meds[b.dataset.slot] = stamp(); });
+    case "speak": return speak();
+    case "sym": return commit(s => { if (s.sos && !s.sos.cond) applyTriage(s, b.dataset.c, { src: "symptom chip", conf: b.dataset.c === "unknown" ? 0.3 : 0.85 }); });
+    case "cancel": stopStory(); return commit(s => { s.notice = `False alarm at ${s.sos ? fmtClock(s.sos.clock0) : stamp()}: Paati cancelled it herself. She's OK.`; s.sos = null; s.events = []; });
+    case "ci-ok": return commit(s => { if (s.checkin) s.checkin.ok = stamp(); });
+    case "silent-ok": return commit(s => { if (s.silent) { s.silent.res = "paati"; s.silent.resT = now(); } s.meds.am = stamp(); });
+    case "silent-help": return startSOS("Saathi call (pressed 9)", null);
+    case "fall-ok": fallPending = 0; return render();
+    case "fall-help": fallPending = 0; return startSOS("fall sensor", "fall");
+    case "g-ack": return pushEvent("g_ack");
+    case "g-call": return toast("Calling Amma… (demo only, no real call is placed)");
+    case "g-callh": return toast("Calling the hospital ER desk… (demo only)");
+    case "g-refill": return toast("Refill request sent to the partner pharmacy (demo)");
+    case "g-checkin": return commit(s => { s.checkin = { t: now(), ok: null }; });
+    case "h-ready": return pushEvent("h_ready");
+    case "h-recv": return pushEvent("h_recv");
+    case "relay": {
+      const inv = inventory(), d = donor(b.dataset.to, inv); if (!d) return;
+      const to = H(b.dataset.to), km = Math.hypot(d.x - to.x, d.y - to.y) * 1.2;
+      return commit(s => { s.relays.push({ t: now(), from: d.id, to: to.id, n: 10, eta: Math.round(km / 30 * 60 + 5) }); });
+    }
+  }
+});
+document.addEventListener("submit", async e => {
+  if (e.target.id !== "sayForm") return;
+  e.preventDefault();
+  const input = $("#sayInput"), text = input.value.trim(); if (!text) return;
+  input.disabled = true; triaging = true; toast("Understanding what Paati said…");
+  const r = await triageText(text);
+  triaging = false;
+  commit(s => { if (s.sos && !s.sos.cond) { s.sos.text = text.slice(0, 160); applyTriage(s, r.cond, { src: r.src, conf: r.conf, en: r.en }); } });
+});
+$("#resetBtn").addEventListener("click", resetAll);
+$("#fallBtn").addEventListener("click", toggleFall);
+
+/* ---------- QR emergency card ---------- */
+let qrMade = false;
+function ensureQR() {
+  if (window.QRCode) return Promise.resolve(true);
+  return new Promise(res => { const sc = document.createElement("script"); sc.src = "vendor/qrcode.min.js"; sc.onload = () => res(!!window.QRCode); sc.onerror = () => res(false); document.head.appendChild(sc); });
+}
+$("#qrBtn").addEventListener("click", async () => {
+  $("#qrModal").hidden = false;
+  await ensureQR();
+  if (!qrMade && window.QRCode) {
+    const text = ["SAATHI EMERGENCY CARD", `${PATIENT.name}, F, ${PATIENT.age}  Blood: ${PATIENT.blood}`,
+      `ALLERGY: ${PATIENT.allergies}`, "ON BLOOD THINNER: Clopidogrel 75mg",
+      `Conditions: ${PATIENT.conditions.join("; ")}`, `Meds: ${PATIENT.meds.map(m => m.n + (m.when === "pm" ? " (night)" : "")).join(", ")}`,
+      `Call: ${PATIENT.contacts}`, "(Sample data - college prototype)"].join("\n").replace(/ \u00b7 /g, "; ").replace(/[^\x20-\x7E\n]/g, "-"); // this QR library miscounts non-ASCII text
+    try { new QRCode(document.getElementById("qr"), { text, width: 280, height: 280, correctLevel: QRCode.CorrectLevel.M }); qrMade = true; } catch (e) {}
+  }
+  if (!qrMade) $("#qr").textContent = "QR code needs the internet the first time. Try again once you're online.";
+});
+$("#qrClose").addEventListener("click", () => $("#qrModal").hidden = true);
+$("#qrModal").addEventListener("click", e => { if (e.target.id === "qrModal") $("#qrModal").hidden = true; });
+
+/* ---------- Toast + view switching ---------- */
+let toastT = 0;
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600); }
+function setView(v) {
+  if (!["stage", "patient", "guardian", "hospital"].includes(v)) v = "stage";
+  document.body.dataset.view = v;
+  document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-pressed", b.dataset.view === v));
+  try { history.replaceState(null, "", "#" + v); } catch (e) {}
+}
+setView((location.hash || "").slice(1) || (window.innerWidth < 760 ? "patient" : "stage"));
+
+renderSync();
+render();
+setInterval(() => { render(); }, 400);
+})();
+</script>
+</body>
+</html>
