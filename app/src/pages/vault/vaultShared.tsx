@@ -84,18 +84,29 @@ export function verdict(points: LabPoint[], t: TrendDef) {
   return { worse, text: `${worse ? "Getting worse" : "Better"}: ${a} → ${b}` };
 }
 
+/** Round axis bounds and 3-5 evenly spaced ticks on whole "nice" steps. */
+function niceScale(lo: number, hi: number) {
+  const pad = (hi - lo) * 0.2 || Math.abs(hi) * 0.1 || 1;
+  const span = hi - lo + pad * 2;
+  const step = [0.5, 1, 2, 5, 10, 20, 25, 50, 100].find((s) => span / s <= 4) ?? 200;
+  const a = Math.floor((lo - pad) / step) * step, b = Math.ceil((hi + pad) / step) * step;
+  const ticks: number[] = [];
+  for (let v = a; v <= b + 1e-9; v += step) ticks.push(Math.round(v * 100) / 100);
+  return { domain: [a, b] as [number, number], ticks };
+}
+
 /** Line chart with the usual target as a dashed line. Clicking a point opens its source paper. */
 export function TrendChart({ t, points, docs, onOpen, height = 170 }: { t: TrendDef; points: LabPoint[]; docs: MedDocument[]; onOpen?: (d: MedDocument) => void; height?: number }) {
   const v = verdict(points, t);
   const color = v?.worse ? "#D62839" : "#0F6E5A";
   const data = points.map((p) => ({ ...p, x: prettyDate(p.date, false) }));
   const vals = points.map((p) => p.value).concat(t.target);
-  const lo = Math.min(...vals), hi = Math.max(...vals), pad = (hi - lo) * 0.25 || 1;
+  const { domain, ticks } = niceScale(Math.min(...vals), Math.max(...vals));
   const sourceDocs = [...new Set(points.map((p) => p.docId))].map((id) => docs.find((d) => d.id === id)).filter(Boolean) as MedDocument[];
   return (
     <div className="print-break flex min-w-0 flex-col rounded-2xl border border-line bg-white p-4">
       <div className="flex items-baseline justify-between gap-2">
-        <h4 className="text-base font-bold">{t.key} <span className="font-sans text-xs font-medium text-ink-3">{t.unit}</span></h4>
+        <h4 className="whitespace-nowrap text-base font-bold">{t.key} <span className="font-sans text-xs font-medium text-ink-3">{t.unit}</span></h4>
         <span className="text-[11px] font-semibold text-ink-3">target {t.good === "below" ? "<" : ">"} {t.target}</span>
       </div>
       <div className="text-xs text-ink-2">{t.label}</div>
@@ -106,7 +117,7 @@ export function TrendChart({ t, points, docs, onOpen, height = 170 }: { t: Trend
               <LineChart data={data} margin={{ top: 22, right: 18, bottom: 0, left: 0 }}>
                 <CartesianGrid stroke="#E9EFEC" vertical={false} />
                 <XAxis dataKey="x" tick={{ fontSize: 11, fill: "#7D8F89" }} tickLine={false} axisLine={{ stroke: "#DAE3DF" }} interval="preserveStartEnd" />
-                <YAxis width={36} domain={[Math.floor(lo - pad), Math.ceil(hi + pad)]} tick={{ fontSize: 11, fill: "#7D8F89" }} tickLine={false} axisLine={false} />
+                <YAxis width={36} domain={domain} ticks={ticks} tick={{ fontSize: 11, fill: "#7D8F89" }} tickLine={false} axisLine={false} />
                 <ReferenceLine y={t.target} stroke="#4B5D57" strokeDasharray="5 5" strokeOpacity={0.7} />
                 <Tooltip formatter={(val: number) => [`${val} ${t.unit}`, t.key]} labelStyle={{ fontWeight: 700 }} contentStyle={{ borderRadius: 12, borderColor: "#DAE3DF", fontSize: 12 }} />
                 <Line type="monotone" dataKey="value" stroke={color} strokeWidth={3} isAnimationActive={false}

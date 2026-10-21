@@ -312,6 +312,7 @@ api.delete("/vault/docs/:id", wrap(async (req, res) => {
 }));
 api.post("/vault/ask", wrap(async (req, res) => { const p = needFamily(req); res.json(await AI.askRecord(S.healthRecord(p.id), clean(req.body?.question, 400) || fail(400, "Ask a question"))); }));
 
+const breakGlassLog = new Set<string>();
 const shares = new Map<string, { patientId: string; expires: number }>();
 api.post("/vault/share", wrap((req, res) => {
   const p = needFamily(req);
@@ -350,7 +351,15 @@ api.get("/hospitals", (_req, res) => res.json(S.hospitals()));
 api.get("/network", wrap((req, res) => { needHospital(req); res.json({ emergencies: E.networkEmergencies(), hospitals: S.hospitals(), relays: S.relays() }); }));
 api.get("/network/patient/:id", wrap((req, res) => {
   needHospital(req);
-  const active = get("SELECT id FROM emergencies WHERE patient_id = ? AND status IN ('dispatched','arrived','admitted') LIMIT 1", req.params.id) || fail(403, "Records open only during an active emergency (break-glass)");
+  const active = get("SELECT id, family_id FROM emergencies WHERE patient_id = ? AND status IN ('triage','dispatched','arrived','admitted') LIMIT 1", req.params.id) || fail(403, "Records open only during an active emergency (break-glass)");
+  // Break-glass access is logged where the family can see it, once per staff member per emergency
+  const key = `${active!.id}:${req.user.id}`;
+  if (!breakGlassLog.has(key)) {
+    breakGlassLog.add(key);
+    const h = req.user.hospitalId ? S.hospitalById(req.user.hospitalId) : null;
+    console.log(`[break-glass] ${req.user.name} (${h?.short || "hospital"}) opened record of patient ${req.params.id} for emergency ${active!.id}`);
+    toFamily(active!.family_id, "feed", S.addFeed(active!.family_id, "emergency", "info", `${h?.short || "The ER"} opened her medical record`, `${req.user.name} viewed it for this emergency. Every access is logged.`));
+  }
   res.json({ record: S.healthRecord(req.params.id), meds: S.meds(req.params.id), emergencyId: active!.id });
 }));
 api.post("/emergencies/:id/:action(ready|admit|resolve)", wrap((req, res) => { needHospital(req); res.json(E.hospitalAction(req.params.id, req.params.action as "ready" | "admit" | "resolve")); }));

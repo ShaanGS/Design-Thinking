@@ -70,7 +70,7 @@ export default function IncomingCard({ e, file, hospitals, ownId, selected, onSe
                 </>
               ) : <span className="font-semibold text-warn">Waiting for symptoms…</span>}
             </div>
-            {e.symptomText && <p className="mt-1 text-sm italic text-ink-2">“{e.symptomText}”{e.triage?.english && e.triage.english !== e.symptomText ? ` (${e.triage.english})` : ""}</p>}
+            {e.symptomText && mine && <p className="mt-1 text-sm italic text-ink-2">“{e.symptomText}”{e.triage?.english && e.triage.english !== e.symptomText ? ` (${e.triage.english})` : ""}</p>}
           </div>
           <div className="shrink-0 text-right">
             {arrived ? (
@@ -99,7 +99,7 @@ export default function IncomingCard({ e, file, hospitals, ownId, selected, onSe
         )}
 
         {/* AI brief */}
-        {e.brief && (mine || selected) && (
+        {e.brief && mine && (
           <div className="rounded-xl bg-info-50 px-3.5 py-3 text-sm leading-relaxed text-ink">
             <div className="mb-1 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-info"><ClipboardList className="h-3.5 w-3.5" /> Pre-arrival brief</div>
             {e.brief}
