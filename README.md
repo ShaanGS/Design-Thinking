@@ -1,9 +1,9 @@
-# Saathi: the golden-hour network for elderly emergencies
+# Saathi: the AI grandchild that calls every day
 
 **Design Thinking course project, Group 4**
 Shaan (RA2511004010247) · Shrinavin (RA2511004010230) · Kishore (RA2511004010212) · Aakash (RA2511004010207) · Santhosh Sharma (RA2511004010257) · Dhanisha (RA2511004010217)
 
-> One press from any phone alerts the family, sends the patient's critical history ahead to the ER, and routes the ambulance to the nearest hospital that actually has the bed, specialist or drug this patient needs.
+> Saathi phones your parents every morning, in their own language, on any phone. It checks their medicines, notices when something is changing, tells you what matters, and when it's serious, runs the emergency: family, ambulance, the medical record sent ahead, and routing to a hospital that can actually treat them.
 
 ## What's in this repo
 
@@ -12,6 +12,8 @@ Shaan (RA2511004010247) · Shrinavin (RA2511004010230) · Kishore (RA25110040102
 | [`docs/01-design-thinking-dossier.md`](docs/01-design-thinking-dossier.md) | The full project: reframed problem, evidence, personas, empathy and journey maps, POV/HMW, ideation, solution, validation plan, competitors and gap, feasibility, market, business model, architecture, roadmap |
 | [`docs/02-research-kit.md`](docs/02-research-kit.md) | Interview scripts (elder, guardian, doctor, pharmacist, EMT), consent script, usability-test sheet, Google Form survey, tips for the emotional storytelling |
 | [`docs/03-pitch-and-demo.md`](docs/03-pitch-and-demo.md) | Slide-by-slide pitch outline, a live demo script with exact clicks, judge Q&A, team roles |
+| [`docs/04-startup-ideation.md`](docs/04-startup-ideation.md) | **Round 2:** 24 startup ideas, scoring, YC alignment, and the chosen direction: Saathi, the AI grandchild that calls every day (business model, moat, risks, 10-week build plan) |
+| [`prototype/companion.html`](prototype/companion.html) | **AI companion demo:** daily Tamil check-in call, prescription scanning, 14-day drift. Live: https://claude.ai/artifact/WLgT3L2tz5EkeaB6ny45VP |
 | [`prototype/index.html`](prototype/index.html) | The working prototype: three live screens (Paati's phone, Karthik's phone, hospital network console) |
 
 ## Run the prototype

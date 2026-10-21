@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Saathi Companion</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+Thambi+2:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&family=Noto+Sans+Tamil:wght@400;600&family=Caveat:wght@500;700&display=swap">
+<style>
+/* Layout: brand bar, three tabs (Daily call · Scan the bag · 14-day drift).
+   Each tab pairs what Paati experiences (left, a phone) with what the family/doctor sees (right). */
+:root{
+  --bg:#EAF0ED; --surface:#FFFFFF; --surface-2:#F4F7F5; --ink:#13221E; --ink-2:#4B5D57; --line:#D3DDD8;
+  --brand:#D98E04; --brand-ink:#7A4E00; --brand-soft:#FCEFD3;
+  --sos:#D62839; --sos-soft:#FBE2E5; --ok:#12775A; --ok-soft:#DCF1E8;
+  --warn:#AE5A06; --warn-soft:#FCEEDB; --info:#1E5E8A; --info-soft:#E0EDF6;
+  --bezel:#1A2622; --call:#0F2A24;
+  --f-display:"Baloo Thambi 2","Noto Sans Tamil",ui-rounded,system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Noto Sans Tamil",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --f-tamil:"Noto Sans Tamil","Baloo Thambi 2",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1513; --surface:#16211E; --surface-2:#1C2925; --ink:#E4EDEA; --ink-2:#9BAFA8; --line:#2A3A35;
+  --brand:#F0B13A; --brand-ink:#F6CD78; --brand-soft:#3A2C10; --sos:#FF5B6B; --sos-soft:#3B191E;
+  --ok:#3CC594; --ok-soft:#12302A; --warn:#F0A04B; --warn-soft:#3A2A13; --info:#6AAEDF; --info-soft:#132A3B;
+  --bezel:#040807; --call:#0A1A16; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1513; --surface:#16211E; --surface-2:#1C2925; --ink:#E4EDEA; --ink-2:#9BAFA8; --line:#2A3A35;
+  --brand:#F0B13A; --brand-ink:#F6CD78; --brand-soft:#3A2C10; --sos:#FF5B6B; --sos-soft:#3B191E;
+  --ok:#3CC594; --ok-soft:#12302A; --warn:#F0A04B; --warn-soft:#3A2A13; --info:#6AAEDF; --info-soft:#132A3B;
+  --bezel:#040807; --call:#0A1A16; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--f-body);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,a:focus-visible,label:focus-within{outline:3px solid var(--brand);outline-offset:2px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.1}
+.ta{font-family:var(--f-tamil)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding-block:14px 12px}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+.brand-mark{width:36px;height:36px;border-radius:12px;background:var(--brand);display:grid;place-items:center}
+.brand h1{font-size:26px}
+.brand small{display:block;font:500 12px/1.2 var(--f-body);color:var(--ink-2);letter-spacing:.06em;text-transform:uppercase}
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;flex-wrap:wrap}
+.tabs button{border:0;background:transparent;padding:7px 13px;border-radius:9px;font-weight:500;font-size:14px;color:var(--ink-2)}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+.aistate{font-size:13px;color:var(--ink-2);display:flex;gap:8px;align-items:center}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--ink-2)}
+.dot.on{background:var(--ok);box-shadow:0 0 0 3px var(--ok-soft)}
+.intro{padding-block:6px 4px;max-width:880px}
+.intro h2{font-size:clamp(24px,3.4vw,34px)}
+.intro p{margin:6px 0 0;color:var(--ink-2);font-size:15.5px;max-width:70ch}
+.view{display:grid;grid-template-columns:360px minmax(0,1fr);gap:24px;padding-block:18px 48px;align-items:start}
+.view.wide{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}
+@media (max-width:900px){.view,.view.wide{grid-template-columns:minmax(0,1fr)}}
+.lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);font-weight:600}
+.pane-title{display:flex;justify-content:space-between;align-items:baseline;margin:0 6px 8px;gap:8px}
+.pane-title h3{font-size:17px}
+.pane-title span{font-size:12px;color:var(--ink-2)}
+
+/* Phone + call */
+.phone{background:var(--call);color:#EAF4F0;border:10px solid var(--bezel);border-radius:38px;height:720px;overflow:hidden;display:flex;flex-direction:column;position:relative}
+@media (max-width:900px){.phone{height:auto;min-height:640px}}
+.statusbar{display:flex;justify-content:space-between;padding:10px 18px 4px;font:500 12px var(--f-mono);color:#A9C2BA}
+.ring{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px;text-align:center}
+.ring .av{width:110px;height:110px;border-radius:50%;background:var(--brand);display:grid;place-items:center;animation:ringpulse 1.6s infinite}
+@keyframes ringpulse{0%{box-shadow:0 0 0 0 rgba(240,177,58,.55)}100%{box-shadow:0 0 0 26px rgba(240,177,58,0)}}
+.ring h3{font-size:28px;color:#fff}
+.ring p{margin:0;color:#A9C2BA}
+.ans{display:flex;gap:28px;margin-top:24px}
+.round{width:68px;height:68px;border-radius:50%;border:0;display:grid;place-items:center;color:#fff}
+.round.green{background:#1FA971}.round.red{background:#E0394A}
+.round small{display:block}
+.callhead{display:flex;align-items:center;gap:10px;padding:6px 16px 10px;border-bottom:1px solid rgba(255,255,255,.08)}
+.callhead .av{width:38px;height:38px;border-radius:50%;background:var(--brand);display:grid;place-items:center;flex:none}
+.callhead b{font-size:15px;color:#fff;display:block}
+.callhead small{color:#A9C2BA;font:500 12px var(--f-mono)}
+.callhead .end{margin-left:auto;width:40px;height:40px}
+.wave{display:flex;gap:3px;align-items:center;height:18px;margin-left:6px}
+.wave i{width:3px;height:6px;border-radius:2px;background:var(--brand);animation:wv 1s ease-in-out infinite}
+.wave i:nth-child(2){animation-delay:.15s}.wave i:nth-child(3){animation-delay:.3s}.wave i:nth-child(4){animation-delay:.45s}
+@keyframes wv{50%{height:17px}}
+.wave.idle i{animation:none;opacity:.35}
+.transcript{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;min-height:0}
+.msg{max-width:88%;padding:9px 12px;border-radius:16px;font-size:14.5px;line-height:1.4}
+.msg .ta{display:block;font-size:16px}
+.msg small{display:block;opacity:.72;font-size:12.5px;margin-top:3px}
+.msg.ai{background:#1D4038;align-self:flex-start;border-bottom-left-radius:4px}
+.msg.me{background:#EAF4F0;color:#10201B;align-self:flex-end;border-bottom-right-radius:4px}
+.msg.sys{align-self:center;background:transparent;color:#F6CD78;font:500 12px var(--f-mono);text-align:center}
+.msg.alert{background:#E0394A;color:#fff}
+.typing{align-self:flex-start;color:#A9C2BA;font-size:13px}
+.replies{padding:10px 12px 12px;border-top:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:8px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:thin}
+.chip{flex:none;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#EAF4F0;border-radius:14px;padding:7px 10px;text-align:left;font-size:13px;max-width:230px}
+.chip .ta{display:block;font-size:14px}
+.chip small{opacity:.7}
+.chip.danger{border-color:#E0394A}
+.say{display:flex;gap:6px}
+.say input{flex:1;min-width:0;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;border-radius:12px;padding:9px 11px;font:inherit}
+.say input::placeholder{color:#A9C2BA}
+.say button{border:0;border-radius:12px;padding:0 12px;background:var(--brand);color:#1d1300;font-weight:600}
+.say .mic{background:rgba(255,255,255,.12);color:#fff}
+.say .mic[aria-pressed="true"]{background:#E0394A}
+
+/* Family side */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:22px;overflow:hidden}
+.p-head{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:14px 18px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.p-head h3{font-size:20px}
+.p-head p{margin:0;font-size:13px;color:var(--ink-2)}
+.p-body{padding:16px 18px;display:flex;flex-direction:column;gap:14px}
+.badge{white-space:nowrap;display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600}
+.b-sos{background:var(--sos-soft);color:var(--sos)}.b-ok{background:var(--ok-soft);color:var(--ok)}
+.b-warn{background:var(--warn-soft);color:var(--warn)}.b-info{background:var(--info-soft);color:var(--info)}
+.b-mute{background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line)}
+.signals{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.sig{border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--surface-2);display:flex;flex-direction:column;gap:4px;transition:border-color .3s,background .3s}
+.sig small{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+.sig b{font-size:16px}
+.sig.ok{border-color:var(--ok);background:var(--ok-soft)}.sig.warn{border-color:var(--warn);background:var(--warn-soft)}.sig.bad{border-color:var(--sos);background:var(--sos-soft)}
+.alertbox{background:var(--sos);color:#fff;border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.alertbox h3{font-size:22px}
+.alertbox p{margin:0}
+.alertbox a{color:#fff;font-weight:700}
+.actions{display:flex;flex-direction:column;gap:6px}
+.act{display:flex;gap:10px;align-items:center;font-size:14px;padding:8px 10px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line)}
+.act .mono{font-size:12px;color:var(--ink-2)}
+.brief{background:var(--info-soft);border-radius:14px;padding:12px 14px}
+.brief p{margin:4px 0 0}
+.rule{font-size:12.5px;color:var(--ink-2);border-left:3px solid var(--brand);padding-left:10px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:9px 13px;font-weight:600;font-size:14px}
+.btn.solid{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn:disabled{opacity:.55;cursor:default}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* Scan */
+.paper{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.paper canvas,.paper img{width:100%;height:auto;border-radius:10px;border:1px solid var(--line);display:block}
+.upl{display:flex;gap:8px;flex-wrap:wrap}
+.upl label{border:1px dashed var(--ink-2);border-radius:12px;padding:9px 13px;font-weight:600;font-size:14px;cursor:pointer}
+.upl input{position:absolute;opacity:0;width:1px;height:1px}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:520px}
+th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);font-weight:600}
+.warnc{border-left:4px solid var(--sos);background:var(--sos-soft);border-radius:0 12px 12px 0;padding:10px 12px;font-size:14px}
+.warnc b{color:var(--sos)}
+.warnc.y{border-color:var(--warn);background:var(--warn-soft)}.warnc.y b{color:var(--warn)}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--brand);border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Drift */
+.chart{background:var(--surface-2);border:1px solid var(--line);border-radius:16px;padding:10px}
+.chart svg{display:block;width:100%;height:auto}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-2);padding:4px 6px}
+.legend i{display:inline-block;width:12px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
+.notice{border:1.5px solid var(--warn);background:var(--warn-soft);border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.notice h3{font-size:20px}
+.ev{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.ev li{font-size:14px;display:grid;grid-template-columns:64px 1fr;gap:8px}
+.ev time{font:500 12px var(--f-mono);color:var(--ink-2)}
+.daylist{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.day{border-radius:10px;padding:6px;text-align:center;font-size:11px;border:1px solid var(--line);background:var(--surface)}
+.day b{display:block;font:500 15px var(--f-mono)}
+.foot{padding-block:0 60px;color:var(--ink-2);font-size:13px}
+.toast{position:fixed;right:max(16px,env(safe-area-inset-right,0px));top:calc(16px + env(safe-area-inset-top,0px));background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:14px;z-index:40;box-shadow:0 10px 24px -12px rgba(0,0,0,.35);max-width:340px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="wrap top">
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 21s-7.5-4.6-9.3-9.4C1.4 8.2 3.6 4.5 7.2 4.5c2 0 3.6 1.1 4.8 2.8 1.2-1.7 2.8-2.8 4.8-2.8 3.6 0 5.8 3.7 4.5 7.1C19.5 16.4 12 21 12 21z" fill="#fff"/><path d="M6 12h3l1.5-3 3 6 1.5-3h3" stroke="#D98E04" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div><h1>Saathi</h1><small>The AI grandchild that calls every day</small></div>
+  </div>
+  <nav class="tabs" role="tablist" aria-label="Demo sections">
+    <button role="tab" data-tab="call" aria-selected="true">1 · The daily call</button>
+    <button role="tab" data-tab="scan" aria-selected="false">2 · Scan the bag</button>
+    <button role="tab" data-tab="drift" aria-selected="false">3 · 14-day drift</button>
+  </nav>
+  <div class="aistate"><span class="dot" id="aiDot"></span><span id="aiText">Checking for Claude…</span></div>
+</header>
+
+<!-- 1 · CALL -->
+<section class="wrap" id="tab-call">
+  <div class="intro"><h2>Every morning, Saathi phones Paati, on any phone, in Tamil.</h2>
+    <p>It sounds like a grandchild, remembers yesterday, checks her tablets, and listens for trouble. Karthik gets the summary. If something is wrong, it starts the emergency itself.</p></div>
+  <div class="view">
+    <div>
+      <div class="pane-title"><h3>Kamala Paati's phone</h3><span>keypad or smartphone</span></div>
+      <div class="phone">
+        <div class="statusbar"><span id="clock">09:02 AM</span><span>Voice call</span></div>
+        <div class="ring" id="ring">
+          <div class="av"><svg width="54" height="54" viewBox="0 0 24 24" fill="none"><path d="M12 21s-7.5-4.6-9.3-9.4C1.4 8.2 3.6 4.5 7.2 4.5c2 0 3.6 1.1 4.8 2.8 1.2-1.7 2.8-2.8 4.8-2.8 3.6 0 5.8 3.7 4.5 7.1C19.5 16.4 12 21 12 21z" fill="#fff"/></svg></div>
+          <h3 class="ta">சாத்தி அழைக்கிறது</h3><p>Saathi is calling · daily 9:00 AM check-in</p>
+          <div class="ans"><div><button class="round red" id="decline" aria-label="Decline"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M12 9c-1.6 0-3.1.3-4.6.8v3.1c0 .4-.2.7-.6.9-1 .5-1.9 1.1-2.6 1.8-.2.2-.4.3-.7.3s-.5-.1-.7-.3L.3 13.1c-.2-.2-.3-.4-.3-.7s.1-.5.3-.7C3.3 8.8 7.4 7 12 7s8.7 1.8 11.7 4.7c.2.2.3.4.3.7s-.1.5-.3.7l-2.5 2.5c-.2.2-.4.3-.7.3s-.5-.1-.7-.3c-.8-.7-1.7-1.3-2.6-1.8-.3-.2-.6-.5-.6-.9V9.8C15.1 9.3 13.6 9 12 9z"/></svg></button></div>
+            <div><button class="round green" id="answer" aria-label="Answer"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z"/></svg></button></div></div>
+          <p style="font-size:12.5px;margin-top:10px">If she doesn't answer twice, Meena next door gets a call.</p>
+        </div>
+        <div id="incall" hidden style="display:flex;flex-direction:column;flex:1;min-height:0">
+          <div class="callhead"><div class="av"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-9.3-9.4C1.4 8.2 3.6 4.5 7.2 4.5c2 0 3.6 1.1 4.8 2.8 1.2-1.7 2.8-2.8 4.8-2.8 3.6 0 5.8 3.7 4.5 7.1C19.5 16.4 12 21 12 21z" fill="#fff"/></svg></div>
+            <div><b>Saathi</b><small id="dur">00:00</small></div><div class="wave idle" id="wave"><i></i><i></i><i></i><i></i></div>
+            <button class="round red end" id="hangup" aria-label="End call"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 9c-1.6 0-3.1.3-4.6.8v3.1c0 .4-.2.7-.6.9-1 .5-1.9 1.1-2.6 1.8-.2.2-.4.3-.7.3s-.5-.1-.7-.3L.3 13.1c-.2-.2-.3-.4-.3-.7s.1-.5.3-.7C3.3 8.8 7.4 7 12 7s8.7 1.8 11.7 4.7c.2.2.3.4.3.7s-.1.5-.3.7l-2.5 2.5c-.2.2-.4.3-.7.3s-.5-.1-.7-.3c-.8-.7-1.7-1.3-2.6-1.8-.3-.2-.6-.5-.6-.9V9.8C15.1 9.3 13.6 9 12 9z"/></svg></button></div>
+          <div class="transcript" id="transcript" aria-live="polite"></div>
+          <div class="replies">
+            <div class="lbl" style="color:#A9C2BA">Paati says (tap, type or speak)</div>
+            <div class="chips" id="chips"></div>
+            <form class="say" id="sayForm"><input id="sayInput" autocomplete="off" placeholder="Type in Tamil, Tanglish or English" aria-label="Paati's reply"><button type="button" class="mic" id="mic" aria-pressed="false" hidden aria-label="Speak">🎙</button><button type="submit">Say</button></form>
+          </div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px;justify-content:center">
+        <label class="row" style="font-size:13.5px;gap:6px"><input type="checkbox" id="voiceOn" checked> Speak Saathi's lines aloud</label>
+        <button class="btn" id="restart">Restart call</button>
+      </div>
+    </div>
+    <div>
+      <div class="pane-title"><h3>Karthik's family brief</h3><span>Bengaluru · updates live during the call</span></div>
+      <div class="panel">
+        <div class="p-head"><div><h3>Amma · today</h3><p id="briefSub">Waiting for the 9:00 AM call</p></div><span class="badge b-mute" id="statusBadge">Not called yet</span></div>
+        <div class="p-body">
+          <div id="alertArea"></div>
+          <div class="signals" id="signals"></div>
+          <div class="brief" id="briefBox"><div class="lbl">Saathi's note to the family</div><p id="briefText">The note appears here as Paati talks.</p></div>
+          <div><div class="lbl" style="margin-bottom:6px">What Saathi did</div><div class="actions" id="actions"><div class="act"><span class="mono">—</span>Nothing yet</div></div></div>
+          <div class="rule"><b>Safety design:</b> the AI does the talking, but a fixed rule list decides emergencies. Words like chest pain, sweating, breathlessness, a fall or slurred speech always escalate, whatever the AI thinks. Saathi never diagnoses or suggests new medicines.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 · SCAN -->
+<section class="wrap" id="tab-scan" hidden>
+  <div class="intro"><h2>The plastic bag of prescriptions becomes a medical passport in 20 seconds.</h2>
+    <p>Families photograph old prescriptions from different doctors. Saathi reads them, builds one medicine list, and catches what no single doctor saw: duplicate brands and risky combinations.</p></div>
+  <div class="view">
+    <div>
+      <div class="pane-title"><h3>The photo</h3><span>prescriptions from 3 doctors</span></div>
+      <div class="paper">
+        <canvas id="rxCanvas" width="960" height="1180" aria-label="Sample handwritten prescriptions"></canvas>
+        <img id="rxPhoto" alt="Uploaded prescription" hidden>
+        <div class="upl">
+          <button class="btn solid" id="readSample">Read these prescriptions</button>
+          <label id="uploadLbl" hidden>Upload your own photo<input type="file" id="upload" accept="image/*"></label>
+        </div>
+        <div style="font-size:12.5px;color:var(--ink-2)">Sample prescriptions drawn for the demo. If you upload a real one, cover the patient's name first.</div>
+      </div>
+    </div>
+    <div>
+      <div class="pane-title"><h3>Medical passport</h3><span>shared with ER on SOS · Karthik can view</span></div>
+      <div class="panel"><div class="p-body" id="scanOut">
+        <div style="color:var(--ink-2)">Press <b style="color:var(--ink)">Read these prescriptions</b>. Saathi extracts every medicine, maps brand names to generics, and checks for duplicates and interactions.</div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 · DRIFT -->
+<section class="wrap" id="tab-drift" hidden>
+  <div class="intro"><h2>Most emergencies don't start suddenly. Saathi hears them coming.</h2>
+    <p>Fourteen daily calls build a baseline. When her speech slows, she says "tired" more often and the evening tablet gets skipped, Saathi flags it days before it becomes a 2 AM ambulance ride.</p></div>
+  <div class="view wide">
+    <div>
+      <div class="pane-title"><h3>Amma · last 14 days</h3><span>sample data</span></div>
+      <div class="panel"><div class="p-body">
+        <div class="chart" id="chart"></div>
+        <div class="legend"><span><i style="background:var(--info)"></i>Speaking pace (words/min)</span><span><i style="background:var(--warn)"></i>"Tired" or "breathless" mentions</span><span><i style="background:var(--ok)"></i>Tablets taken (of 2 doses)</span></div>
+        <div class="daylist" id="days"></div>
+      </div></div>
+    </div>
+    <div>
+      <div class="pane-title"><h3>Saathi noticed</h3><span>sent to Karthik · day 14</span></div>
+      <div class="notice">
+        <span class="badge b-warn" style="align-self:flex-start">Early warning · not a diagnosis</span>
+        <h3>Amma's breathing and energy have been getting worse for 5 days.</h3>
+        <ul class="ev">
+          <li><time>Day 10</time><span class="ta">“படி ஏறும்போது மூச்சு வாங்குது”</span></li>
+          <li><time>Day 12</time><span>Slept sitting up: “lying flat feels heavy”</span></li>
+          <li><time>Day 13</time><span>Missed night tablets twice this week</span></li>
+          <li><time>Day 14</time><span>Speaking pace down 17% from her normal (112 → 93 words/min)</span></li>
+        </ul>
+        <div style="font-size:14px">With her heart history, these signs deserve a doctor's look this week. Saathi can book the cardiology follow-up and remind her the day before.</div>
+        <div class="row"><button class="btn solid" id="book">Book Dr. Raman this week</button><button class="btn" id="tellAmma">Ask Saathi to tell Amma</button></div>
+        <div class="actions" id="bookLog"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="wrap foot">Prototype by Group 4 (Design Thinking). Sample patient, fictional doctors, not medical advice. When opened on claude.ai, the conversation, the prescription reading and the notes are generated live by Claude. Without that, a scripted demo engine runs the same flow offline.</footer>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+"use strict";
+const $ = s => document.querySelector(s);
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+let toastT = 0;
+const toast = m => { const t = $("#toast"); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2800); };
+const nowClock = () => new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+const EMERGENCY_URL = "https://claude.ai/artifact/5uTQTy9iL4F7bDeJYHZAc3";
+
+/* ---------- Claude (sample capability) ---------- */
+let samplePromise = (window.claude && typeof window.claude.use === "function") ? window.claude.use("sample").catch(() => null) : Promise.resolve(null);
+let sample = null, canImages = false;
+samplePromise.then(async s => {
+  sample = s;
+  if (s) { try { const l = await s.limits(); canImages = !!(l && l.images); } catch (e) {} }
+  $("#aiDot").classList.toggle("on", !!s);
+  $("#aiText").textContent = s ? "AI live · Claude" : "Offline demo engine (open on claude.ai for live AI)";
+  $("#uploadLbl").hidden = !canImages;
+});
+
+/* ---------- Tabs ---------- */
+function showTab(t) {
+  ["call", "scan", "drift"].forEach(k => { $("#tab-" + k).hidden = k !== t; });
+  document.querySelectorAll("[data-tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
+  try { history.replaceState(null, "", "#" + t); } catch (e) {}
+  if (t === "scan") drawRx();
+  if (t === "drift") drawDrift();
+}
+document.querySelectorAll("[data-tab]").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+
+/* ============ 1 · THE DAILY CALL ============ */
+const PROFILE = `Kamala "Paati" Ramasamy, 72, lives in Tambaram, Chennai with her husband (78, hard of hearing). Son Karthik lives in Bengaluru.
+Conditions: type 2 diabetes, hypertension, coronary artery disease with a stent (2022). Allergy: penicillin.
+Morning tablets: Clopidogrel 75 mg, Metformin 500 mg, Amlodipine 5 mg. Night: Metformin 500 mg, Atorvastatin 20 mg.
+Memory from earlier calls: yesterday she went to Kapaleeshwarar temple with neighbour Meena. Granddaughter Diya has her exam on Friday. She slept badly on 2 of the last 4 nights.`;
+
+const RED = ["நெஞ்சு", "nenju", "chest", "வியர்", "sweat", "மூச்சு வாங்", "மூச்சு விட", "breath", "மயக்க", "mayakk", "faint", "விழுந்", "vizhun", "fell", "fall down", "numb", "மரத்து", "slur", "confus", "குழப்ப", "பேச்சு குழறு"];
+const isRed = t => { const x = (t || "").toLowerCase(); return RED.some(w => x.includes(w)); };
+
+const CHIPS = [
+  { ta: "நல்லா இருக்கேன், கோவில் நல்லா இருந்துச்சு", en: "I'm fine, the temple was lovely" },
+  { ta: "காலை மாத்திரை எல்லாம் சாப்பிட்டேன்", en: "I took all my morning tablets" },
+  { ta: "ராத்திரி சரியா தூக்கம் வரலை", en: "I couldn't sleep properly last night" },
+  { ta: "கார்த்திக் கிட்ட பேசணும்", en: "I want to talk to Karthik" },
+  { ta: "கொஞ்சம் நெஞ்சு கனமா இருக்கு, வியர்க்குது", en: "My chest feels heavy, I'm sweating", danger: true },
+];
+
+let call = null;
+function freshCall() {
+  return { on: false, start: 0, turns: [], sig: { meds: "unknown", mood: "unknown", sleep: "unknown", pain: null, red: false, reason: null }, actions: [], note: null, busy: false, step: 0, ended: false };
+}
+call = freshCall();
+
+function renderChips() {
+  $("#chips").innerHTML = CHIPS.map((c, i) => `<button class="chip ${c.danger ? "danger" : ""}" data-chip="${i}"><span class="ta">${esc(c.ta)}</span><small>${esc(c.en)}</small></button>`).join("");
+}
+function renderTranscript() {
+  const el = $("#transcript");
+  el.innerHTML = call.turns.map(t => {
+    if (t.who === "sys") return `<div class="msg sys">${esc(t.text)}</div>`;
+    const cls = t.who === "ai" ? (t.alert ? "msg ai alert" : "msg ai") : "msg me";
+    return `<div class="${cls}"><span class="ta">${esc(t.ta || t.text)}</span>${t.en ? `<small>${esc(t.en)}</small>` : ""}</div>`;
+  }).join("") + (call.busy ? `<div class="typing">Saathi is listening<span class="spinner" style="margin-left:6px"></span></div>` : "");
+  el.scrollTop = el.scrollHeight;
+}
+const SIGVIEW = {
+  meds: { lbl: "Morning tablets", map: { taken: ["Taken ✓", "ok"], missed: ["Missed", "bad"], unknown: ["Not asked yet", ""] } },
+  mood: { lbl: "Mood", map: { good: ["Cheerful", "ok"], ok: ["Okay", ""], low: ["Low", "warn"], unknown: ["—", ""] } },
+  sleep: { lbl: "Sleep", map: { good: ["Slept well", "ok"], poor: ["Poor · 3rd time this week", "warn"], unknown: ["—", ""] } },
+};
+function renderFamily() {
+  const s = call.sig;
+  let sigHtml = Object.entries(SIGVIEW).map(([k, v]) => { const [txt, cls] = v.map[s[k]] || [esc(s[k]), ""]; return `<div class="sig ${cls}"><small>${v.lbl}</small><b>${txt}</b></div>`; }).join("");
+  sigHtml += `<div class="sig ${s.red ? "bad" : s.pain ? "warn" : ""}"><small>Pain or symptoms</small><b>${s.red ? "Red flag" : s.pain ? esc(s.pain) : "None mentioned"}</b></div>`;
+  $("#signals").innerHTML = sigHtml;
+  $("#alertArea").innerHTML = s.red ? `<div class="alertbox"><span class="lbl" style="color:#fff;opacity:.85">Emergency started by Saathi · ${esc(call.redAt || "")}</span><h3>Amma reported ${esc(s.reason || "warning symptoms")}</h3>
+    <p>108 and Meena (next door) are being called now. Her medical passport is going to the nearest hospital with a cath lab. You'll see the ambulance live.</p>
+    <p><a href="${EMERGENCY_URL}" target="_blank" rel="noopener">Open the live emergency view →</a></p></div>` : "";
+  const st = $("#statusBadge");
+  if (s.red) { st.className = "badge b-sos"; st.textContent = "Emergency"; }
+  else if (call.ended) { st.className = "badge b-ok"; st.textContent = "Call done"; }
+  else if (call.on) { st.className = "badge b-info"; st.textContent = "On the call now"; }
+  else { st.className = "badge b-mute"; st.textContent = "Not called yet"; }
+  $("#briefSub").textContent = call.on || call.ended ? `9:00 AM call · ${call.turns.filter(t => t.who !== "sys").length} lines so far` : "Waiting for the 9:00 AM call";
+  $("#briefText").textContent = call.note || "The note appears here as Paati talks.";
+  $("#actions").innerHTML = call.actions.length ? call.actions.map(a => `<div class="act"><span class="mono">${esc(a.t)}</span>${esc(a.txt)}</div>`).join("") : `<div class="act"><span class="mono">—</span>Nothing yet</div>`;
+}
+function addAction(txt) { if (!call.actions.some(a => a.txt === txt)) call.actions.push({ t: nowClock(), txt }); }
+
+/* Voice out */
+function speakLine(ta, en) {
+  if (!$("#voiceOn").checked || !window.speechSynthesis) return;
+  try {
+    const vs = speechSynthesis.getVoices(), tv = vs.find(v => /^ta/i.test(v.lang)), ev = vs.find(v => /en-IN/i.test(v.lang)) || vs.find(v => /^en/i.test(v.lang));
+    const u = new SpeechSynthesisUtterance(tv ? ta : (en || ta));
+    u.voice = tv || ev || null; u.lang = tv ? tv.lang : "en-IN"; u.rate = .95;
+    const w = $("#wave"); u.onstart = () => w.classList.remove("idle"); u.onend = () => w.classList.add("idle");
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  } catch (e) {}
+}
+function aiSay(ta, en, alert) { call.turns.push({ who: "ai", ta, en, alert: !!alert }); speakLine(ta, en); }
+
+/* Offline engine: the same flow, scripted, so the demo never breaks */
+function offlineTurn(text) {
+  const x = text.toLowerCase(), s = call.sig;
+  const has = (...w) => w.some(k => x.includes(k));
+  if (isRed(text)) {
+    return { ta: "பாட்டி, பயப்படாதீங்க. நான் இப்போவே கார்த்திக்கையும் ஆம்புலன்ஸையும் கூப்பிடறேன். உட்கார்ந்துக்கோங்க, கதவைத் திறந்து வையுங்க. மீனா அக்கா ரெண்டு நிமிஷத்துல வருவாங்க.",
+      en: "Paati, don't be scared. I'm calling Karthik and the ambulance right now. Please sit down and unlock the door. Meena will be there in two minutes.",
+      sig: { red: true, reason: has("chest", "நெஞ்சு", "nenju") ? "chest heaviness with sweating" : "warning symptoms", pain: "chest heaviness, sweating" }, action: "emergency",
+      note: "Amma reported chest heaviness and sweating on the morning call. Saathi started the emergency: 108, Meena and her ER passport are on the way." };
+  }
+  if (has("கார்த்திக்", "karthik")) return { ta: "சரி பாட்டி, கார்த்திக்கை இப்போ லைன்ல சேர்க்கிறேன். அவன் ஆபீஸ்ல இருந்தாலும் உங்க குரலைக் கேட்டா சந்தோஷப்படுவான்.", en: "Okay Paati, I'm adding Karthik to the call now. He'll be happy to hear your voice, even at the office.", action: "connect", note: "Amma asked to talk to you. Saathi connected the call." };
+  if (has("தூக்கம்", "thookam", "sleep", "தூங்க")) return { ta: "அச்சச்சோ. இந்த வாரம் இது மூணாவது தடவை பாட்டி. மூச்சு வாங்குதா, இல்லை ஏதாவது யோசனையா? டாக்டர் ராமன் கிட்ட ஒரு செக்கப் புக் பண்ணட்டுமா?", en: "Oh no. That's the third time this week, Paati. Is it breathlessness, or just worries? Shall I book a check-up with Dr. Raman?", sig: { sleep: "poor", mood: s.mood === "good" ? "good" : "ok" }, action: "suggest_doctor", note: null };
+  if (has("மாத்திரை", "tablet", "maathirai", "medicine", "pill")) return { ta: "சூப்பர் பாட்டி! மூணு மாத்திரையும் ஆச்சு. நேத்து ராத்திரி தூக்கம் எப்படி இருந்துச்சு?", en: "Super, Paati! All three tablets done. How did you sleep last night?", sig: { meds: "taken" }, note: null };
+  if (has("நல்லா", "nalla", "fine", "good", "கோவில்", "temple")) return { ta: "கேட்கவே சந்தோஷமா இருக்கு! மீனா அக்காவோட போனது நல்லதாப் போச்சு. காலை மாத்திரை சாப்பிட்டீங்களா பாட்டி?", en: "So happy to hear that! Good that you went with Meena. Did you take your morning tablets, Paati?", sig: { mood: "good" }, note: null };
+  const ask = s.meds === "unknown" ? ["காலை மாத்திரை சாப்பிட்டீங்களா பாட்டி?", "Did you take your morning tablets, Paati?"] : s.sleep === "unknown" ? ["ராத்திரி தூக்கம் எப்படி?", "How was your sleep?"] : ["எங்கயாவது வலி இருக்கா பாட்டி?", "Any pain anywhere, Paati?"];
+  return { ta: "சரி பாட்டி, புரிஞ்சுது. " + ask[0], en: "Okay Paati, I understand. " + ask[1], note: null };
+}
+function offlineNote() {
+  const s = call.sig, parts = [];
+  if (s.red) return "Amma reported chest heaviness and sweating on the morning call. Saathi started the emergency: 108, Meena and her ER passport are on the way.";
+  parts.push(s.mood === "good" ? "Amma sounded cheerful and enjoyed yesterday's temple visit with Meena." : "Amma sounded okay.");
+  if (s.meds === "taken") parts.push("Morning tablets taken."); else parts.push("Didn't confirm her morning tablets.");
+  if (s.sleep === "poor") parts.push("Slept badly again (3rd night this week); Saathi offered to book Dr. Raman.");
+  return parts.join(" ");
+}
+
+async function aiTurn(text) {
+  const transcript = call.turns.filter(t => t.who !== "sys").map(t => `${t.who === "ai" ? "Saathi" : "Paati"}: ${t.ta || t.text}`).join("\n").slice(-4000);
+  const prompt = `You are "Saathi", a warm AI companion that phones an elderly woman every morning, like a caring grandchild.
+Speak natural, simple spoken Chennai Tamil in Tamil script, respectful ("நீங்க", call her "பாட்டி"). At most 2 short sentences, under 30 words. Use the memory naturally.
+Goals for the call, gently and without sounding like a form: warm greeting, morning tablets, sleep and food, any pain, then a warm goodbye.
+Never diagnose and never suggest any medicine. If she mentions chest pain or heaviness, sweating with discomfort, breathlessness, fainting, a fall, sudden weakness or numbness, slurred speech or confusion: set red_flag true, calmly tell her you are calling Karthik and the ambulance now, ask her to sit down and unlock the door.
+If she asks for Karthik, say you're connecting him.
+
+Patient profile and memory:
+${PROFILE}
+
+Call so far:
+${transcript}
+Paati (just now): ${text}
+
+Reply with JSON only:
+{"say_ta":"your next line in Tamil","say_en":"English translation","signals":{"meds":"taken|missed|unknown","mood":"good|ok|low|unknown","sleep":"good|poor|unknown","pain":"short English phrase or null"},"red_flag":false,"red_flag_reason":"short English phrase or null","action":"none|emergency|connect|suggest_doctor","family_note":"one or two plain English sentences for her son summarising the call so far"}`;
+  const r = await Promise.race([sample.json(prompt, { modelTier: "default" }), new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 20000))]);
+  if (!r || typeof r.say_ta !== "string") throw new Error("bad reply");
+  const sg = r.signals || {};
+  return { ta: r.say_ta.slice(0, 400), en: typeof r.say_en === "string" ? r.say_en.slice(0, 400) : "",
+    sig: { meds: sg.meds, mood: sg.mood, sleep: sg.sleep, pain: sg.pain || null, red: !!r.red_flag, reason: r.red_flag_reason || null },
+    action: r.action, note: typeof r.family_note === "string" ? r.family_note.slice(0, 500) : null, ai: true };
+}
+
+async function paatiSays(text) {
+  if (!call.on || call.busy || !text.trim()) return;
+  text = text.trim().slice(0, 300);
+  call.turns.push({ who: "me", text });
+  call.busy = true; renderTranscript();
+  let r;
+  const ruleRed = isRed(text);
+  try { if (sample) r = await aiTurn(text); } catch (e) { r = null; }
+  if (!r) r = offlineTurn(text);
+  // Safety rule overrides the model: red-flag words always escalate
+  if (ruleRed && !(r.sig && r.sig.red)) { const o = offlineTurn(text); r = { ...o, note: r.note || o.note }; call.turns.push({ who: "sys", text: "Safety rule triggered: escalating" }); }
+  call.busy = false;
+  const s = call.sig, sg = r.sig || {};
+  for (const k of ["meds", "mood", "sleep"]) if (sg[k] && sg[k] !== "unknown" && SIGVIEW[k].map[sg[k]]) s[k] = sg[k];
+  if (sg.pain) s.pain = sg.pain;
+  if (sg.red) { s.red = true; s.reason = sg.reason || s.reason; call.redAt = nowClock(); }
+  aiSay(r.ta, r.en, sg.red);
+  if (sg.red || r.action === "emergency") {
+    s.red = true; call.redAt = call.redAt || nowClock();
+    call.turns.push({ who: "sys", text: "Calling 108 · calling Meena · alerting Karthik" });
+    addAction("Called 108 with location and medical passport"); addAction("Called Meena (neighbour, 2 doors away)"); addAction("Alerted Karthik with a push and a phone call"); addAction("Sent pre-arrival brief to Saraswathi Multispeciality (cath lab)");
+  }
+  if (r.action === "connect") addAction("Connected Karthik into the call");
+  if (r.action === "suggest_doctor" || s.sleep === "poor") addAction("Offered to book Dr. Raman (cardiology); waiting for Paati to agree");
+  if (s.meds === "taken") addAction("Logged morning tablets as taken");
+  call.note = r.note || offlineNote();
+  renderTranscript(); renderFamily();
+}
+
+function answer() {
+  call = freshCall(); call.on = true; call.start = Date.now();
+  $("#ring").hidden = true; $("#incall").hidden = false;
+  const open = { ta: "வணக்கம் பாட்டி! நான் சாத்தி. நேத்து மீனா அக்காவோட கபாலீஸ்வரர் கோவிலுக்குப் போனீங்களே, எப்படி இருந்துச்சு?", en: "Good morning Paati! It's Saathi. You went to Kapaleeshwarar temple with Meena yesterday. How was it?" };
+  call.turns.push({ who: "sys", text: "Saathi · 9:00 AM daily call" });
+  aiSay(open.ta, open.en);
+  renderTranscript(); renderFamily();
+}
+function hangup() {
+  if (!call.on) return;
+  call.on = false; call.ended = true;
+  if (!call.note) call.note = offlineNote();
+  call.turns.push({ who: "sys", text: "Call ended" });
+  try { speechSynthesis.cancel(); } catch (e) {}
+  renderTranscript(); renderFamily();
+}
+function restart() {
+  try { speechSynthesis.cancel(); } catch (e) {}
+  call = freshCall(); $("#ring").hidden = false; $("#incall").hidden = true; renderFamily();
+}
+$("#answer").addEventListener("click", answer);
+$("#decline").addEventListener("click", () => toast("Saathi will try again in 10 minutes, then call Meena."));
+$("#hangup").addEventListener("click", hangup);
+$("#restart").addEventListener("click", restart);
+$("#chips").addEventListener("click", e => { const b = e.target.closest("[data-chip]"); if (b) paatiSays(CHIPS[+b.dataset.chip].ta); });
+$("#sayForm").addEventListener("submit", e => { e.preventDefault(); const i = $("#sayInput"); const v = i.value; i.value = ""; paatiSays(v); });
+setInterval(() => {
+  $("#clock").textContent = nowClock();
+  if (call.on) { const s = Math.floor((Date.now() - call.start) / 1000); $("#dur").textContent = `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; }
+}, 1000);
+
+/* Voice in (where the browser allows the microphone) */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SR) {
+  const mic = $("#mic"); mic.hidden = false; let rec = null;
+  mic.addEventListener("click", () => {
+    if (rec) { rec.stop(); return; }
+    try {
+      rec = new SR(); rec.lang = "ta-IN"; rec.interimResults = false; rec.maxAlternatives = 1;
+      mic.setAttribute("aria-pressed", "true");
+      rec.onresult = ev => { const t = ev.results[0][0].transcript; paatiSays(t); };
+      rec.onerror = ev => toast(ev.error === "not-allowed" ? "Microphone isn't allowed here. Type or tap instead." : "Didn't catch that. Try again or type.");
+      rec.onend = () => { rec = null; mic.setAttribute("aria-pressed", "false"); };
+      rec.start();
+    } catch (e) { rec = null; mic.setAttribute("aria-pressed", "false"); toast("Microphone isn't available here."); }
+  });
+}
+renderChips(); renderFamily();
+
+/* ============ 2 · SCAN THE BAG ============ */
+let rxDrawn = false;
+async function drawRx() {
+  if (rxDrawn) return; rxDrawn = true;
+  try { await document.fonts.load('40px "Caveat"'); } catch (e) {}
+  const c = $("#rxCanvas"), g = c.getContext("2d");
+  g.fillStyle = "#cfd8d3"; g.fillRect(0, 0, c.width, c.height);
+  const hand = '"Caveat", "Segoe Print", "Bradley Hand", cursive';
+  function slip(x, y, w, h, rot, paper, head, sub, date, lines) {
+    g.save(); g.translate(x + w / 2, y + h / 2); g.rotate(rot); g.translate(-w / 2, -h / 2);
+    g.shadowColor = "rgba(0,0,0,.25)"; g.shadowBlur = 14; g.shadowOffsetY = 6;
+    g.fillStyle = paper; g.fillRect(0, 0, w, h); g.shadowColor = "transparent";
+    g.fillStyle = "#1d3b6b"; g.font = "700 30px Georgia, serif"; g.fillText(head, 28, 52);
+    g.font = "18px Georgia, serif"; g.fillStyle = "#3d5a80"; g.fillText(sub, 28, 80);
+    g.strokeStyle = "#1d3b6b"; g.lineWidth = 2; g.beginPath(); g.moveTo(28, 96); g.lineTo(w - 28, 96); g.stroke();
+    g.fillStyle = "#222"; g.font = "26px " + hand; g.fillText("Name: Kamala R.   Age 72 F", 28, 132); g.fillText(date, w - 190, 132);
+    g.font = "700 46px Georgia, serif"; g.fillStyle = "#1d3b6b"; g.fillText("℞", 28, 190);
+    g.fillStyle = "#1b2a4a"; g.font = "36px " + hand;
+    lines.forEach((l, i) => g.fillText(l, 84, 190 + i * 50));
+    g.font = "30px " + hand; g.fillText("Sd/-", w - 130, h - 30);
+    g.restore();
+  }
+  slip(30, 30, 560, 430, -0.03, "#fdfbf3", "Dr. S. Raman, MD DM", "Cardiology · Saraswathi Multispeciality", "12/03/25",
+    ["1) Tab Clopidogrel 75mg  1-0-0", "2) Tab Atorva 20mg  0-0-1", "3) Tab Amlodipine 5mg  1-0-0", "   Review after 6 months"]);
+  slip(370, 410, 560, 400, 0.035, "#f6faff", "Dr. P. Meenakshi, MBBS", "General Physician · Tambaram", "02/09/26",
+    ["1) Tab Glycomet 500  1-0-1", "2) Cap Omez 20mg  1-0-0 (before food)", "   for acidity x 1 month"]);
+  slip(40, 780, 520, 360, -0.02, "#fffaf0", "Sri Balaji Medicals", "Repeat bill · Tambaram", "18/07/24",
+    ["Metformin 500mg  1-0-1   x 60", "Amlodipine 5mg  1-0-0   x 30", "Atorvastatin 20mg  0-0-1  x 30"]);
+}
+const RX_FALLBACK = {
+  meds: [
+    { name: "Clopidogrel 75 mg", generic: "Clopidogrel", when: "Morning", purpose: "Blood thinner (heart stent)", source: "Dr. Raman, 2025" },
+    { name: "Atorva 20 mg", generic: "Atorvastatin", when: "Night", purpose: "Cholesterol", source: "Dr. Raman, 2025 + pharmacy bill" },
+    { name: "Amlodipine 5 mg", generic: "Amlodipine", when: "Morning", purpose: "Blood pressure", source: "Dr. Raman, 2025 + pharmacy bill" },
+    { name: "Glycomet 500", generic: "Metformin", when: "Morning + night", purpose: "Diabetes", source: "Dr. Meenakshi, 2026" },
+    { name: "Metformin 500 mg", generic: "Metformin", when: "Morning + night", purpose: "Diabetes", source: "Pharmacy bill, 2024" },
+    { name: "Omez 20 mg", generic: "Omeprazole", when: "Morning, before food", purpose: "Acidity (1 month)", source: "Dr. Meenakshi, 2026" },
+  ],
+  warnings: [
+    { level: "high", title: "Possible double dose of metformin", detail: "Glycomet 500 is a brand of metformin. The 2024 pharmacy bill also lists metformin 500 mg. If both strips are in the pill box she may be taking twice the dose." },
+    { level: "high", title: "Omeprazole may weaken clopidogrel", detail: "Omeprazole can reduce how well clopidogrel protects her stent. The two prescriptions came from different doctors, so neither may have seen both. Ask Dr. Raman whether a different acidity medicine is better." },
+    { level: "info", title: "Omez was prescribed for 1 month only", detail: "Prescribed 02/09/26. Check whether she is still taking it." },
+  ],
+};
+function renderRx(r, by) {
+  const meds = Array.isArray(r.meds) ? r.meds : [], warns = Array.isArray(r.warnings) ? r.warnings : [];
+  $("#scanOut").innerHTML = `
+    <div class="row" style="justify-content:space-between"><h3 style="font-size:20px">Kamala R. · current medicines</h3><span class="badge ${by === "ai" ? "b-ok" : "b-mute"}">${by === "ai" ? "Read by Claude just now" : "Sample result (offline)"}</span></div>
+    ${warns.map(w => `<div class="warnc ${w.level === "high" ? "" : "y"}"><b>${esc(w.title)}</b><br>${esc(w.detail)}</div>`).join("")}
+    <div class="tablewrap"><table><thead><tr><th>As written</th><th>Generic</th><th>When</th><th>For</th><th>From</th></tr></thead><tbody>
+    ${meds.map(m => `<tr><td><b>${esc(m.name)}</b></td><td>${esc(m.generic)}</td><td>${esc(m.when)}</td><td>${esc(m.purpose)}</td><td style="color:var(--ink-2);font-size:13px">${esc(m.source)}</td></tr>`).join("")}
+    </tbody></table></div>
+    <div class="rule">Saathi flags things to <b>ask the doctor about</b>. It never tells Paati to stop or change a medicine on its own.</div>
+    <div class="row"><button class="btn solid" id="sendDoc">Send questions to Dr. Raman</button><button class="btn" id="addPass">Add to emergency passport</button></div>`;
+  $("#sendDoc").onclick = () => toast("Questions sent to Dr. Raman's clinic WhatsApp (demo)");
+  $("#addPass").onclick = () => toast("Added. The ER will see this list on any SOS.");
+}
+async function readRx(blob) {
+  $("#scanOut").innerHTML = `<div><span class="spinner"></span> Reading handwriting, matching brands to generics, checking interactions…</div>`;
+  if (sample && canImages && blob) {
+    const prompt = `The image shows photos of prescriptions and a pharmacy bill for one elderly patient in India (72-year-old woman with diabetes, hypertension, heart stent; penicillin allergy). Read every medicine. Map Indian brand names to generics. Identify duplicates (same generic from different papers) and clinically important interactions, and short-course medicines that may have ended. Write for her family in plain English. Do not tell them to stop any medicine; phrase concerns as questions for the doctor.
+Reply with JSON only: {"meds":[{"name":"as written with strength","generic":"","when":"Morning / Night / Morning + night etc.","purpose":"plain words","source":"which paper and year"}],"warnings":[{"level":"high|info","title":"short","detail":"1-2 sentences"}]}`;
+    try {
+      const r = await Promise.race([sample.json(prompt, { images: [blob], modelTier: "default" }), new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 45000))]);
+      if (r && Array.isArray(r.meds) && r.meds.length) return renderRx(r, "ai");
+    } catch (e) { toast("Live reading failed, so showing the sample result"); }
+  }
+  setTimeout(() => renderRx(RX_FALLBACK, "offline"), 1200);
+}
+$("#readSample").addEventListener("click", async () => {
+  await drawRx();
+  $("#rxPhoto").hidden = true; $("#rxCanvas").hidden = false;
+  const c = $("#rxCanvas");
+  const blob = await new Promise(res => c.toBlob(res, "image/jpeg", 0.88));
+  readRx(blob);
+});
+$("#upload").addEventListener("change", e => {
+  const f = e.target.files && e.target.files[0]; if (!f) return;
+  const img = $("#rxPhoto"); img.src = URL.createObjectURL(f); img.hidden = false; $("#rxCanvas").hidden = true;
+  readRx(f);
+});
+
+/* ============ 3 · 14-DAY DRIFT ============ */
+const DAYS = [
+  { pace: 114, tired: 0, meds: 2 }, { pace: 112, tired: 0, meds: 2 }, { pace: 115, tired: 0, meds: 2 }, { pace: 111, tired: 1, meds: 2 },
+  { pace: 113, tired: 0, meds: 2 }, { pace: 110, tired: 0, meds: 2 }, { pace: 112, tired: 1, meds: 2 }, { pace: 109, tired: 0, meds: 2 },
+  { pace: 108, tired: 1, meds: 2 }, { pace: 104, tired: 2, meds: 2 }, { pace: 101, tired: 1, meds: 1 }, { pace: 99, tired: 2, meds: 2 },
+  { pace: 96, tired: 3, meds: 1 }, { pace: 93, tired: 3, meds: 2 },
+];
+let driftDrawn = false;
+function drawDrift() {
+  if (driftDrawn) return; driftDrawn = true;
+  const W = 640, H = 260, L = 44, R = 40, T = 16, B = 34, iw = W - L - R, ih = H - T - B;
+  const x = i => L + (i / (DAYS.length - 1)) * iw;
+  const yp = v => T + (1 - (v - 85) / (120 - 85)) * ih;       // pace axis 85–120
+  const yt = v => T + (1 - v / 4) * ih;                        // mentions axis 0–4
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Speaking pace falls from 114 to 93 words per minute while tired mentions rise to 3 a day">`;
+  for (const v of [90, 100, 110, 120]) s += `<line x1="${L}" x2="${W - R}" y1="${yp(v)}" y2="${yp(v)}" stroke="var(--line)"/><text x="${L - 8}" y="${yp(v) + 4}" text-anchor="end" font-size="11" fill="var(--ink-2)" font-family="IBM Plex Mono, monospace">${v}</text>`;
+  for (const v of [0, 2, 4]) s += `<text x="${W - R + 8}" y="${yt(v) + 4}" font-size="11" fill="var(--warn)" font-family="IBM Plex Mono, monospace">${v}</text>`;
+  s += `<rect x="${x(9) - 6}" y="${T}" width="${x(13) - x(9) + 12}" height="${ih}" fill="var(--warn-soft)" opacity=".7"/>`;
+  s += `<text x="${x(9)}" y="${T + 12}" font-size="11" fill="var(--warn)" font-weight="600" font-family="IBM Plex Sans, sans-serif">drift detected</text>`;
+  DAYS.forEach((d, i) => { const bw = 14; s += `<rect x="${x(i) - bw / 2}" y="${yt(d.tired)}" width="${bw}" height="${T + ih - yt(d.tired)}" rx="3" fill="var(--warn)" opacity=".55"/>`; });
+  s += `<polyline fill="none" stroke="var(--info)" stroke-width="3" stroke-linejoin="round" points="${DAYS.map((d, i) => `${x(i)},${yp(d.pace)}`).join(" ")}"/>`;
+  DAYS.forEach((d, i) => { if (i === 0 || i === DAYS.length - 1) s += `<circle cx="${x(i)}" cy="${yp(d.pace)}" r="5" fill="var(--info)"/><text x="${x(i)}" y="${yp(d.pace) - 10}" text-anchor="middle" font-size="12" font-weight="600" fill="var(--info)" font-family="IBM Plex Mono, monospace">${d.pace}</text>`; });
+  DAYS.forEach((d, i) => { if (i % 2 === 1 || i === 0) s += `<text x="${x(i)}" y="${H - 12}" text-anchor="middle" font-size="11" fill="var(--ink-2)" font-family="IBM Plex Mono, monospace">D${i + 1}</text>`; });
+  s += `</svg>`;
+  $("#chart").innerHTML = s;
+  $("#days").innerHTML = DAYS.slice(-7).map((d, i) => `<div class="day"><b style="color:${d.meds < 2 ? "var(--sos)" : "var(--ok)"}">${d.meds}/2</b>D${i + 8}</div>`).join("");
+}
+$("#book").addEventListener("click", () => {
+  const log = $("#bookLog"), steps = ["Called Dr. Raman's clinic (AI voice agent)", "Booked Thursday 11:30 AM, cardiology OPD", "Sent the 14-day summary to the clinic", "Reminder set for Paati: Wednesday evening call", "Asked Meena to accompany her (she said yes)"];
+  $("#book").disabled = true; log.innerHTML = "";
+  steps.forEach((t, i) => setTimeout(() => { log.insertAdjacentHTML("beforeend", `<div class="act"><span class="mono">${nowClock()}</span>${esc(t)}</div>`); }, 700 * (i + 1)));
+});
+$("#tellAmma").addEventListener("click", () => toast("Tomorrow's call will gently mention the appointment in Tamil."));
+
+showTab((location.hash || "").slice(1) || "call");
+})();
+</script>
+</body>
+</html>
