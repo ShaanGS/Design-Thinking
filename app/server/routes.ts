@@ -259,8 +259,11 @@ async function processDocument(docId: string, buf: Buffer, mime: string, patient
   toFamily(familyId, "vault", { docId });
 }
 async function refreshInsights(patientId: string, familyId: string) {
+  const before = S.insights(patientId).map((i) => i.title).sort().join("|");
   const list = await AI.buildInsights(S.healthRecord(patientId), S.meds(patientId));
   S.replaceInsights(patientId, list);
+  // Only tell the family when the findings actually changed
+  if (list.map((i) => i.title).sort().join("|") === before) { toFamily(familyId, "vault", { insights: true }); return; }
   const high = list.filter((i) => i.level === "high").length;
   if (list.length) toFamily(familyId, "feed", S.addFeed(familyId, "insight", high ? "warn" : "info", `Saathi found ${list.length} thing${list.length > 1 ? "s" : ""} to ask the doctor`, list.slice(0, 3).map((i) => i.title).join(" · ")));
   toFamily(familyId, "vault", { insights: true });

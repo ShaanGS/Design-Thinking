@@ -5,6 +5,16 @@ Shaan (RA2511004010247) · Shrinavin (RA2511004010230) · Kishore (RA25110040102
 
 > Saathi phones your parents every morning, in their own language, on any phone. It checks their medicines, notices when something is changing, tells you what matters, and when it's serious, runs the emergency: family, ambulance, the medical record sent ahead, and routing to a hospital that can actually treat them.
 
+## ⭐ The app
+
+**[`app/`](app/) is the real product**: a full-stack, installable app with three live sides (the elder's phone, the family app with the Health Vault, and the hospital console), Claude-powered AI, live sync across phones, and a one-click deploy. Start with [`app/README.md`](app/README.md):
+
+```bash
+cd app && npm install && npm run dev     # then open http://localhost:5173
+```
+
+The HTML files in `prototype/` were the earlier design-thinking prototypes.
+
 ## What's in this repo
 
 | Path | What it is |

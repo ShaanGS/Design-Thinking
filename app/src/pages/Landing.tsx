@@ -72,7 +72,7 @@ export default function Landing() {
             </div>
             <div className="mt-5 grid grid-cols-1 gap-2 border-t border-line pt-4 sm:grid-cols-3">
               <Button variant="outline" icon={<Users className="h-4 w-4" />} onClick={() => setModal("join")}>Join a family</Button>
-              <Button variant="outline" icon={<HeartHandshake className="h-4 w-4" />} onClick={() => setModal("create")}>Set up a family</Button>
+              <Button variant="outline" icon={<HeartHandshake className="h-4 w-4" />} onClick={() => setModal("create")}>New family</Button>
               <Button variant="outline" icon={<Building2 className="h-4 w-4" />} onClick={() => setModal("hospital")}>Hospital staff</Button>
             </div>
           </Card>
