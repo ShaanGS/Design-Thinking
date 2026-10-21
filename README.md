@@ -13,6 +13,10 @@ Shaan (RA2511004010247) · Shrinavin (RA2511004010230) · Kishore (RA25110040102
 | [`docs/02-research-kit.md`](docs/02-research-kit.md) | Interview scripts (elder, guardian, doctor, pharmacist, EMT), consent script, usability-test sheet, Google Form survey, tips for the emotional storytelling |
 | [`docs/03-pitch-and-demo.md`](docs/03-pitch-and-demo.md) | Slide-by-slide pitch outline, a live demo script with exact clicks, judge Q&A, team roles |
 | [`docs/04-startup-ideation.md`](docs/04-startup-ideation.md) | **Round 2:** 24 startup ideas, scoring, YC alignment, and the chosen direction: Saathi, the AI grandchild that calls every day (business model, moat, risks, 10-week build plan) |
+| [`docs/05-features-and-wow-demo.md`](docs/05-features-and-wow-demo.md) | **Full feature set** (5 pillars, what is built vs planned) and the **10-minute wow demo run-of-show**: timings, equipment checklist, hosting steps, fallbacks |
+| [`prototype/vault.html`](prototype/vault.html) | **Health Vault:** a bag of prescriptions and reports becomes a lifetime medical record (timeline, trends, cross-doctor warnings, doctor brief with QR, ask in Tamil). Live: https://claude.ai/artifact/4drWh7efxTYg65Yypryn9Y |
+| [`prototype/live.html`](prototype/live.html) | **Live room:** the audience scans a QR, becomes Paati's family, and every phone flashes and rings on SOS. Open `live.html?host` on the projector. Needs https hosting (see doc 05) |
+| [`prototype/vitals.html`](prototype/vitals.html) | **Face Pulse:** heart rate from a 20-second selfie (camera rPPG, `rppg.js`). Needs https or localhost and camera permission |
 | [`prototype/companion.html`](prototype/companion.html) | **AI companion demo:** daily Tamil check-in call, prescription scanning, 14-day drift. Live: https://claude.ai/artifact/WLgT3L2tz5EkeaB6ny45VP |
 | [`prototype/index.html`](prototype/index.html) | The working prototype: three live screens (Paati's phone, Karthik's phone, hospital network console) |
 

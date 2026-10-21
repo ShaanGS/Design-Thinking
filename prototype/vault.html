@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Saathi Health Vault</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+Thambi+2:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&family=Noto+Sans+Tamil:wght@400;600&family=Caveat:wght@500;700&display=swap">
+<style>
+/* Layout: left = "the pile" of paper documents; right = the record Saathi builds from them,
+   with sub-tabs Timeline · Trends · Caught · Doctor brief · Ask. */
+:root{
+  --bg:#EAF0ED; --surface:#FFFFFF; --surface-2:#F4F7F5; --ink:#13221E; --ink-2:#4B5D57; --line:#D3DDD8;
+  --brand:#D98E04; --brand-ink:#7A4E00; --brand-soft:#FCEFD3;
+  --sos:#D62839; --sos-soft:#FBE2E5; --ok:#12775A; --ok-soft:#DCF1E8;
+  --warn:#AE5A06; --warn-soft:#FCEEDB; --info:#1E5E8A; --info-soft:#E0EDF6; --desk:#C9D4CE;
+  --f-display:"Baloo Thambi 2","Noto Sans Tamil",ui-rounded,system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Noto Sans Tamil",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --f-tamil:"Noto Sans Tamil","Baloo Thambi 2",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1513; --surface:#16211E; --surface-2:#1C2925; --ink:#E4EDEA; --ink-2:#9BAFA8; --line:#2A3A35;
+  --brand:#F0B13A; --brand-ink:#F6CD78; --brand-soft:#3A2C10; --sos:#FF5B6B; --sos-soft:#3B191E;
+  --ok:#3CC594; --ok-soft:#12302A; --warn:#F0A04B; --warn-soft:#3A2A13; --info:#6AAEDF; --info-soft:#132A3B; --desk:#22302B; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1513; --surface:#16211E; --surface-2:#1C2925; --ink:#E4EDEA; --ink-2:#9BAFA8; --line:#2A3A35;
+  --brand:#F0B13A; --brand-ink:#F6CD78; --brand-soft:#3A2C10; --sos:#FF5B6B; --sos-soft:#3B191E;
+  --ok:#3CC594; --ok-soft:#12302A; --warn:#F0A04B; --warn-soft:#3A2A13; --info:#6AAEDF; --info-soft:#132A3B; --desk:#22302B; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--f-body);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,label:focus-within{outline:3px solid var(--brand);outline-offset:2px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.1}
+.ta{font-family:var(--f-tamil)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding-block:14px 8px}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+.brand-mark{width:36px;height:36px;border-radius:12px;background:var(--brand);display:grid;place-items:center}
+.brand h1{font-size:26px}
+.brand small{display:block;font:500 12px/1.2 var(--f-body);color:var(--ink-2);letter-spacing:.06em;text-transform:uppercase}
+.aistate{font-size:13px;color:var(--ink-2);display:flex;gap:8px;align-items:center}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--ink-2)}.dot.on{background:var(--ok);box-shadow:0 0 0 3px var(--ok-soft)}
+.intro{padding-block:6px 4px;max-width:900px}
+.intro h2{font-size:clamp(24px,3.4vw,36px)}
+.intro p{margin:6px 0 0;color:var(--ink-2);font-size:15.5px;max-width:72ch}
+.grid{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:24px;padding-block:18px 48px;align-items:start}
+@media (max-width:980px){.grid{grid-template-columns:minmax(0,1fr)}}
+.lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);font-weight:600}
+.pane-title{display:flex;justify-content:space-between;align-items:baseline;margin:0 6px 8px;gap:8px}
+.pane-title h3{font-size:17px}.pane-title span{font-size:12px;color:var(--ink-2)}
+.desk{background:var(--desk);border-radius:22px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.pile{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.doc{position:relative;border:0;padding:0;background:transparent;border-radius:6px;transition:transform .25s,box-shadow .25s}
+.doc canvas,.doc img{width:100%;height:auto;display:block;border-radius:4px;box-shadow:0 6px 14px -6px rgba(0,0,0,.45)}
+.doc:nth-child(odd){transform:rotate(-2deg)}.doc:nth-child(even){transform:rotate(2.2deg)}
+.doc:hover{transform:rotate(0) scale(1.04);z-index:2}
+.doc .tag{position:absolute;left:4px;right:4px;bottom:4px;background:rgba(19,34,30,.82);color:#fff;font-size:10.5px;border-radius:4px;padding:2px 5px;text-align:center}
+.doc.reading{transform:rotate(0) scale(1.06);z-index:3}
+.doc.reading::after{content:"";position:absolute;left:0;right:0;height:22%;top:0;background:linear-gradient(transparent,rgba(240,177,58,.55),transparent);animation:scan 1.1s linear infinite;border-radius:4px}
+.doc.done::before{content:"✓";position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;background:var(--ok);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:700;z-index:4}
+@keyframes scan{from{top:0}to{top:78%}}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 14px;font-weight:600;font-size:14px}
+.btn.solid{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.big{font-size:16px;padding:13px 16px;width:100%}
+.btn:disabled{opacity:.55;cursor:default}
+.upl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.upl label{border:1px dashed var(--ink-2);border-radius:12px;padding:9px 13px;font-weight:600;font-size:14px;cursor:pointer;background:var(--surface)}
+.upl input{position:absolute;opacity:0;width:1px;height:1px}
+.status{font-size:13.5px;color:var(--ink-2);min-height:20px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:22px;overflow:hidden}
+.p-head{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:14px 18px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.p-head h3{font-size:21px}.p-head p{margin:2px 0 0;font-size:13px;color:var(--ink-2)}
+.stats{display:flex;gap:16px;flex-wrap:wrap}
+.stat b{display:block;font:600 22px var(--f-display)}.stat small{font-size:11.5px;color:var(--ink-2)}
+.subtabs{display:flex;gap:2px;padding:6px 10px 0;border-bottom:1px solid var(--line);overflow-x:auto}
+.subtabs button{border:0;background:transparent;padding:9px 12px;font-weight:600;font-size:14px;color:var(--ink-2);border-bottom:3px solid transparent;white-space:nowrap}
+.subtabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--brand)}
+.subtabs .count{background:var(--sos);color:#fff;border-radius:999px;font-size:11px;padding:1px 6px;margin-left:4px}
+.p-body{padding:16px 18px;display:flex;flex-direction:column;gap:12px;min-height:420px}
+.empty{border:1.5px dashed var(--line);border-radius:16px;padding:28px;text-align:center;color:var(--ink-2);display:flex;flex-direction:column;gap:8px;align-items:center}
+.empty b{color:var(--ink);font-size:17px}
+.badge{white-space:nowrap;display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600}
+.b-sos{background:var(--sos-soft);color:var(--sos)}.b-ok{background:var(--ok-soft);color:var(--ok)}
+.b-warn{background:var(--warn-soft);color:var(--warn)}.b-info{background:var(--info-soft);color:var(--info)}.b-mute{background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line)}
+.src{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:1px 8px;font-size:11.5px;color:var(--ink-2);cursor:pointer}
+.src:hover{border-color:var(--brand);color:var(--ink)}
+.tl{display:flex;flex-direction:column;gap:0;margin:0;padding:0;list-style:none}
+.tl li{display:grid;grid-template-columns:86px 18px minmax(0,1fr);gap:10px;align-items:start}
+.tl time{font:500 12.5px var(--f-mono);color:var(--ink-2);text-align:right;padding-top:2px}
+.tl .rail{position:relative;align-self:stretch}
+.tl .rail::before{content:"";position:absolute;left:8px;top:0;bottom:0;width:2px;background:var(--line)}
+.tl .rail i{position:absolute;left:3px;top:4px;width:12px;height:12px;border-radius:50%;background:var(--info);border:2px solid var(--surface)}
+.tl .rail i.k-heart{background:var(--sos)}.tl .rail i.k-lab{background:var(--info)}.tl .rail i.k-rx{background:var(--brand)}.tl .rail i.k-scan{background:var(--ok)}
+.tl .ev{padding-bottom:14px}
+.tl .ev b{display:block}
+.tl .ev span{font-size:13.5px;color:var(--ink-2)}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.chart{border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--surface-2)}
+.chart h4{margin:0;font-size:14px}
+.chart small{color:var(--ink-2);font-size:12px}
+.chart svg{display:block;width:100%;height:auto;margin-top:4px}
+.chart .verdict{font-size:12.5px;font-weight:600;margin-top:2px}
+.ins{border-left:4px solid var(--sos);background:var(--sos-soft);border-radius:0 14px 14px 0;padding:11px 13px;display:flex;flex-direction:column;gap:4px}
+.ins b{color:var(--sos);font-size:15px}
+.ins.y{border-color:var(--warn);background:var(--warn-soft)}.ins.y b{color:var(--warn)}
+.ins.i{border-color:var(--info);background:var(--info-soft)}.ins.i b{color:var(--info)}
+.ins p{margin:0;font-size:14px}
+.ins .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.brief{border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px}
+@media (max-width:620px){.brief{grid-template-columns:minmax(0,1fr)}}
+.brief h4{margin:10px 0 4px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+.brief h4:first-child{margin-top:0}
+.brief ul{margin:0;padding-left:18px;font-size:14px}
+.brief .qr{background:#fff;padding:8px;border-radius:10px;border:1px solid var(--line);text-align:center;color:#333;font-size:11.5px;width:176px}
+.brief .qr #qr img,.brief .qr #qr canvas{width:160px;height:160px;display:block;margin:0 auto 6px}
+.chat{display:flex;flex-direction:column;gap:10px}
+.qchips{display:flex;gap:6px;flex-wrap:wrap}
+.qchip{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:6px 11px;font-size:13px}
+.msgs{display:flex;flex-direction:column;gap:8px;min-height:120px}
+.m{max-width:90%;padding:9px 12px;border-radius:14px;font-size:14.5px}
+.m.q{align-self:flex-end;background:var(--ink);color:var(--bg)}
+.m.a{align-self:flex-start;background:var(--surface-2);border:1px solid var(--line)}
+.ask{display:flex;gap:8px}
+.ask input{flex:1;min-width:0;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:inherit;background:var(--surface);color:var(--ink)}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--brand);border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.viewer{position:fixed;inset:0;background:rgba(8,16,14,.7);display:grid;place-items:center;z-index:50;padding:16px}
+.viewer .box{max-width:min(640px,100%);max-height:calc(100% - 20px);overflow:auto;background:var(--surface);border-radius:14px;padding:10px}
+.viewer canvas,.viewer img{width:100%;height:auto;display:block}
+.foot{padding-block:0 60px;color:var(--ink-2);font-size:13px}
+.toast{position:fixed;right:max(16px,env(safe-area-inset-right,0px));top:calc(16px + env(safe-area-inset-top,0px));background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:14px;z-index:60;box-shadow:0 10px 24px -12px rgba(0,0,0,.35);max-width:340px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="wrap top">
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 21s-7.5-4.6-9.3-9.4C1.4 8.2 3.6 4.5 7.2 4.5c2 0 3.6 1.1 4.8 2.8 1.2-1.7 2.8-2.8 4.8-2.8 3.6 0 5.8 3.7 4.5 7.1C19.5 16.4 12 21 12 21z" fill="#fff"/></svg></div>
+    <div><h1>Saathi Health Vault</h1><small>Every paper, one lifetime record</small></div>
+  </div>
+  <div class="aistate"><span class="dot" id="aiDot"></span><span id="aiText">Checking for Claude…</span></div>
+</header>
+<section class="wrap intro">
+  <h2>Six papers. Four years. Four doctors. One record.</h2>
+  <p>Every Indian family has the plastic bag. Saathi reads it all (discharge summaries, lab reports, scans, prescriptions), builds Paati's lifetime medical history, and finds what no single doctor could see because no doctor saw every paper.</p>
+</section>
+<main class="wrap grid">
+  <div>
+    <div class="pane-title"><h3>The plastic bag</h3><span>tap a paper to look closer</span></div>
+    <div class="desk">
+      <div class="pile" id="pile"></div>
+      <button class="btn solid big" id="build">Build Paati's health record</button>
+      <div class="upl"><label id="uploadLbl" hidden>Add your own photos<input type="file" id="upload" accept="image/*" multiple></label><span class="status" id="status"></span></div>
+    </div>
+  </div>
+  <div>
+    <div class="pane-title"><h3>Kamala Ramasamy · lifetime record</h3><span>shared with family and, on SOS, the ER</span></div>
+    <div class="panel">
+      <div class="p-head"><div><h3 id="recTitle">No record yet</h3><p id="recSub">Press "Build Paati's health record"</p></div>
+        <div class="stats" id="stats"></div></div>
+      <div class="subtabs" role="tablist">
+        <button role="tab" data-sub="timeline" aria-selected="true">Timeline</button>
+        <button role="tab" data-sub="trends" aria-selected="false">Trends</button>
+        <button role="tab" data-sub="caught" aria-selected="false">Caught <span class="count" id="caughtCount" hidden>0</span></button>
+        <button role="tab" data-sub="brief" aria-selected="false">Doctor brief</button>
+        <button role="tab" data-sub="ask" aria-selected="false">Ask</button>
+      </div>
+      <div class="p-body" id="body">
+        <div class="empty"><b>The record builds itself from the papers</b>Saathi reads each document, dates every event, extracts lab values and medicines, and links every fact back to the paper it came from.</div>
+      </div>
+    </div>
+  </div>
+</main>
+<footer class="wrap foot">Prototype by Group 4. All documents are fictional samples drawn for this demo; not medical advice. On claude.ai, Claude reads the documents and answers questions live; elsewhere a prepared result is shown.</footer>
+<div class="viewer" id="viewer" hidden><div class="box" id="viewerBox"></div></div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+(() => {
+"use strict";
+const $ = s => document.querySelector(s);
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+let toastT = 0;
+const toast = m => { const t = $("#toast"); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2800); };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/* ---------- Claude ---------- */
+let sample = null, imgLimits = null;
+const sp = (window.claude && typeof window.claude.use === "function") ? window.claude.use("sample").catch(() => null) : Promise.resolve(null);
+sp.then(async s => {
+  sample = s;
+  if (s) { try { const l = await s.limits(); imgLimits = l && l.images ? l.images : null; } catch (e) {} }
+  $("#aiDot").classList.toggle("on", !!s);
+  $("#aiText").textContent = s ? (imgLimits ? "AI live · Claude reads the papers" : "AI live · Claude") : "Offline demo (open on claude.ai for live AI)";
+  $("#uploadLbl").hidden = !imgLimits;
+});
+
+/* ---------- The six sample documents (fictional) ---------- */
+const DOCS = [
+  { id: "D1", kind: "Discharge summary", year: "2022", type: "print", paper: "#fdfdf8", head: "SARASWATHI MULTISPECIALITY HOSPITAL", sub: "Dept. of Cardiology · Tambaram, Chennai", title: "DISCHARGE SUMMARY", date: "14/06/2022",
+    lines: ["Patient: Kamala Ramasamy   Age/Sex: 68/F   IP No: 22-04817", "Admitted: 11/06/2022   Discharged: 14/06/2022", "", "DIAGNOSIS: NSTEMI. CAD - Single vessel disease (LAD 90%).", "  Type 2 Diabetes Mellitus. Systemic Hypertension.", "PROCEDURE: PCI with 1 x DES to proximal LAD (12/06/2022).", "ALLERGY: PENICILLIN (skin rash)", "Echo: LVEF 55%, hypokinesia of LAD territory.", "", "DISCHARGE MEDICATIONS:", "  1. Tab Aspirin 75 mg   0-1-0  (DAPT x 12 months)", "  2. Tab Clopidogrel 75 mg   1-0-0", "  3. Tab Atorvastatin 40 mg   0-0-1", "  4. Tab Metoprolol 25 mg   1-0-1", "  5. Tab Metformin 500 mg   1-0-1", "", "Review in Cardiology OPD after 1 month. Dr. S. Raman, MD DM"] },
+  { id: "D2", kind: "Lab report", year: "2023", type: "lab", paper: "#ffffff", head: "ANNAI DIAGNOSTICS", sub: "NABL accredited · Tambaram", title: "LABORATORY REPORT", date: "21/08/2023",
+    rows: [["HbA1c", "7.1", "%", "< 6.5"], ["Fasting glucose", "138", "mg/dL", "70 - 100"], ["Creatinine", "1.0", "mg/dL", "0.5 - 1.1"], ["eGFR", "62", "mL/min/1.73m2", "> 90"], ["LDL cholesterol", "92", "mg/dL", "< 70 (CAD)"], ["Haemoglobin", "12.1", "g/dL", "12 - 15"]] },
+  { id: "D3", kind: "Lab report", year: "2024", type: "lab", paper: "#ffffff", head: "ANNAI DIAGNOSTICS", sub: "NABL accredited · Tambaram", title: "LABORATORY REPORT", date: "09/11/2024",
+    rows: [["HbA1c", "7.6", "%", "< 6.5"], ["Fasting glucose", "151", "mg/dL", "70 - 100"], ["Creatinine", "1.2", "mg/dL", "0.5 - 1.1"], ["eGFR", "51", "mL/min/1.73m2", "> 90"], ["LDL cholesterol", "104", "mg/dL", "< 70 (CAD)"], ["Potassium", "4.8", "mmol/L", "3.5 - 5.1"]] },
+  { id: "D4", kind: "Echo report", year: "2025", type: "print", paper: "#fbfdff", head: "SARASWATHI MULTISPECIALITY HOSPITAL", sub: "Non-invasive Cardiology Lab", title: "2D ECHOCARDIOGRAPHY", date: "20/01/2025",
+    lines: ["Patient: Kamala Ramasamy   Age/Sex: 70/F", "Indication: Post-PCI follow-up, exertional fatigue", "", "LV: Mild LV systolic dysfunction.", "    Regional wall motion abnormality - LAD territory.", "LVEF: 48 %  (previous 55 % in 06/2022)", "Valves: Mild MR. No AS.", "RVSP: 32 mmHg. No pericardial effusion.", "", "IMPRESSION: Ischaemic heart disease with", "  mild LV dysfunction (EF 48%).", "  Advised clinical correlation & cardiology review.", "", "Reported by: Dr. A. Fathima, DM (Cardiology)"] },
+  { id: "D5", kind: "Prescription", year: "2025", type: "rx", paper: "#fdfbf3", head: "Dr. S. Raman, MD DM", sub: "Cardiology · Saraswathi Multispeciality", date: "12/03/2025",
+    lines: ["1) Tab Clopidogrel 75mg  1-0-0", "2) Tab Atorva 20mg  0-0-1", "3) Tab Amlodipine 5mg  1-0-0", "   Stop Metoprolol (dizziness)", "   Review after 6 months"] },
+  { id: "D6", kind: "Lab + Rx", year: "2026", type: "lab", paper: "#ffffff", head: "ANNAI DIAGNOSTICS", sub: "NABL accredited · Tambaram", title: "LABORATORY REPORT", date: "28/08/2026",
+    rows: [["HbA1c", "8.4", "%", "< 6.5"], ["Fasting glucose", "176", "mg/dL", "70 - 100"], ["Creatinine", "1.4", "mg/dL", "0.5 - 1.1"], ["eGFR", "42", "mL/min/1.73m2", "> 90"], ["LDL cholesterol", "118", "mg/dL", "< 70 (CAD)"], ["Haemoglobin", "10.9", "g/dL", "12 - 15"]],
+    note: ["Rx 02/09/26 Dr. P. Meenakshi MBBS:", "Tab Glycomet 500 1-0-1, Cap Omez 20mg 1-0-0 x 1 month"] },
+];
+
+const HAND = '"Caveat","Segoe Print","Bradley Hand",cursive';
+function drawDoc(d, canvas) {
+  const W = 850, H = 1100; canvas.width = W; canvas.height = H;
+  const g = canvas.getContext("2d");
+  g.fillStyle = d.paper; g.fillRect(0, 0, W, H);
+  // soft paper texture
+  g.fillStyle = "rgba(120,100,60,.035)"; for (let i = 0; i < 260; i++) g.fillRect((i * 97) % W, (i * 53) % H, 2, 2);
+  g.fillStyle = "#16365f"; g.font = "700 30px Georgia,serif"; g.fillText(d.head, 40, 70);
+  g.font = "19px Georgia,serif"; g.fillStyle = "#3d5a80"; g.fillText(d.sub, 40, 100);
+  g.strokeStyle = "#16365f"; g.lineWidth = 3; g.beginPath(); g.moveTo(40, 118); g.lineTo(W - 40, 118); g.stroke();
+  if (d.type === "rx") {
+    g.fillStyle = "#222"; g.font = "32px " + HAND; g.fillText("Name: Kamala R.  72/F", 40, 170); g.fillText(d.date, W - 200, 170);
+    g.font = "700 64px Georgia,serif"; g.fillStyle = "#16365f"; g.fillText("℞", 40, 260);
+    g.font = "42px " + HAND; g.fillStyle = "#1b2a4a"; d.lines.forEach((l, i) => g.fillText(l, 110, 260 + i * 66));
+    g.font = "36px " + HAND; g.fillText("Sd/-", W - 160, H - 80);
+    return;
+  }
+  g.fillStyle = "#111"; g.font = "700 26px Arial,sans-serif"; g.fillText(d.title, 40, 165);
+  g.font = "20px Arial,sans-serif"; g.fillText("Date: " + d.date, W - 220, 165);
+  if (d.type === "print") {
+    g.font = "21px 'Courier New',monospace"; g.fillStyle = "#1a1a1a";
+    d.lines.forEach((l, i) => { if (/ALLERGY|DIAGNOSIS|IMPRESSION|LVEF/.test(l)) g.font = "700 21px 'Courier New',monospace"; else g.font = "21px 'Courier New',monospace"; g.fillText(l, 40, 215 + i * 34); });
+  } else {
+    g.font = "20px Arial,sans-serif"; g.fillText("Patient: Kamala Ramasamy    Sex: F    Ref: Dr. P. Meenakshi", 40, 205);
+    const cols = [40, 360, 500, 690]; let y = 260;
+    g.fillStyle = "#e8eef5"; g.fillRect(30, y - 30, W - 60, 42);
+    g.fillStyle = "#111"; g.font = "700 19px Arial,sans-serif"; ["TEST", "RESULT", "UNIT", "REF. RANGE"].forEach((h, i) => g.fillText(h, cols[i], y));
+    y += 50;
+    d.rows.forEach(r => {
+      const flag = /HbA1c|glucose|Creatinine|eGFR|LDL|Haemoglobin/.test(r[0]) && !(r[0] === "Haemoglobin" && +r[1] >= 12) && !(r[0] === "Creatinine" && +r[1] <= 1.1);
+      g.font = "19px Arial,sans-serif"; g.fillStyle = "#111"; g.fillText(r[0], cols[0], y);
+      g.font = (flag ? "700 " : "") + "19px Arial,sans-serif"; g.fillStyle = flag ? "#b00020" : "#111"; g.fillText(r[1] + (flag ? " *" : ""), cols[1], y);
+      g.font = "17px Arial,sans-serif"; g.fillStyle = "#333"; g.fillText(r[2], cols[2], y); g.fillText(r[3], cols[3], y);
+      g.strokeStyle = "#ddd"; g.lineWidth = 1; g.beginPath(); g.moveTo(30, y + 16); g.lineTo(W - 30, y + 16); g.stroke();
+      y += 48;
+    });
+    g.font = "italic 16px Arial,sans-serif"; g.fillStyle = "#555"; g.fillText("* outside reference range.   Pathologist: Dr. K. Ilango, MD", 40, y + 20);
+    if (d.note) { g.save(); g.translate(60, y + 120); g.rotate(-0.03); g.fillStyle = "#fffbe6"; g.fillRect(0, 0, 730, 180); g.fillStyle = "#1b2a4a"; g.font = "36px " + HAND; d.note.forEach((l, i) => g.fillText(l, 20, 60 + i * 60)); g.restore(); }
+  }
+  g.fillStyle = "#16365f"; g.font = "15px Arial,sans-serif"; g.fillText("Sample document for a college prototype. Not a real record.", 40, H - 30);
+}
+
+const canvases = {};
+async function buildPile() {
+  try { await document.fonts.load('40px "Caveat"'); } catch (e) {}
+  $("#pile").innerHTML = DOCS.map(d => `<button class="doc" data-doc="${d.id}" aria-label="${d.kind} ${d.year}"><canvas></canvas><span class="tag">${d.kind} · ${d.year}</span></button>`).join("");
+  DOCS.forEach(d => { const c = $(`[data-doc="${d.id}"] canvas`); drawDoc(d, c); canvases[d.id] = c; });
+}
+
+/* ---------- The prepared result (matches the sample documents) ---------- */
+const FALLBACK = {
+  summary: "72-year-old woman with type 2 diabetes, hypertension and ischaemic heart disease (heart attack and LAD stent in June 2022). Penicillin allergy.",
+  conditions: [
+    { name: "Coronary artery disease, NSTEMI with LAD stent", since: "2022", source: "D1" },
+    { name: "Type 2 diabetes", since: "before 2022", source: "D1" },
+    { name: "Hypertension", since: "before 2022", source: "D1" },
+    { name: "Mild heart pumping weakness (LVEF 48%)", since: "2025", source: "D4" },
+    { name: "Chronic kidney disease, stage 3 (eGFR 42)", since: "2026, emerging since 2023", source: "D6" },
+  ],
+  allergies: [{ name: "Penicillin (skin rash)", source: "D1" }],
+  events: [
+    { date: "2022-06-11", kind: "heart", title: "Heart attack (NSTEMI), admitted to Saraswathi", detail: "Stent placed in the LAD artery on 12 Jun. LVEF 55%.", source: "D1" },
+    { date: "2022-06-14", kind: "rx", title: "Discharged on 5 medicines", detail: "Aspirin + clopidogrel (12 months), atorvastatin 40, metoprolol, metformin.", source: "D1" },
+    { date: "2023-08-21", kind: "lab", title: "Blood tests", detail: "HbA1c 7.1%, eGFR 62, LDL 92.", source: "D2" },
+    { date: "2024-11-09", kind: "lab", title: "Blood tests", detail: "HbA1c 7.6%, eGFR 51, LDL 104.", source: "D3" },
+    { date: "2025-01-20", kind: "scan", title: "Echo: heart pumping slightly weaker", detail: "LVEF 48% (was 55% in 2022). Mild mitral regurgitation.", source: "D4" },
+    { date: "2025-03-12", kind: "rx", title: "Cardiology review, medicines changed", detail: "Atorvastatin lowered to 20 mg. Metoprolol stopped (dizziness). Amlodipine started.", source: "D5" },
+    { date: "2026-08-28", kind: "lab", title: "Blood tests", detail: "HbA1c 8.4%, eGFR 42, LDL 118, haemoglobin 10.9.", source: "D6" },
+    { date: "2026-09-02", kind: "rx", title: "GP prescription", detail: "Glycomet (metformin) 500 twice daily; Omez (omeprazole) for 1 month.", source: "D6" },
+  ],
+  labs: [
+    { test: "HbA1c", date: "2023-08-21", value: 7.1, source: "D2" }, { test: "HbA1c", date: "2024-11-09", value: 7.6, source: "D3" }, { test: "HbA1c", date: "2026-08-28", value: 8.4, source: "D6" },
+    { test: "eGFR", date: "2023-08-21", value: 62, source: "D2" }, { test: "eGFR", date: "2024-11-09", value: 51, source: "D3" }, { test: "eGFR", date: "2026-08-28", value: 42, source: "D6" },
+    { test: "LDL", date: "2023-08-21", value: 92, source: "D2" }, { test: "LDL", date: "2024-11-09", value: 104, source: "D3" }, { test: "LDL", date: "2026-08-28", value: 118, source: "D6" },
+    { test: "Haemoglobin", date: "2023-08-21", value: 12.1, source: "D2" }, { test: "Haemoglobin", date: "2026-08-28", value: 10.9, source: "D6" },
+  ],
+  meds: [
+    { name: "Clopidogrel 75 mg", when: "Morning", source: "D5" }, { name: "Atorvastatin 20 mg", when: "Night", source: "D5" },
+    { name: "Amlodipine 5 mg", when: "Morning", source: "D5" }, { name: "Glycomet (metformin) 500 mg", when: "Morning + night", source: "D6" },
+    { name: "Omez (omeprazole) 20 mg", when: "Morning, 1-month course", source: "D6" },
+  ],
+  insights: [
+    { level: "high", title: "Kidney function has fallen by a third in 3 years", detail: "eGFR went 62 → 51 → 42. At this level the metformin dose usually needs a doctor's review, but the 2026 prescription continued the full dose. Neither the GP nor the cardiologist has seen all three reports.", ask: "Should her metformin dose change now that her eGFR is 42?", sources: ["D2", "D3", "D6"] },
+    { level: "high", title: "Cholesterol is rising while the statin was cut in half", detail: "After her heart attack, LDL should stay well below 70. It went 92 → 104 → 118, and atorvastatin was lowered from 40 mg to 20 mg in 2025.", ask: "Should her atorvastatin go back up or should another medicine be added?", sources: ["D1", "D5", "D2", "D3", "D6"] },
+    { level: "high", title: "Omeprazole may weaken her stent protection", detail: "The GP added omeprazole (Omez). It can reduce how well clopidogrel works. The cardiologist hasn't seen that prescription.", ask: "Is there a better acidity medicine to take with clopidogrel?", sources: ["D5", "D6"] },
+    { level: "med", title: "Sugar control is getting steadily worse", detail: "HbA1c went 7.1% → 7.6% → 8.4%. Combined with the kidney trend, her diabetes plan needs a fresh look.", ask: "What's the plan to bring her HbA1c down safely?", sources: ["D2", "D3", "D6"] },
+    { level: "med", title: "Heart pumping is weaker and she's more breathless", detail: "LVEF fell from 55% (2022) to 48% (2025). Her daily calls recently mention breathlessness on stairs. No cardiology review is on record since March 2025.", ask: "Does she need a repeat echo and a cardiology review?", sources: ["D1", "D4"] },
+    { level: "info", title: "New mild anaemia", detail: "Haemoglobin dropped from 12.1 to 10.9. Worth checking, especially on a blood thinner.", ask: "Should we test for the cause of the low haemoglobin?", sources: ["D2", "D6"] },
+  ],
+};
+
+/* ---------- Building the record ---------- */
+let record = null, built = false;
+function setStatus(t) { $("#status").innerHTML = t; }
+async function blobOf(canvas) { return new Promise(r => canvas.toBlob(r, "image/jpeg", .85)); }
+async function collage(list) { // put several pages side by side when a call takes fewer images than we have
+  const W = 850 * list.length, c = document.createElement("canvas"); c.width = W; c.height = 1100;
+  const g = c.getContext("2d"); list.forEach((cv, i) => g.drawImage(cv, i * 850, 0)); return blobOf(c);
+}
+async function imagesFor(sources) {
+  const max = imgLimits ? imgLimits.maxCount : 0;
+  if (!max) return [];
+  if (sources.length <= max) return Promise.all(sources.map(s => s.blob ? s.blob : blobOf(s.canvas)));
+  const per = Math.ceil(sources.length / max), out = [];
+  for (let i = 0; i < sources.length; i += per) out.push(await collage(sources.slice(i, i + per).map(s => s.canvas)));
+  return out;
+}
+const EXTRACT_PROMPT = ids => `These images are medical documents for one elderly woman in India (documents in this order: ${ids.join(", ")}). They may be handwritten prescriptions, lab reports, discharge summaries or scan reports, possibly several per image.
+Build her lifetime medical record. Use only what is written. Map Indian brand names to generics. Then look ACROSS documents for things a single doctor might miss (trends in lab values, medicine doses that no longer fit, interactions between prescriptions from different doctors, duplicates, overdue follow-ups). Write for her family in plain English. Never tell them to stop or change a medicine: phrase every concern as a question for the doctor.
+Reply with JSON only:
+{"summary":"1-2 sentences","conditions":[{"name":"","since":"","source":"doc id"}],"allergies":[{"name":"","source":""}],"events":[{"date":"YYYY-MM-DD","kind":"heart|lab|scan|rx|other","title":"short","detail":"1 sentence","source":""}],"labs":[{"test":"HbA1c|eGFR|LDL|Haemoglobin|Creatinine|other name","date":"YYYY-MM-DD","value":number,"source":""}],"meds":[{"name":"current medicine with dose","when":"","source":""}],"insights":[{"level":"high|med|info","title":"short headline","detail":"1-2 sentences","ask":"question for the doctor","sources":["doc ids"]}]}`;
+
+async function build(extraUploads) {
+  if (built && !extraUploads) return;
+  $("#build").disabled = true;
+  const docs = DOCS.map(d => ({ id: d.id, canvas: canvases[d.id] }));
+  const sources = extraUploads ? extraUploads : docs;
+  let aiPromise = null;
+  if (sample && imgLimits) {
+    aiPromise = (async () => {
+      const imgs = await imagesFor(sources);
+      return Promise.race([sample.json(EXTRACT_PROMPT(sources.map(s => s.id)), { images: imgs, modelTier: "default" }), sleep(110000).then(() => { throw new Error("timeout"); })]);
+    })().catch(e => ({ __err: e }));
+  }
+  // reading animation (runs while Claude works)
+  const els = DOCS.map(d => $(`[data-doc="${d.id}"]`));
+  for (let i = 0; i < els.length; i++) {
+    els[i].classList.add("reading"); setStatus(`<span class="spinner"></span> Reading ${esc(DOCS[i].kind.toLowerCase())} (${DOCS[i].year})…`);
+    await sleep(aiPromise ? 1400 : 750); els[i].classList.remove("reading"); els[i].classList.add("done");
+  }
+  let r = null, by = "offline";
+  if (aiPromise) {
+    setStatus(`<span class="spinner"></span> Connecting the dots across documents…`);
+    const res = await aiPromise;
+    if (res && !res.__err && Array.isArray(res.events) && res.events.length) { r = res; by = "ai"; }
+    else toast("Live reading didn't finish, so showing the prepared record");
+  } else await sleep(600);
+  record = normalise(r || FALLBACK); record.by = by; built = true;
+  setStatus(by === "ai" ? "Read live by Claude ✓" : "Prepared record ✓");
+  $("#build").disabled = false; $("#build").textContent = "Rebuild record";
+  renderHead(); showSub("caught");
+}
+function normalise(r) {
+  const arr = v => Array.isArray(v) ? v : [];
+  return { summary: String(r.summary || ""), conditions: arr(r.conditions), allergies: arr(r.allergies), events: arr(r.events).slice().sort((a, b) => String(a.date).localeCompare(String(b.date))),
+    labs: arr(r.labs).filter(l => isFinite(+l.value)), meds: arr(r.meds), insights: arr(r.insights) };
+}
+function renderHead() {
+  const yrs = record.events.map(e => +String(e.date).slice(0, 4)).filter(Boolean);
+  $("#recTitle").textContent = "Kamala Ramasamy · 72 F";
+  $("#recSub").textContent = record.summary;
+  $("#stats").innerHTML = [[DOCS.length, "papers read"], [yrs.length ? `${Math.min(...yrs)}–${Math.max(...yrs)}` : "—", "years covered"], [record.events.length, "events"], [record.insights.filter(i => i.level === "high").length, "urgent questions"]]
+    .map(([b, s]) => `<div class="stat"><b>${esc(b)}</b><small>${esc(s)}</small></div>`).join("");
+  const c = $("#caughtCount"); c.hidden = !record.insights.length; c.textContent = record.insights.length;
+}
+const srcChip = id => { const d = DOCS.find(x => x.id === id); return `<button class="src" data-open="${esc(id)}">${esc(d ? `${d.kind} ${d.year}` : id)}</button>`; };
+const fmtDate = s => { const d = new Date(s); return isNaN(d) ? esc(s) : d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }); };
+
+/* ---------- Sub-views ---------- */
+let current = "timeline";
+function showSub(k) {
+  current = k;
+  document.querySelectorAll("[data-sub]").forEach(b => b.setAttribute("aria-selected", b.dataset.sub === k));
+  const body = $("#body");
+  if (!record) { body.innerHTML = `<div class="empty"><b>Nothing here yet</b>Press "Build Paati's health record" first.<button class="btn solid" id="build2">Build it now</button></div>`; $("#build2").onclick = () => build(); return; }
+  if (k === "timeline") body.innerHTML = `<div class="row" style="display:flex;gap:8px;flex-wrap:wrap"><span class="badge b-sos">Allergy: ${esc(record.allergies.map(a => a.name).join(", ") || "none recorded")}</span>${record.conditions.slice(0, 5).map(c => `<span class="badge b-mute">${esc(c.name)}</span>`).join("")}</div>
+    <ul class="tl">${record.events.map(e => `<li><time>${fmtDate(e.date)}</time><div class="rail"><i class="k-${esc(e.kind)}"></i></div><div class="ev"><b>${esc(e.title)}</b><span>${esc(e.detail)}</span> ${srcChip(e.source)}</div></li>`).join("")}</ul>`;
+  if (k === "trends") body.innerHTML = `<div class="charts">${[["HbA1c", "%", 6.5, "below", "Sugar control (3-month average)"], ["eGFR", "", 60, "above", "Kidney function"], ["LDL", "mg/dL", 70, "below", "Bad cholesterol"], ["Haemoglobin", "g/dL", 12, "above", "Blood count"]].map(a => chart(...a)).join("")}</div>
+    <div style="font-size:13px;color:var(--ink-2)">Dashed line: the usual target for someone with her conditions. Every point links to its lab report.</div>`;
+  if (k === "caught") body.innerHTML = `<div style="font-size:14.5px"><b>${record.insights.length} things Saathi noticed by reading every paper together.</b> <span style="color:var(--ink-2)">Each is a question to take to the doctor, never an instruction.</span></div>
+    ${record.insights.map(i => `<div class="ins ${i.level === "high" ? "" : i.level === "med" ? "y" : "i"}"><b>${esc(i.title)}</b><p>${esc(i.detail)}</p>${i.ask ? `<p><b style="font-size:13px">Ask:</b> ${esc(i.ask)}</p>` : ""}<div class="row">${(i.sources || []).map(srcChip).join("")}</div></div>`).join("")}`;
+  if (k === "brief") renderBrief();
+  if (k === "ask") renderAsk();
+}
+function chart(test, unit, target, good, label) {
+  const pts = record.labs.filter(l => String(l.test).toLowerCase().replace(/[^a-z0-9]/g, "").startsWith(test.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 4))).map(l => ({ t: new Date(l.date).getTime(), v: +l.value, src: l.source })).filter(p => isFinite(p.t)).sort((a, b) => a.t - b.t);
+  if (pts.length < 2) return `<div class="chart"><h4>${esc(test)}</h4><small>Not enough results yet</small></div>`;
+  const W = 300, H = 140, L = 34, R = 12, T = 14, B = 24;
+  const vs = pts.map(p => p.v).concat([target]); let lo = Math.min(...vs), hi = Math.max(...vs); const pad = (hi - lo) * .2 || 1; lo -= pad; hi += pad;
+  const t0 = pts[0].t, t1 = pts[pts.length - 1].t;
+  const x = t => L + (t - t0) / (t1 - t0 || 1) * (W - L - R), y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+  const first = pts[0].v, last = pts[pts.length - 1].v, worse = good === "below" ? last > first : last < first;
+  const col = worse ? "var(--sos)" : "var(--ok)";
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(test)} from ${first} to ${last}">`;
+  s += `<line x1="${L}" x2="${W - R}" y1="${y(target)}" y2="${y(target)}" stroke="var(--ink-2)" stroke-dasharray="4 4"/><text x="${W - R}" y="${y(target) - 4}" text-anchor="end" font-size="10" fill="var(--ink-2)" font-family="IBM Plex Mono,monospace">target ${good === "below" ? "<" : ">"} ${target}</text>`;
+  s += `<polyline fill="none" stroke="${col}" stroke-width="3" points="${pts.map(p => `${x(p.t)},${y(p.v)}`).join(" ")}"/>`;
+  pts.forEach((p, i) => { s += `<circle cx="${x(p.t)}" cy="${y(p.v)}" r="4.5" fill="${col}"/><text x="${x(p.t)}" y="${y(p.v) - 9}" text-anchor="${i === 0 ? "start" : i === pts.length - 1 ? "end" : "middle"}" font-size="12" font-weight="600" fill="var(--ink)" font-family="IBM Plex Mono,monospace">${p.v}</text>`; s += `<text x="${x(p.t)}" y="${H - 6}" text-anchor="${i === 0 ? "start" : i === pts.length - 1 ? "end" : "middle"}" font-size="10" fill="var(--ink-2)" font-family="IBM Plex Mono,monospace">${new Date(p.t).getFullYear()}</text>`; });
+  s += `</svg>`;
+  return `<div class="chart"><h4>${esc(test)} ${unit ? `<small>${esc(unit)}</small>` : ""}</h4><small>${esc(label)}</small>${s}<div class="verdict" style="color:${col}">${worse ? "Getting worse" : "Improving"}: ${first} → ${last}</div></div>`;
+}
+let qrMade = false;
+function renderBrief() {
+  const r = record;
+  $("#body").innerHTML = `<div class="brief"><div>
+    <h4>Patient</h4><div><b>Kamala Ramasamy, 72 F.</b> ${esc(r.summary)}</div>
+    <h4>Allergies</h4><div style="color:var(--sos);font-weight:600">${esc(r.allergies.map(a => a.name).join(", ") || "None recorded")}</div>
+    <h4>Current medicines</h4><ul>${r.meds.map(m => `<li>${esc(m.name)} · ${esc(m.when)}</li>`).join("")}</ul>
+    <h4>Key trends</h4><ul>${r.insights.slice(0, 4).map(i => `<li>${esc(i.title)}</li>`).join("")}</ul>
+    <h4>Family's questions for today</h4><ul>${r.insights.filter(i => i.ask).slice(0, 5).map(i => `<li>${esc(i.ask)}</li>`).join("")}</ul>
+  </div><div class="qr"><div id="qr"></div>Doctor scans to open the full record.<br><b>Link expires in 24 h.</b></div></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn solid" id="sendBrief">Send to Dr. Raman before Thursday's visit</button><button class="btn" id="tamilBrief">Read this to Paati in Tamil</button></div>`;
+  $("#sendBrief").onclick = () => toast("Sent to the clinic's WhatsApp (demo)");
+  $("#tamilBrief").onclick = () => speakTamil();
+  makeQR();
+}
+function makeQR() {
+  const go = () => { const el = $("#qr"); if (!el || !window.QRCode) { if (el) el.textContent = "QR needs internet once"; return; }
+    const txt = ["SAATHI DOCTOR BRIEF (sample)", "Kamala Ramasamy 72F. Allergy: Penicillin", "CAD - LAD stent 2022, LVEF 48% (2025). T2DM. HTN.", "Meds: " + record.meds.map(m => m.name).join(", "), "Flags: " + record.insights.filter(i => i.level === "high").map(i => i.title).join("; ")].join("\n").replace(/[^\x20-\x7E\n]/g, "-");
+    try { new QRCode(el, { text: txt.slice(0, 600), width: 320, height: 320, correctLevel: QRCode.CorrectLevel.L }); } catch (e) { el.textContent = "QR unavailable"; } };
+  if (window.QRCode) return go();
+  const sc = document.createElement("script"); sc.src = "vendor/qrcode.min.js"; sc.onload = go; sc.onerror = go; document.head.appendChild(sc);
+}
+function speakTamil() {
+  try {
+    const vs = speechSynthesis.getVoices(), tv = vs.find(v => /^ta/i.test(v.lang)), ev = vs.find(v => /en-IN/i.test(v.lang));
+    const u = new SpeechSynthesisUtterance(tv ? "பாட்டி, வியாழக்கிழமை டாக்டர் ராமனைப் பார்க்கப் போறோம். உங்க கிட்னி, சர்க்கரை, கொலஸ்ட்ரால் பத்தி கேட்கணும். உங்க எல்லா ரிப்போர்ட்டும் நான் டாக்டருக்கு அனுப்பிட்டேன்." : "Paati, on Thursday we will see Dr. Raman. We will ask about your kidneys, sugar and cholesterol. I have already sent all your reports to the doctor.");
+    u.voice = tv || ev || null; u.lang = tv ? tv.lang : "en-IN"; u.rate = .95; speechSynthesis.cancel(); speechSynthesis.speak(u);
+    if (!tv) toast("No Tamil voice on this device, so reading in English");
+  } catch (e) { toast("Voice isn't available here"); }
+}
+
+/* ---------- Ask the record ---------- */
+const PRESET = [
+  { q: "When was her stent put in?", a: "On 12 June 2022 at Saraswathi Multispeciality, after a heart attack (NSTEMI). One drug-eluting stent was placed in the LAD artery.", src: ["D1"] },
+  { q: "Is her sugar getting better?", a: "No. Her HbA1c rose from 7.1% (Aug 2023) to 7.6% (Nov 2024) to 8.4% (Aug 2026). Her target is under 6.5–7%. Worth discussing at the next visit.", src: ["D2", "D3", "D6"] },
+  { q: "பாட்டிக்கு என்ன அலர்ஜி?", a: "பாட்டிக்கு பெனிசிலின் அலர்ஜி இருக்கு (தோல் தடிப்பு வந்தது). அவசர நேரத்தில் டாக்டருக்கு இது தெரியணும்.", src: ["D1"] },
+  { q: "What should we ask the doctor on Thursday?", a: "1) Should metformin change now that her kidney function (eGFR) is 42? 2) Should the statin go back up, since LDL is 118? 3) Is omeprazole OK with clopidogrel? 4) Does she need a repeat echo for her breathlessness?", src: ["D3", "D5", "D6", "D4"] },
+];
+let chat = [];
+function renderAsk() {
+  $("#body").innerHTML = `<div class="chat"><div style="font-size:14px;color:var(--ink-2)">Ask anything about Paati's history, in English or Tamil. Every answer points to the paper it came from.</div>
+    <div class="qchips">${PRESET.map((p, i) => `<button class="qchip ${/[஀-௿]/.test(p.q) ? "ta" : ""}" data-q="${i}">${esc(p.q)}</button>`).join("")}</div>
+    <div class="msgs" id="msgs"></div>
+    <form class="ask" id="askForm"><input id="askInput" autocomplete="off" placeholder="e.g. Has her kidney function changed?" aria-label="Ask about Paati's record"><button class="btn solid">Ask</button></form></div>`;
+  renderMsgs();
+  document.querySelectorAll("[data-q]").forEach(b => b.onclick = () => ask(PRESET[+b.dataset.q].q));
+  $("#askForm").onsubmit = e => { e.preventDefault(); const v = $("#askInput").value.trim(); $("#askInput").value = ""; if (v) ask(v); };
+}
+function renderMsgs() {
+  const el = $("#msgs"); if (!el) return;
+  el.innerHTML = chat.map(m => m.who === "q" ? `<div class="m q">${esc(m.text)}</div>` : `<div class="m a ${/[஀-௿]/.test(m.text) ? "ta" : ""}">${m.pending ? `<span class="spinner"></span> Looking through the papers…` : esc(m.text)} ${(m.src || []).map(srcChip).join(" ")}</div>`).join("");
+}
+async function ask(q) {
+  chat.push({ who: "q", text: q }); const a = { who: "a", pending: true }; chat.push(a); renderMsgs();
+  const pre = PRESET.find(p => p.q === q);
+  let ans = null;
+  if (sample) {
+    try {
+      const r = await Promise.race([sample.json(`You answer a family's questions about their grandmother's medical record. Use ONLY this record (JSON). Answer in the same language as the question (Tamil script if asked in Tamil), in 1-3 short sentences a family member understands. Never give a diagnosis or tell them to change medicine; suggest asking the doctor where relevant. If the record doesn't say, say so.
+Record: ${JSON.stringify({ summary: record.summary, conditions: record.conditions, allergies: record.allergies, events: record.events, labs: record.labs, meds: record.meds, insights: record.insights }).slice(0, 12000)}
+Question: ${q}
+Reply with JSON only: {"answer":"...","sources":["doc ids used, e.g. D1"]}`, { modelTier: "default" }), sleep(30000).then(() => { throw new Error("timeout"); })]);
+      if (r && typeof r.answer === "string") ans = { text: r.answer.slice(0, 900), src: Array.isArray(r.sources) ? r.sources.filter(s => DOCS.some(d => d.id === s)).slice(0, 5) : [] };
+    } catch (e) {}
+  }
+  if (!ans && pre) ans = { text: pre.a, src: pre.src };
+  if (!ans) ans = { text: "Free-form questions need the live AI (open this page on claude.ai). Try one of the suggested questions.", src: [] };
+  a.pending = false; a.text = ans.text; a.src = ans.src; renderMsgs();
+}
+
+/* ---------- Viewer, uploads, wiring ---------- */
+function openDoc(id) {
+  const c = canvases[id]; if (!c) return;
+  const v = document.createElement("img"); v.src = c.toDataURL("image/jpeg", .9); v.alt = id;
+  $("#viewerBox").innerHTML = ""; $("#viewerBox").appendChild(v); $("#viewer").hidden = false;
+}
+$("#viewer").addEventListener("click", () => $("#viewer").hidden = true);
+document.addEventListener("click", e => {
+  const o = e.target.closest("[data-open]"); if (o) { e.preventDefault(); return openDoc(o.dataset.open); }
+  const d = e.target.closest("[data-doc]"); if (d && !$("#build").disabled) return openDoc(d.dataset.doc);
+});
+document.querySelectorAll("[data-sub]").forEach(b => b.addEventListener("click", () => showSub(b.dataset.sub)));
+$("#build").addEventListener("click", () => { built = false; build(); });
+$("#upload").addEventListener("change", e => {
+  const files = [...(e.target.files || [])].slice(0, 8); if (!files.length) return;
+  const srcs = files.map((f, i) => ({ id: "U" + (i + 1), blob: f }));
+  toast(`Reading ${files.length} uploaded photo${files.length > 1 ? "s" : ""}…`);
+  built = false; build(srcs);
+});
+buildPile();
+})();
+</script>
+</body>
+</html>

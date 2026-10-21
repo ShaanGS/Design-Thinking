@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Saathi Face Pulse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+Thambi+2:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Camera on the left with a face guide; the live pulse wave and the number on the right. */
+:root{
+  --bg:#0E1513; --surface:#16211E; --surface-2:#1C2925; --ink:#E4EDEA; --ink-2:#9BAFA8; --line:#2A3A35;
+  --brand:#F0B13A; --sos:#FF5B6B; --ok:#3CC594; --warn:#F0A04B; color-scheme:dark;
+  --f-display:"Baloo Thambi 2",ui-rounded,system-ui,sans-serif; --f-body:"IBM Plex Sans",system-ui,sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--f-body)}
+h1,h2,h3{font-family:var(--f-display);margin:0;line-height:1.1}
+button{font:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top{padding-block:18px 6px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;justify-content:space-between}
+.top h1{font-size:30px}.top p{margin:0;color:var(--ink-2)}
+.grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:22px;padding-block:14px 40px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.cam{position:relative;border-radius:22px;overflow:hidden;background:#000;aspect-ratio:4/3;max-width:100%}
+.cam video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);display:block}
+.cam svg{position:absolute;inset:0;width:100%;height:100%}
+.cam .msg{position:absolute;left:0;right:0;bottom:0;padding:12px 16px;background:linear-gradient(transparent,rgba(0,0,0,.75));font-size:15px}
+.start{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px;background:rgba(0,0,0,.55)}
+.btn{border:0;border-radius:14px;padding:14px 20px;font-weight:600;font-size:17px;background:var(--brand);color:#1d1300}
+.btn.ghost{background:var(--surface-2);color:var(--ink);border:1px solid var(--line)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:20px;display:flex;flex-direction:column;gap:14px}
+.bpm{display:flex;align-items:baseline;gap:10px}
+.bpm b{font:700 104px/0.9 var(--f-display);color:var(--sos);font-variant-numeric:tabular-nums}
+.bpm span{font-size:20px;color:var(--ink-2)}
+.heart{width:34px;height:34px;color:var(--sos);animation:beat 0.83s ease-in-out infinite;transform-origin:center}
+@keyframes beat{0%,100%{transform:scale(1)}15%{transform:scale(1.25)}30%{transform:scale(1)}}
+.wave{background:var(--surface-2);border-radius:14px;padding:8px}
+.wave canvas{width:100%;height:120px;display:block}
+.q{display:flex;gap:10px;align-items:center;font-size:14px;color:var(--ink-2)}
+.qbar{flex:1;height:8px;border-radius:5px;background:var(--line);overflow:hidden}
+.qbar i{display:block;height:100%;width:0;background:var(--ok);transition:width .4s}
+.prog{height:6px;border-radius:4px;background:var(--line);overflow:hidden}.prog i{display:block;height:100%;width:0;background:var(--brand)}
+.result{border:1px solid var(--ok);background:rgba(60,197,148,.1);border-radius:16px;padding:14px;font-size:15px}
+.note{font-size:13px;color:var(--ink-2)}
+.tips{margin:0;padding-left:18px;color:var(--ink-2);font-size:14px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="wrap top"><div><h1>Saathi Face Pulse</h1><p>Heart rate from a 20-second selfie, with no device to wear.</p></div><p class="note">Group 4 prototype · wellness check, not a medical device</p></header>
+<main class="wrap grid">
+  <div>
+    <div class="cam" id="cam">
+      <video id="video" playsinline muted></video>
+      <svg viewBox="0 0 400 300" preserveAspectRatio="none" aria-hidden="true">
+        <defs><mask id="m"><rect width="400" height="300" fill="#fff"/><ellipse cx="200" cy="140" rx="78" ry="104" fill="#000"/></mask></defs>
+        <rect width="400" height="300" fill="rgba(0,0,0,.45)" mask="url(#m)"/>
+        <ellipse id="oval" cx="200" cy="140" rx="78" ry="104" fill="none" stroke="#F0B13A" stroke-width="3" stroke-dasharray="6 6"/>
+        <g id="rois" stroke="#3CC594" stroke-width="2" fill="rgba(60,197,148,.12)"></g>
+      </svg>
+      <div class="msg" id="msg">Fit your face inside the oval. Good light on your face, sit still.</div>
+      <div class="start" id="startBox"><div><p style="margin:0 0 12px">The camera stays on this device. Nothing is uploaded.</p><button class="btn" id="startBtn">Start camera</button></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="bpm"><svg class="heart" id="heart" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.3-9.4C1.4 8.2 3.6 4.5 7.2 4.5c2 0 3.6 1.1 4.8 2.8 1.2-1.7 2.8-2.8 4.8-2.8 3.6 0 5.8 3.7 4.5 7.1C19.5 16.4 12 21 12 21z"/></svg><b id="bpm">--</b><span>beats per min</span></div>
+    <div class="q"><span>Signal</span><div class="qbar"><i id="qbar"></i></div><span id="qtxt">waiting</span></div>
+    <div class="wave"><canvas id="wave" width="800" height="240"></canvas></div>
+    <div><div class="note" id="progTxt" style="margin-bottom:6px">Measurement: 0 / 20 s</div><div class="prog"><i id="prog"></i></div></div>
+    <div class="result" id="result" hidden></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" id="again" hidden>Measure again</button></div>
+    <ul class="tips"><li>Face a window or a lamp; avoid light from behind.</li><li>Don't talk or move for 20 seconds.</li><li>For the demo, have a volunteer wear a pulse oximeter and compare the two numbers live.</li></ul>
+    <div class="note">How it works: each heartbeat slightly changes the colour of your skin. Saathi tracks that change in the forehead and cheeks (the POS method, Wang et al. 2017) and finds its rhythm. Studies show phone cameras measure heart rate closely; breathing rate and oxygen are less reliable, so Saathi only reports heart rate.</div>
+  </div>
+</main>
+<script src="rppg.js"></script>
+<script>
+(() => {
+"use strict";
+const $ = s => document.querySelector(s);
+const video = $("#video"), work = document.createElement("canvas"), wctx = work.getContext("2d", { willReadFrequently: true });
+const W = 160, H = 120; work.width = W; work.height = H;
+// Regions in the 400x300 overlay space (mirrored video, so left/right are symmetric anyway)
+const ROIS = [{ x: 165, y: 52, w: 70, h: 28 }, { x: 140, y: 140, w: 38, h: 34 }, { x: 222, y: 140, w: 38, h: 34 }];
+$("#rois").innerHTML = ROIS.map(r => `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="6"/>`).join("");
+const DURATION = 20000;
+let samples = [], startT = 0, running = false, lastEst = 0, best = null, raf = 0;
+
+function frame() {
+  if (!running) return;
+  if (video.readyState >= 2) {
+    // draw the frame the way it looks on screen (object-fit: cover, mirrored)
+    const vw = video.videoWidth, vh = video.videoHeight, scale = Math.max(W / vw, H / vh), dw = vw * scale, dh = vh * scale;
+    wctx.save(); wctx.translate(W, 0); wctx.scale(-1, 1); wctx.drawImage(video, (W - dw) / 2, (H - dh) / 2, dw, dh); wctx.restore();
+    let r = 0, g = 0, b = 0, n = 0;
+    for (const roi of ROIS) {
+      const x = Math.round(roi.x / 400 * W), y = Math.round(roi.y / 300 * H), w = Math.max(1, Math.round(roi.w / 400 * W)), h = Math.max(1, Math.round(roi.h / 300 * H));
+      const d = wctx.getImageData(x, y, w, h).data;
+      for (let i = 0; i < d.length; i += 4) { const s = d[i] + d[i + 1] + d[i + 2]; if (s < 90 || s > 735) continue; r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
+    }
+    const now = performance.now();
+    if (n > 20) samples.push({ t: now, r: r / n, g: g / n, b: b / n });
+    const el = now - startT;
+    samples = samples.filter(s => now - s.t < 15000);
+    $("#prog").style.width = Math.min(100, el / DURATION * 100) + "%";
+    $("#progTxt").textContent = `Measurement: ${Math.min(20, Math.floor(el / 1000))} / 20 s`;
+    if (now - lastEst > 1000 && el > 6000) {
+      lastEst = now;
+      const e = RPPG.estimate(samples);
+      if (e) {
+        drawWave(e.signal);
+        const q = e.quality; $("#qbar").style.width = Math.round(q * 100) + "%"; $("#qtxt").textContent = q > .45 ? "good" : q > .28 ? "fair" : "weak, hold still";
+        $("#qbar").style.background = q > .45 ? "var(--ok)" : q > .28 ? "var(--warn)" : "var(--sos)";
+        if (q > .28) { $("#bpm").textContent = e.bpm; $("#heart").style.animationDuration = (60 / e.bpm).toFixed(2) + "s"; if (!best || q >= best.quality - .05) best = e; }
+        $("#msg").textContent = q > .28 ? "Got your pulse. Keep still…" : "Hold still and keep your face in the oval.";
+      }
+    }
+    if (el >= DURATION) return finish();
+  }
+  raf = requestAnimationFrame(frame);
+}
+function drawWave(sig) {
+  const c = $("#wave"), g = c.getContext("2d"); g.clearRect(0, 0, c.width, c.height);
+  if (!sig || sig.length < 5) return;
+  sig = sig.map((v, i) => (sig[Math.max(0, i - 2)] + sig[Math.max(0, i - 1)] + v + sig[Math.min(sig.length - 1, i + 1)] + sig[Math.min(sig.length - 1, i + 2)]) / 5); // display smoothing only
+  let lo = Infinity, hi = -Infinity; sig.forEach(v => { lo = Math.min(lo, v); hi = Math.max(hi, v); });
+  g.strokeStyle = "#FF5B6B"; g.lineWidth = 4; g.lineJoin = "round"; g.beginPath();
+  sig.forEach((v, i) => { const x = i / (sig.length - 1) * c.width, y = c.height - 16 - (v - lo) / ((hi - lo) || 1) * (c.height - 32); i ? g.lineTo(x, y) : g.moveTo(x, y); });
+  g.stroke();
+}
+function finish() {
+  running = false; cancelAnimationFrame(raf);
+  const r = $("#result"); r.hidden = false; $("#again").hidden = false;
+  if (best) {
+    r.innerHTML = `<b>Heart rate: ${best.bpm} bpm</b> (signal ${best.quality > .45 ? "good" : "fair"}).<br>Saved to today's check-in. Saathi compares it with her usual range and only tells the family if it's unusual.`;
+    $("#msg").textContent = "Done. Thank you!";
+  } else {
+    r.innerHTML = `<b>Couldn't get a clear reading.</b> Try again facing a window or a lamp, and keep very still.`;
+    $("#msg").textContent = "No clear pulse. Better light usually fixes this.";
+  }
+}
+function begin() { samples = []; best = null; lastEst = 0; startT = performance.now(); running = true; $("#result").hidden = true; $("#again").hidden = true; $("#bpm").textContent = "--"; raf = requestAnimationFrame(frame); }
+$("#startBtn").addEventListener("click", async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 } }, audio: false });
+    video.srcObject = stream; await video.play(); $("#startBox").hidden = true; begin();
+  } catch (e) {
+    $("#startBox").innerHTML = `<div><p>Camera isn't available here (${String(e && e.name || "blocked")}).<br>Open this page over https or on localhost and allow the camera.</p></div>`;
+  }
+});
+$("#again").addEventListener("click", begin);
+})();
+</script>
+</body>
+</html>
