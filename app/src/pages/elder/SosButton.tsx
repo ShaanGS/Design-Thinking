@@ -1,10 +1,10 @@
-// The big red help button. Must be held for 2 seconds so dusting or a pocket can't trigger it.
+// The help button: a full-width red slab fixed at the bottom of the screen, within thumb reach.
+// It must be held for 2 seconds (it fills left to right) so dusting or a pocket can't trigger it.
 import { useEffect, useRef, useState } from "react";
 import { cx } from "../../components/ui";
 import { useElder } from "./shared";
 
 const HOLD_MS = 2000;
-const SIZE = 236, STROKE = 12, R = (SIZE - STROKE) / 2, C = 2 * Math.PI * R;
 
 export default function SosButton({ onTrigger }: { onTrigger: () => void }) {
   const { lang } = useElder();
@@ -34,35 +34,35 @@ export default function SosButton({ onTrigger }: { onTrigger: () => void }) {
   const end = () => { if (!start.current) return; start.current = 0; cancelAnimationFrame(raf.current); if (!fired.current) setP(0); };
 
   const holding = p > 0 && p < 1;
+  const secs = Math.max(1, Math.ceil((1 - p) * 2));
   return (
-    <div className="flex flex-col items-center gap-3">
-      <div className="relative" style={{ width: SIZE, height: SIZE }}>
-        {!holding && <span className="absolute inset-[18px] rounded-full animate-pulsering" aria-hidden="true" />}
-        <svg width={SIZE} height={SIZE} className="pointer-events-none absolute inset-0 -rotate-90" aria-hidden="true">
-          <circle cx={SIZE / 2} cy={SIZE / 2} r={R} stroke="#FBE2E5" strokeWidth={STROKE} fill="none" />
-          <circle cx={SIZE / 2} cy={SIZE / 2} r={R} stroke="#13221E" strokeWidth={STROKE} fill="none" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - p)} />
-        </svg>
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40">
+      <div className="pointer-events-auto mx-auto max-w-[480px] bg-white px-3 pt-2 safe-bottom">
         <button
+          data-sos
           aria-label={lang === "ta" ? "உதவிக்கு 2 விநாடி அழுத்திப் பிடிக்கவும்" : "Hold for 2 seconds to call for help"}
           onPointerDown={(e) => { e.preventDefault(); (e.target as HTMLElement).setPointerCapture?.(e.pointerId); begin(); }}
           onPointerUp={end} onPointerCancel={end} onLostPointerCapture={end}
           onKeyDown={(e) => { if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); begin(); } }}
           onKeyUp={end}
           onContextMenu={(e) => e.preventDefault()}
-          className={cx("absolute inset-[18px] flex touch-none select-none flex-col items-center justify-center rounded-full text-white shadow-[0_14px_36px_-10px_rgba(214,40,57,.8)] transition-transform",
-            "bg-[radial-gradient(circle_at_35%_30%,#ff6b78,#D62839_62%)]", holding && "scale-[.96]")}
+          className="relative mb-2 flex h-[88px] w-full touch-none select-none items-center overflow-hidden rounded-2xl bg-sos text-left text-white shadow-lift"
           style={{ WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
         >
-          <span className="font-tamil text-[46px] font-bold leading-none">உதவி</span>
-          <span className="mt-1 font-display text-2xl font-extrabold tracking-[0.18em]">HELP</span>
-          <span className="mt-1 text-sm font-semibold opacity-90">{holding ? `${Math.ceil((1 - p) * 2)}…` : lang === "ta" ? "2 விநாடி அழுத்தவும்" : "hold 2 seconds"}</span>
+          <span className="absolute inset-y-0 left-0 bg-black/30" style={{ width: `${p * 100}%` }} aria-hidden="true" />
+          <span className="relative flex w-full items-center justify-between gap-3 px-6">
+            <span className="flex flex-col leading-none">
+              <span className={cx("text-[36px] font-bold", lang === "ta" ? "font-tamil" : "font-display")}>{lang === "ta" ? "உதவி" : "Help"}</span>
+              <span className={cx("mt-1.5 text-[15px] font-medium text-white/85", lang === "en" && "font-tamil")}>
+                {holding ? (lang === "ta" ? "தொடர்ந்து அழுத்துங்கள்" : "Keep holding") : lang === "ta" ? "Hold for help" : "உதவிக்கு அழுத்திப் பிடியுங்கள்"}
+              </span>
+            </span>
+            <span className={cx("shrink-0 text-right font-display text-[15px] font-medium leading-tight text-white/85", holding && "text-[34px] font-semibold text-white tnum")}>
+              {holding ? secs : lang === "ta" ? <span className="font-tamil">2 விநாடி</span> : "2 seconds"}
+            </span>
+          </span>
         </button>
       </div>
-      <p className="max-w-[300px] text-center text-[15px] leading-snug text-ink-2">
-        {lang === "ta"
-          ? <><span className="font-tamil font-semibold text-ink">அழுத்திப் பிடியுங்கள். குடும்பமும் ஆம்புலன்ஸும் ஒரே நேரத்தில் அழைக்கப்படும்.</span><br /><span className="text-sm">Press and hold. Family and ambulance are called together.</span></>
-          : <><span className="font-semibold text-ink">Press and hold. Family and ambulance are called together.</span><br /><span className="font-tamil text-sm">அழுத்திப் பிடியுங்கள்</span></>}
-      </p>
     </div>
   );
 }

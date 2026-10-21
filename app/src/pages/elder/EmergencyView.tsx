@@ -1,17 +1,17 @@
-// Full-screen emergency flow for the elder: "What happened?" picker, then a calm live status view.
+// Full-screen emergency flow for the elder: "What happened?" picker, then a calm live status board.
 import { useEffect, useState, type ReactNode } from "react";
-import { Check, HeartPulse, Wind, PersonStanding, Brain, Bug, HelpCircle, Ambulance, Users, Hospital as HospitalIcon, DoorOpen, Pill, Loader2 } from "lucide-react";
+import { Check, HeartPulse, Wind, PersonStanding, Brain, Bug, HelpCircle, DoorOpen, Pill, ChevronRight } from "lucide-react";
 import { api } from "../../lib/api";
-import { Button, useToast, cx } from "../../components/ui";
+import { useToast, cx } from "../../components/ui";
 import { CONDITION_INFO, type Condition, type Emergency, type Hospital } from "../../../shared/types";
 import { Bi, useElder } from "./shared";
 
-const CHOICES: { c: Condition; icon: typeof HeartPulse; tone: string }[] = [
-  { c: "cardiac", icon: HeartPulse, tone: "text-sos" },
-  { c: "breath", icon: Wind, tone: "text-info" },
-  { c: "fall", icon: PersonStanding, tone: "text-warn" },
-  { c: "stroke", icon: Brain, tone: "text-brand-700" },
-  { c: "snake", icon: Bug, tone: "text-teal" },
+const CHOICES: { c: Condition; icon: typeof HeartPulse }[] = [
+  { c: "cardiac", icon: HeartPulse },
+  { c: "breath", icon: Wind },
+  { c: "fall", icon: PersonStanding },
+  { c: "stroke", icon: Brain },
+  { c: "snake", icon: Bug },
 ];
 const AUTO_SECONDS = 10;
 
@@ -32,44 +32,56 @@ export function SymptomPicker({ emergency }: { emergency: Emergency }) {
   }, []);
   useEffect(() => { if (left <= 0 && !sent) void send("unknown"); }, [left, sent]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const choice = (c: Condition, Icon: typeof HeartPulse, extra?: ReactNode) => (
+    <li key={c} className="border-b border-line">
+      <button onClick={() => send(c)} disabled={!!sent}
+        className={cx("flex min-h-[80px] w-full items-center gap-4 px-5 py-3 text-left transition-colors",
+          sent === c ? "bg-ink text-white" : "hover:bg-paper active:bg-paper-2", sent && sent !== c && "opacity-35")}>
+        <Icon className={cx("h-8 w-8 shrink-0", sent === c ? "text-brand" : "text-ink-2")} strokeWidth={1.75} />
+        <span className="min-w-0 flex-1 text-[24px] font-semibold leading-tight"><Bi ta={CONDITION_INFO[c].ta} en={CONDITION_INFO[c].en} /></span>
+        {extra ?? <ChevronRight className={cx("h-6 w-6 shrink-0", sent === c ? "text-white/70" : "text-ink-3")} strokeWidth={1.75} />}
+      </button>
+    </li>
+  );
+
   return (
-    <div className="fixed inset-0 z-[900] overflow-y-auto bg-white safe-top safe-bottom animate-slidein">
-      <div className="mx-auto flex min-h-full max-w-[480px] flex-col gap-4 px-4 py-6">
-        <div className="flex items-center gap-2 self-start rounded-full bg-sos-50 px-3 py-1.5 text-sm font-bold text-sos">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-sos" />
-          <Bi inline ta="உதவி அழைக்கப்படுகிறது" en="Help is already being called" />
+    <div className="fixed inset-0 z-[900] overflow-y-auto bg-white safe-top safe-bottom">
+      <div className="mx-auto flex min-h-full max-w-[480px] flex-col">
+        <div className="flex items-center gap-2.5 bg-sos px-5 py-3 text-white">
+          <span className="h-2.5 w-2.5 shrink-0 animate-blink rounded-full bg-white" />
+          <span className="text-[17px] font-semibold"><Bi inline ta="உதவி அழைக்கப்படுகிறது" en="Help is being called" /></span>
         </div>
-        <h1 className="text-[38px] font-extrabold leading-tight"><Bi ta="என்ன ஆச்சு?" en="What happened?" /></h1>
-        <div className="grid grid-cols-2 gap-3">
-          {CHOICES.map(({ c, icon: I, tone }) => (
-            <button key={c} onClick={() => send(c)} disabled={!!sent}
-              className={cx("flex min-h-[124px] flex-col items-start justify-between gap-2 rounded-3xl border-2 bg-paper p-4 text-left transition active:scale-[.98]",
-                sent === c ? "border-sos bg-sos-50" : "border-line hover:border-sos", sent && sent !== c && "opacity-40")}>
-              <I className={cx("h-9 w-9", tone)} strokeWidth={2.2} />
-              <span className="text-[21px] font-bold leading-tight [overflow-wrap:anywhere]"><Bi ta={CONDITION_INFO[c].ta} en={CONDITION_INFO[c].en} /></span>
-            </button>
-          ))}
-          <button onClick={() => send("unknown")} disabled={!!sent}
-            className={cx("col-span-2 flex min-h-[88px] items-center gap-4 rounded-3xl border-2 border-dashed border-ink-3 bg-white p-4 text-left active:scale-[.98]", sent && sent !== "unknown" && "opacity-40")}>
-            <HelpCircle className="h-9 w-9 shrink-0 text-ink-2" strokeWidth={2.2} />
-            <span className="text-[22px] font-bold leading-tight"><Bi ta="தெரியவில்லை" en="Not sure" /></span>
-          </button>
+        <div className="px-5 pb-5 pt-6">
+          <h1 className="text-[40px] font-bold leading-[1.05]"><Bi ta="என்ன ஆச்சு?" en="What happened?" /></h1>
+          <p className="mt-2 text-[17px] text-ink-2"><Bi inline ta="தொட்டுச் சொல்லுங்கள். சரியான மருத்துவமனைக்கு அனுப்புவோம்." en="Tap one so we send you to the right hospital." /></p>
         </div>
-        <div className="mt-auto rounded-2xl bg-paper-2 p-4 text-center text-base text-ink-2">
-          {sent ? <span className="inline-flex items-center gap-2 font-semibold text-ink"><Loader2 className="h-5 w-5 animate-spin" /><Bi inline ta="சரியான மருத்துவமனையைத் தேடுகிறோம்…" en="Finding the right hospital…" /></span>
-            : <Bi ta={`பதில் இல்லையென்றால் ${Math.max(0, left)} விநாடியில் தானாகத் தொடரும்`} en={`Continuing automatically in ${Math.max(0, left)} s`} />}
+        <ul className="border-t border-line">
+          {CHOICES.map(({ c, icon }) => choice(c, icon))}
+          {choice("unknown", HelpCircle, sent ? undefined : <span className="shrink-0 font-display text-[28px] font-semibold text-ink-3 tnum">{Math.max(0, left)}</span>)}
+        </ul>
+        <div className="mt-auto px-5 py-5">
+          {sent ? (
+            <p className="text-[17px] font-semibold"><Bi inline ta="சரியான மருத்துவமனையைத் தேடுகிறோம்…" en="Finding the right hospital…" /></p>
+          ) : (
+            <>
+              <div className="h-1.5 overflow-hidden rounded-full bg-paper-2"><div className="h-full bg-ink-3 transition-[width] duration-1000 ease-linear" style={{ width: `${(Math.max(0, left) / AUTO_SECONDS) * 100}%` }} /></div>
+              <p className="mt-2 text-[15px] text-ink-2"><Bi inline ta={`பதில் இல்லையென்றால் ${Math.max(0, left)} விநாடியில் தானாகத் தொடரும்`} en={`Continuing on its own in ${Math.max(0, left)} seconds`} /></p>
+            </>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function Row({ done, icon, children }: { done: boolean; icon: ReactNode; children: ReactNode }) {
+function Step({ done, children }: { done: boolean; children: ReactNode }) {
   return (
-    <div className={cx("flex items-start gap-3 rounded-2xl border p-4 transition-colors", done ? "border-teal/30 bg-teal-50" : "border-line bg-white")}>
-      <div className={cx("grid h-11 w-11 shrink-0 place-items-center rounded-full text-white", done ? "bg-teal" : "bg-ink-3")}>{done ? <Check className="h-6 w-6" strokeWidth={3} /> : icon}</div>
-      <div className="min-w-0 flex-1 pt-0.5 text-xl font-bold leading-tight">{children}</div>
-    </div>
+    <li className="flex items-start gap-4 border-b border-white/10 py-4 last:border-b-0">
+      <span className={cx("mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full border-2", done ? "border-brand bg-brand text-night" : "border-white/35")}>
+        {done ? <Check className="h-5 w-5" strokeWidth={3} /> : <span className="h-2 w-2 animate-blink rounded-full bg-white/70" />}
+      </span>
+      <div className="min-w-0 flex-1 text-[22px] font-semibold leading-tight">{children}</div>
+    </li>
   );
 }
 
@@ -85,9 +97,13 @@ export function EmergencyScreen({ emergency }: { emergency: Emergency }) {
   const h = hospitals.find((x) => x.id === (emergency.hospitalId || emergency.route?.hospitalId));
   const hName = h?.short || (lang === "ta" ? "மருத்துவமனை" : "the hospital");
   const there = emergency.status === "arrived" || emergency.status === "admitted";
+  const triage = emergency.status === "triage";
   const sinceStart = (now - new Date(emergency.startedAt).getTime()) / 1000;
-  const canCancel = sinceStart < 60 && (emergency.status === "triage" || emergency.status === "dispatched");
+  const cancelLeft = Math.max(0, Math.ceil(60 - sinceStart));
+  const canCancel = cancelLeft > 0 && (triage || emergency.status === "dispatched");
   const responders = emergency.responders.map((r) => r.name).join(", ");
+  const teamReady = emergency.teamReady || emergency.status === "admitted";
+  const started = new Date(emergency.startedAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
 
   const cancel = async () => {
     setCancelling(true);
@@ -97,66 +113,80 @@ export function EmergencyScreen({ emergency }: { emergency: Emergency }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[850] overflow-y-auto bg-paper safe-top safe-bottom animate-slidein">
-      <div className="mx-auto flex min-h-full max-w-[480px] flex-col gap-4 px-4 py-6">
-        <div className="flex flex-col items-center gap-3 pt-2 text-center">
-          <div className="grid h-32 w-32 place-items-center rounded-full bg-teal-100 animate-breathe" aria-hidden="true">
-            <div className="h-[72px] w-[72px] rounded-full bg-teal" />
-          </div>
-          {there ? (
-            <h1 className="text-[32px] font-extrabold leading-tight"><Bi ta="மருத்துவர்கள் உங்களுடன் இருக்கிறார்கள்" en="Doctors are with you" /></h1>
-          ) : (
-            <h1 className="text-[34px] font-extrabold leading-tight"><Bi ta="உதவி வருகிறது" en="Help is on the way" /></h1>
-          )}
-          <p className="text-lg text-ink-2">
-            {there
-              ? <Bi ta={`நீங்கள் ${hName}-ல் இருக்கிறீர்கள்.`} en={`You're at ${hName}.`} />
-              : <Bi ta="வட்டத்துடன் சேர்ந்து மெதுவாக மூச்சு விடுங்கள்" en="Breathe slowly with the circle" />}
-          </p>
+    <div className="fixed inset-0 z-[850] overflow-y-auto bg-night text-white safe-top safe-bottom">
+      <div className="mx-auto flex min-h-full max-w-[480px] flex-col px-5 pb-6 pt-5">
+        <div className="flex items-center justify-between text-[13px] font-semibold text-white/60">
+          <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-sos" />EMERGENCY</span>
+          <span className="font-mono tnum">{started}</span>
         </div>
 
-        <div className="flex flex-col gap-2.5">
-          <Row done icon={<Users className="h-6 w-6" />}>
-            <Bi ta="குடும்பத்துக்கு தெரியும்" en="Your family knows" />
-            {responders && <div className="mt-1 text-base font-semibold text-teal"><Bi inline ta={`${responders} வருகிறார்கள்`} en={`${responders} on the way`} /></div>}
-          </Row>
-          <Row done={emergency.status !== "triage"} icon={emergency.status === "triage" ? <Loader2 className="h-6 w-6 animate-spin" /> : <Ambulance className="h-6 w-6" />}>
-            {emergency.status === "triage" ? <Bi ta="சரியான மருத்துவமனையைத் தேடுகிறோம்" en="Finding the right hospital" />
-              : there ? <Bi ta={`${hName} வந்து சேர்ந்தீர்கள்`} en={`Reached ${hName}`} />
-              : <>
-                  <Bi ta="ஆம்புலன்ஸ் வருகிறது" en="Ambulance is coming" />
-                  <div className="mt-2 flex items-baseline gap-2">
-                    <span className="font-display text-5xl font-extrabold leading-none text-sos tnum">{emergency.etaLeftMin ?? "–"}</span>
-                    <span className="text-base font-semibold text-ink-2">{lang === "ta" ? "நிமிடம்" : "min"} · {hName}</span>
-                  </div>
-                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-paper-2"><div className="h-full rounded-full bg-sos transition-all duration-700" style={{ width: `${Math.round(emergency.progress * 100)}%` }} /></div>
-                </>}
-          </Row>
-          {emergency.status !== "triage" && (
-            <Row done={emergency.teamReady || emergency.status === "admitted"} icon={<HospitalIcon className="h-6 w-6" />}>
-              {emergency.teamReady || emergency.status === "admitted"
-                ? <Bi ta={`${hName} மருத்துவர்கள் தயார்`} en={`${hName} doctors are ready for you`} />
-                : <Bi ta={`${hName}-க்கு உங்கள் விவரங்கள் அனுப்பப்பட்டன`} en={`${hName} has your medical records`} />}
-            </Row>
-          )}
-          {!there && (
+        <h1 className="mt-5 text-[40px] font-bold leading-[1.05]">
+          {there ? <Bi ta="மருத்துவர்கள் உங்களுடன்" en="Doctors are with you" /> : <Bi ta="உதவி வருகிறது" en="Help is on the way" />}
+        </h1>
+        <p className="mt-2 text-[18px] text-white/75"><Bi inline ta="மெதுவாக மூச்சு விடுங்கள். நீங்கள் தனியாக இல்லை." en="Breathe slowly. You are not alone." /></p>
+
+        {/* Departure-board block */}
+        <section className="mt-7 border-y border-white/15 py-5">
+          {triage ? (
+            <p className="flex items-center gap-3 text-[22px] font-semibold">
+              <span className="h-2.5 w-2.5 animate-blink rounded-full bg-brand" />
+              <Bi inline ta="சரியான மருத்துவமனையைத் தேடுகிறோம்" en="Finding the right hospital" />
+            </p>
+          ) : there ? (
             <>
-              <div className="flex items-start gap-3 rounded-2xl border-2 border-brand bg-brand-50 p-4">
-                <DoorOpen className="mt-0.5 h-8 w-8 shrink-0 text-brand-700" />
-                <div className="text-xl font-bold leading-tight"><Bi ta="கதவைத் திறந்து வையுங்கள்" en="Unlock the front door" /></div>
+              <p className="text-[15px] text-white/60"><Bi inline ta="வந்து சேர்ந்தீர்கள்" en="You have reached" /></p>
+              <p className="mt-1 font-display text-[40px] font-semibold leading-none text-brand">{hName}</p>
+            </>
+          ) : (
+            <>
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <p className="text-[15px] text-white/60"><Bi inline ta="ஆம்புலன்ஸ் வர" en="Ambulance arrives in" /></p>
+                  <p className="mt-1 flex items-baseline gap-2">
+                    <span className="font-display text-[88px] font-semibold leading-[0.85] text-brand tnum" style={{ fontStretch: "85%" }}>{emergency.etaLeftMin ?? "–"}</span>
+                    <span className="text-[22px] font-semibold text-brand"><Bi inline ta="நிமிடம்" en="min" /></span>
+                  </p>
+                </div>
+                <div className="pb-1 text-right">
+                  <p className="text-[15px] text-white/60"><Bi inline ta="செல்லும் இடம்" en="Going to" /></p>
+                  <p className="mt-1 text-[22px] font-semibold leading-tight">{hName}</p>
+                </div>
               </div>
-              <div className="flex items-start gap-3 rounded-2xl border-2 border-brand bg-brand-50 p-4">
-                <Pill className="mt-0.5 h-8 w-8 shrink-0 text-brand-700" />
-                <div className="text-xl font-bold leading-tight"><Bi ta="மாத்திரைப் பெட்டியை எடுத்து வையுங்கள்" en="Keep your medicine box ready" /></div>
-              </div>
+              <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-night-3"><div className="h-full rounded-full bg-brand transition-[width] duration-700" style={{ width: `${Math.round(emergency.progress * 100)}%` }} /></div>
             </>
           )}
-        </div>
+        </section>
+
+        <ul className="mt-2">
+          <Step done>
+            <Bi ta="குடும்பத்துக்கு தெரியும்" en="Your family knows" />
+            {responders && <p className="mt-1 text-[17px] font-medium text-brand"><Bi inline ta={`${responders} வருகிறார்கள்`} en={`${responders} on the way`} /></p>}
+          </Step>
+          <Step done={!triage}><Bi ta={`${hName}-க்கு உங்கள் விவரங்கள் சென்றன`} en={`${hName} has your medical records`} /></Step>
+          <Step done={teamReady}>{teamReady ? <Bi ta="மருத்துவர்கள் தயார்" en="The doctors are ready for you" /> : <Bi ta="மருத்துவர்கள் தயாராகிறார்கள்" en="The doctors are getting ready" />}</Step>
+        </ul>
+
+        {!there && (
+          <section className="mt-6 rounded-xl bg-night-2 px-5 py-4">
+            <p className="text-[15px] font-semibold text-white/60"><Bi inline ta="இப்போது செய்யுங்கள்" en="Do this now" /></p>
+            <ul className="mt-2 flex flex-col">
+              <li className="flex items-center gap-4 border-b border-white/10 py-3">
+                <DoorOpen className="h-8 w-8 shrink-0 text-brand" strokeWidth={1.75} />
+                <span className="text-[21px] font-semibold leading-tight"><Bi ta="கதவைத் திறந்து வையுங்கள்" en="Unlock the front door" /></span>
+              </li>
+              <li className="flex items-center gap-4 py-3">
+                <Pill className="h-8 w-8 shrink-0 text-brand" strokeWidth={1.75} />
+                <span className="text-[21px] font-semibold leading-tight"><Bi ta="மாத்திரைப் பெட்டியை அருகில் வையுங்கள்" en="Keep your medicine box close" /></span>
+              </li>
+            </ul>
+          </section>
+        )}
 
         {canCancel && (
-          <Button variant="outline" size="xl" className="mt-auto border-2" loading={cancelling} onClick={cancel}>
-            <Bi ta="தவறுதலாக அழுத்தினேன்" en="Pressed by mistake · cancel" />
-          </Button>
+          <button onClick={cancel} disabled={cancelling}
+            className="mt-auto flex min-h-[56px] items-center justify-center gap-2 pt-8 text-[17px] font-medium text-white/75 underline decoration-white/40 underline-offset-4 hover:text-white disabled:opacity-50">
+            <Bi inline ta={`தவறுதலாக அழுத்தினேன் · ரத்து செய் (${cancelLeft})`} en={`Pressed by mistake · cancel (${cancelLeft})`} />
+          </button>
         )}
       </div>
     </div>

@@ -1,6 +1,6 @@
 // Talk to Saathi: a Tamil-first conversation, by voice or by tapping a ready-made reply.
 import { useEffect, useRef, useState } from "react";
-import { Mic, Send, Volume2, VolumeX, AlertTriangle } from "lucide-react";
+import { Mic, Send, Volume2, VolumeX } from "lucide-react";
 import { api } from "../../lib/api";
 import { useLive } from "../../lib/socket";
 import { canListen, listen, speak, stopSpeaking } from "../../lib/speech";
@@ -14,7 +14,7 @@ const QUICK = [
   { ta: "காலை மாத்திரை சாப்பிட்டேன்", en: "I took my morning tablets" },
   { ta: "ராத்திரி சரியா தூக்கம் வரலை", en: "I didn't sleep well last night" },
   { ta: "கார்த்திக் கிட்ட பேசணும்", en: "I want to talk to Karthik" },
-  { ta: "கொஞ்சம் நெஞ்சு கனமா இருக்கு, வியர்க்குது", en: "My chest feels heavy, I'm sweating", danger: true },
+  { ta: "கொஞ்சம் நெஞ்சு கனமா இருக்கு, வியர்க்குது", en: "My chest feels heavy, I'm sweating" },
 ];
 const VOICE_KEY = "saathi-elder-voice";
 
@@ -57,67 +57,68 @@ export default function Talk() {
   }
 
   const name = data?.patient.nickname || "Paati";
+  const list = turns?.filter((x) => x.role !== "system") || [];
   return (
-    <SubScreen ta="சாத்தியிடம் பேசு" en="Talk to Saathi" tone="white">
-      <div className="-mx-4 -mt-5 flex items-center justify-between border-b border-line bg-paper px-4 py-2.5">
-        <div className="flex items-center gap-2 text-sm text-ink-2"><span className="h-2 w-2 rounded-full bg-teal" />{t("சாத்தி கேட்கிறது", "Saathi is listening")}</div>
-        <button onClick={toggleVoice} className="flex items-center gap-1.5 rounded-xl border border-line bg-white px-3 py-1.5 text-sm font-semibold">
-          {voice ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}{voice ? t("குரல் ஆன்", "Voice on") : t("குரல் ஆஃப்", "Voice off")}
+    <SubScreen ta="சாத்தியிடம் பேசு" en="Talk to Saathi">
+      <div className="-mt-1 flex items-center justify-between gap-3">
+        <span className="min-w-0 text-[15px] leading-snug text-ink-2">{t("தமிழிலோ ஆங்கிலத்திலோ பேசலாம்", "Speak in Tamil or English")}</span>
+        <button onClick={toggleVoice} aria-pressed={voice} className="flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-line px-2.5 text-[15px] font-semibold text-ink-2 hover:bg-paper">
+          {voice ? <Volume2 className="h-5 w-5" strokeWidth={1.75} /> : <VolumeX className="h-5 w-5" strokeWidth={1.75} />}{voice ? t("குரல் ஆன்", "Voice on") : t("குரல் ஆஃப்", "Voice off")}
         </button>
       </div>
 
-      <div className="flex flex-1 flex-col gap-3 pb-2">
+      <div className="flex flex-1 flex-col gap-4">
         {turns === null && <div className="grid flex-1 place-items-center py-10"><Spinner className="h-8 w-8" /></div>}
         {turns?.length === 0 && (
-          <div className="mx-auto mt-6 max-w-[300px] text-center text-lg text-ink-2">
-            <img src="/icons/icon.svg" alt="" className="mx-auto mb-3 h-16 w-16 rounded-2xl" />
-            <p className="font-tamil font-semibold text-ink">வணக்கம் {name}! எப்படி இருக்கீங்க?</p>
-            <p className="text-base">Hello {name}! How are you today?</p>
+          <div className="py-6">
+            <p className="font-tamil text-[24px] font-semibold leading-snug">வணக்கம் {name}! எப்படி இருக்கீங்க?</p>
+            <p className="text-[17px] text-ink-2">Hello {name}! How are you today?</p>
           </div>
         )}
-        {turns?.filter((x) => x.role !== "system").map((c) => {
+        {list.map((c) => {
           const mine = c.role === "user";
           return (
             <div key={c.id} className={cx("flex max-w-[88%] flex-col animate-slidein", mine ? "self-end items-end" : "self-start items-start")}>
-              <div className={cx("rounded-3xl px-4 py-3 text-[19px] leading-snug",
-                mine ? "rounded-br-lg bg-ink text-white" : c.redFlag ? "rounded-bl-lg bg-sos text-white" : "rounded-bl-lg bg-paper-2 text-ink")}>
-                {c.redFlag && <div className="mb-1 flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide"><AlertTriangle className="h-4 w-4" />{t("அவசரம்", "Emergency")}</div>}
+              <div className={cx("rounded-xl px-4 py-3 text-[20px] leading-snug",
+                mine ? "bg-ink text-white" : c.redFlag ? "border-l-4 border-sos bg-sos-50 text-ink" : "bg-paper text-ink")}>
+                {c.redFlag && <p className="mb-1 text-[15px] font-semibold text-sos">{t("அவசரம்: உதவி அழைக்கப்படுகிறது", "Emergency: calling for help")}</p>}
                 <span className={isTamil(c.text) ? "font-tamil" : undefined}>{c.text}</span>
-                {c.english && !mine && <span className="mt-1.5 block text-[14px] leading-snug opacity-75">{c.english}</span>}
+                {c.english && !mine && <span className="mt-1.5 block text-[15px] leading-snug text-ink-2">{c.english}</span>}
               </div>
-              <div className="mt-1 flex items-center gap-2 px-2 text-xs text-ink-3">
-                {fmtTime(c.at)}
-                {!mine && <button onClick={() => speak(c.text, c.english || undefined)} className="font-semibold text-ink-2 underline-offset-2 hover:underline">{t("மீண்டும் கேள்", "Play")}</button>}
+              <div className="mt-1 flex items-center gap-3 px-1 text-[13px] text-ink-3">
+                <span>{mine ? name : "Saathi"} · {fmtTime(c.at)}</span>
+                {!mine && <button onClick={() => speak(c.text, c.english || undefined)} className="font-semibold text-info hover:underline">{t("மீண்டும் கேள்", "Play")}</button>}
               </div>
             </div>
           );
         })}
-        {sending && <div className="flex items-center gap-2 self-start rounded-3xl bg-paper-2 px-4 py-3 text-ink-2"><Spinner className="h-4 w-4" />{t("சாத்தி யோசிக்கிறது…", "Saathi is thinking…")}</div>}
+        {sending && <div className="flex items-center gap-2 self-start rounded-xl bg-paper px-4 py-3 text-[17px] text-ink-2"><Spinner className="h-4 w-4" />{t("சாத்தி யோசிக்கிறது…", "Saathi is thinking…")}</div>}
         <div ref={endRef} />
       </div>
 
-      <div className="sticky bottom-0 -mx-4 -mb-5 flex flex-col gap-3 border-t border-line bg-white/95 px-4 pb-4 pt-3 backdrop-blur safe-bottom">
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 scrollbar-none">
+      <div className="sticky bottom-0 -mx-5 -mb-5 flex flex-col gap-3 border-t border-line bg-white px-5 pb-4 pt-3 safe-bottom">
+        <div className="-mx-5 flex gap-2 overflow-x-auto px-5 scrollbar-none">
           {QUICK.map((q) => (
             <button key={q.ta} disabled={sending} onClick={() => void send(lang === "ta" ? q.ta : q.en)}
-              className={cx("shrink-0 rounded-2xl border-2 px-3.5 py-2 text-left disabled:opacity-50", q.danger ? "border-sos/60 bg-sos-50" : "border-line bg-paper")}>
-              <span className={cx("block max-w-[220px] text-base font-semibold leading-tight", lang === "ta" && "font-tamil")}>{lang === "ta" ? q.ta : q.en}</span>
-              <span className={cx("block max-w-[220px] text-xs text-ink-2", lang === "en" && "font-tamil")}>{lang === "ta" ? q.en : q.ta}</span>
+              className="shrink-0 rounded-xl border border-line-2 bg-white px-3.5 py-2 text-left hover:border-ink-3 disabled:opacity-45">
+              <span className={cx("block max-w-[230px] text-[17px] font-semibold leading-tight", lang === "ta" && "font-tamil")}>{lang === "ta" ? q.ta : q.en}</span>
+              <span className={cx("block max-w-[230px] text-[13px] text-ink-2", lang === "en" && "font-tamil")}>{lang === "ta" ? q.en : q.ta}</span>
             </button>
           ))}
         </div>
         <div className="flex items-center gap-2">
           {canListen() && (
             <button onClick={mic} aria-label={t("பேசுங்கள்", "Speak")} aria-pressed={listening}
-              className={cx("grid h-16 w-16 shrink-0 place-items-center rounded-full text-white shadow-card transition active:scale-95", listening ? "bg-sos animate-pulsering" : "bg-brand")}>
-              <Mic className="h-8 w-8" />
+              className={cx("flex h-16 shrink-0 items-center gap-2 rounded-2xl px-5 text-[17px] font-semibold transition-colors", listening ? "bg-ink text-white" : "bg-brand text-ink")}>
+              <Mic className={cx("h-7 w-7", listening && "animate-blink")} strokeWidth={2} />
+              {listening ? t("கேட்கிறேன்", "Listening") : t("பேசு", "Speak")}
             </button>
           )}
           <form className="flex min-w-0 flex-1 gap-2" onSubmit={(e) => { e.preventDefault(); void send(text); }}>
             <input value={text} onChange={(e) => setText(e.target.value)} aria-label={t("செய்தி", "Message")}
-              placeholder={listening ? t("கேட்கிறேன்…", "Listening…") : t("இங்கே எழுதுங்கள்", "Type here")}
-              className={cx("h-16 min-w-0 flex-1 rounded-2xl border border-line bg-paper px-4 text-lg focus:border-ink-3 focus:outline-none", lang === "ta" && "font-tamil")} />
-            <button type="submit" disabled={!text.trim() || sending} aria-label={t("அனுப்பு", "Send")} className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-ink text-white disabled:opacity-40"><Send className="h-7 w-7" /></button>
+              placeholder={t("இங்கே எழுதுங்கள்", "Type here")}
+              className={cx("h-16 min-w-0 flex-1 rounded-2xl border border-line-2 bg-white px-4 text-[18px] focus:border-info focus:outline-none", lang === "ta" && "font-tamil")} />
+            <button type="submit" disabled={!text.trim() || sending} aria-label={t("அனுப்பு", "Send")} className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-ink text-white disabled:opacity-30"><Send className="h-6 w-6" strokeWidth={2} /></button>
           </form>
         </div>
       </div>

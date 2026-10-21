@@ -49,7 +49,7 @@ export default function ElderApp() {
 
   if (!data) {
     return (
-      <div className="grid min-h-full place-items-center bg-paper p-6 text-center">
+      <div className="grid min-h-full place-items-center bg-white p-6 text-center">
         {error ? <div className="flex flex-col items-center gap-3"><p className="text-lg">{error}</p><Button onClick={() => void reload()}>Try again</Button></div> : <Spinner className="h-10 w-10" />}
       </div>
     );
@@ -58,7 +58,7 @@ export default function ElderApp() {
   return (
     <Ctx.Provider value={ctx}>
       <div className="min-h-full bg-paper">
-        <div className="mx-auto min-h-full max-w-[480px] bg-paper sm:border-x sm:border-line">
+        <div className="mx-auto min-h-full max-w-[480px] bg-white sm:border-x sm:border-line">
           <Routes>
             <Route index element={<Home />} />
             <Route path="talk" element={<Talk />} />

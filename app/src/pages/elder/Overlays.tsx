@@ -1,6 +1,6 @@
 // Saathi's escalation call and the fall-detection countdown, shown over any elder screen.
 import { useEffect, useRef, useState } from "react";
-import { Phone, PhoneOff, PersonStanding } from "lucide-react";
+import { Phone, PhoneOff } from "lucide-react";
 import { api } from "../../lib/api";
 import { useLive } from "../../lib/socket";
 import { speak, stopSpeaking } from "../../lib/speech";
@@ -28,21 +28,21 @@ export function EscalationCall() {
     finally { setBusy(false); stopSpeaking(); }
   };
   return (
-    <div className="fixed inset-0 z-[950] overflow-y-auto bg-[#0F2A24] text-white safe-top safe-bottom animate-slidein">
-      <div className="mx-auto flex min-h-full max-w-[480px] flex-col items-center gap-5 px-5 py-10 text-center">
-        <div className="mt-6 font-mono text-sm uppercase tracking-[0.2em] text-white/60">Incoming call</div>
-        <div className="grid h-32 w-32 place-items-center rounded-full bg-brand shadow-[0_0_0_14px_rgba(217,142,4,.18),0_0_0_30px_rgba(217,142,4,.08)]">
-          <img src="/icons/icon.svg" alt="" className="h-20 w-20 rounded-2xl" />
+    <div className="fixed inset-0 z-[950] overflow-y-auto bg-night text-white safe-top safe-bottom animate-slidein">
+      <div className="mx-auto flex min-h-full max-w-[480px] flex-col px-5 pb-6 pt-10">
+        <p className="text-[15px] text-white/60"><Bi inline ta="அழைப்பு வருகிறது" en="Incoming call" /></p>
+        <div className="mt-4 flex items-center gap-4">
+          <img src="/icons/icon.svg" alt="" className="h-16 w-16" style={{ borderRadius: 14 }} />
+          <h1 className="text-[36px] font-bold leading-tight"><Bi ta="சாத்தி" en="Saathi" /></h1>
         </div>
-        <h1 className="text-4xl font-extrabold"><Bi ta="சாத்தி அழைக்கிறது" en="Saathi is calling" /></h1>
-        <div className="rounded-3xl bg-white/10 p-5 text-2xl font-semibold leading-snug">
+        <blockquote className="mt-8 border-l-4 border-brand pl-4 text-[26px] font-semibold leading-snug">
           <Bi ta="“பாட்டி, காலை மாத்திரை சாப்பிட்டீங்களா? நலமா?”" en="“Paati, did you take your morning tablets? Are you well?”" />
-        </div>
-        <div className="mt-auto flex w-full flex-col gap-3">
-          <Button size="xl" className="!min-h-[84px] bg-[#1FA971] text-white hover:bg-[#178a5c]" icon={<Phone className="h-7 w-7" />} loading={busy} onClick={ok}>
+        </blockquote>
+        <div className="mt-auto flex flex-col gap-3 pt-10">
+          <Button variant="brand" size="xl" className="!min-h-[84px] !text-[24px]" icon={<Phone className="h-7 w-7" strokeWidth={2} />} loading={busy} onClick={ok}>
             <Bi ta="ஆம், நலம்" en="Yes, I'm fine" />
           </Button>
-          <Button size="xl" variant="sos" className="!min-h-[84px]" icon={<PhoneOff className="h-7 w-7" />} onClick={() => { setOpen(false); stopSpeaking(); void raiseSOS("Saathi call (pressed help)"); }}>
+          <Button variant="sos" size="xl" className="!min-h-[72px] !text-[22px]" icon={<PhoneOff className="h-6 w-6" strokeWidth={2} />} onClick={() => { setOpen(false); stopSpeaking(); void raiseSOS("Saathi call (pressed help)"); }}>
             <Bi ta="உதவி வேண்டும்" en="I need help" />
           </Button>
         </div>
@@ -87,15 +87,21 @@ export function FallWatcher() {
 
   if (left === null) return null;
   return (
-    <div className="fixed inset-0 z-[940] overflow-y-auto bg-warn text-white safe-top safe-bottom animate-slidein">
-      <div className="mx-auto flex min-h-full max-w-[480px] flex-col items-center gap-5 px-5 py-10 text-center">
-        <PersonStanding className="mt-6 h-20 w-20" />
-        <h1 className="text-4xl font-extrabold"><Bi ta="நீங்கள் விழுந்தீர்களா?" en="Did you fall?" /></h1>
-        <p className="text-xl"><Bi ta={`${left} விநாடியில் உதவி அழைக்கப்படும்`} en={`Calling for help in ${left} s`} /></p>
-        <div className="font-display text-[96px] font-extrabold leading-none tnum">{left}</div>
-        <div className="mt-auto flex w-full flex-col gap-3">
-          <Button size="xl" className="!min-h-[84px] bg-white text-ink hover:bg-white/90" onClick={() => setLeft(null)}><Bi ta="நான் நலம்" en="I'm OK" /></Button>
-          <Button size="xl" variant="sos" className="!min-h-[84px]" onClick={() => { setLeft(null); void raiseSOS("fall sensor", "fall"); }}><Bi ta="உதவி" en="Get help now" /></Button>
+    <div className="fixed inset-0 z-[940] overflow-y-auto bg-white safe-top safe-bottom animate-slidein">
+      <div className="mx-auto flex min-h-full max-w-[480px] flex-col px-5 pb-6">
+        <div className="-mx-5 bg-warn px-5 py-3 text-[17px] font-semibold text-white"><Bi inline ta="விழுந்தது போல் தெரிகிறது" en="It looks like you fell" /></div>
+        <h1 className="mt-7 text-[40px] font-bold leading-[1.05]"><Bi ta="நீங்கள் நலமா?" en="Are you OK?" /></h1>
+        <div className="mt-8 border-y border-line py-6">
+          <p className="text-[17px] text-ink-2"><Bi inline ta="உதவி அழைக்கப்படும்" en="Calling for help in" /></p>
+          <p className="mt-1 flex items-baseline gap-2">
+            <span className="font-display text-[96px] font-semibold leading-[0.85] text-warn tnum">{left}</span>
+            <span className="text-[22px] font-semibold text-warn"><Bi inline ta="விநாடி" en="sec" /></span>
+          </p>
+          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-paper-2"><div className="h-full bg-warn transition-[width] duration-1000 ease-linear" style={{ width: `${(left / FALL_SECONDS) * 100}%` }} /></div>
+        </div>
+        <div className="mt-auto flex flex-col gap-3 pt-8">
+          <Button variant="primary" size="xl" className="!min-h-[84px] !text-[24px]" onClick={() => setLeft(null)}><Bi ta="நான் நலம்" en="I'm OK" /></Button>
+          <Button variant="sos" size="xl" className="!min-h-[72px] !text-[22px]" onClick={() => { setLeft(null); void raiseSOS("fall sensor", "fall"); }}><Bi ta="இப்போதே உதவி" en="Get help now" /></Button>
         </div>
       </div>
     </div>

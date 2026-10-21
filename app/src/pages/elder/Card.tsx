@@ -1,6 +1,5 @@
-// My emergency card: the five facts a paramedic needs, plus a QR any phone camera reads offline.
-import { useEffect, useState } from "react";
-import { Phone } from "lucide-react";
+// My emergency card: the facts a paramedic needs, laid out like a printed card, plus a QR any phone camera reads offline.
+import { useEffect, useState, type ReactNode } from "react";
 import { api } from "../../lib/api";
 import QR from "../../components/QR";
 import { Spinner } from "../../components/ui";
@@ -8,6 +7,15 @@ import type { Medication } from "../../../shared/types";
 import { Bi, SubScreen, useElder } from "./shared";
 
 const ascii = (s: string) => s.replace(/[^\x20-\x7E\n]/g, "-");
+
+function Row({ label, ta, children }: { label: string; ta: string; children: ReactNode }) {
+  return (
+    <div className="grid grid-cols-[96px_1fr] gap-3 border-b border-line py-3 last:border-b-0">
+      <div className="pt-0.5 text-[13px] leading-tight text-ink-2">{label}<br /><span className="font-tamil">{ta}</span></div>
+      <div className="min-w-0 text-[17px] leading-snug">{children}</div>
+    </div>
+  );
+}
 
 export default function Card() {
   const { data } = useElder();
@@ -30,76 +38,57 @@ export default function Card() {
 
   return (
     <SubScreen ta="என் அவசர அட்டை" en="My emergency card">
-      <p className="text-base text-ink-2"><Bi ta="இதை குளிர்சாதனப் பெட்டியில் ஒட்டுங்கள். இணையம் இல்லாமலும் எந்த போன் கேமராவும் படிக்கும்." en="Stick this on the fridge. Any phone camera can read the code, even without internet." /></p>
+      <p className="-mt-1 text-[17px] leading-snug text-ink-2"><Bi ta="இதை குளிர்சாதனப் பெட்டியில் ஒட்டுங்கள். இணையம் இல்லாமலும் எந்த போன் கேமராவும் படிக்கும்." en="Stick this on the fridge. Any phone camera can read the code, even without internet." sub="text-[14px]" /></p>
 
-      <article className="overflow-hidden rounded-3xl border-2 border-ink bg-white shadow-card">
-        <div className="flex items-center justify-between bg-sos px-4 py-2.5 text-white">
-          <span className="font-display text-lg font-bold tracking-wide">EMERGENCY CARD</span>
-          <span className="font-tamil text-base font-semibold">அவசர அட்டை</span>
+      <article className="rounded-lg border-[1.5px] border-ink bg-white">
+        <header className="flex items-center justify-between border-b-[1.5px] border-ink px-4 py-2.5">
+          <span className="font-display text-[17px] font-bold" style={{ fontStretch: "90%" }}>EMERGENCY CARD</span>
+          <span className="font-tamil text-[15px] font-semibold">அவசர அட்டை</span>
+        </header>
+        <div className="flex items-start gap-4 border-b border-line px-4 py-4">
+          <div className="min-w-0 flex-1">
+            <div className="text-[24px] font-bold leading-tight">{p.name}</div>
+            <div className="mt-0.5 text-[15px] text-ink-2">{p.sex === "F" ? "Female" : "Male"}, {p.age} years</div>
+            <div className="mt-3 text-[13px] text-ink-2">Blood group</div>
+            <div className="font-display text-[34px] font-bold leading-none">{p.blood}</div>
+          </div>
+          <div className="shrink-0">
+            {meds ? <QR text={qrText} size={128} /> : <div className="grid h-[128px] w-[128px] place-items-center"><Spinner /></div>}
+          </div>
         </div>
-        <div className="flex flex-col gap-4 p-4">
-          <div className="flex items-start gap-4">
-            <div className="shrink-0 rounded-xl border border-line bg-white p-1.5">
-              {meds ? <QR text={qrText} size={132} /> : <div className="grid h-[132px] w-[132px] place-items-center"><Spinner /></div>}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-2xl font-extrabold leading-tight">{p.name}</div>
-              <div className="mt-1 text-base text-ink-2">{p.sex === "F" ? "Female" : "Male"} · {p.age} yrs</div>
-              <div className="mt-3 inline-flex items-baseline gap-2 rounded-2xl bg-sos-50 px-3 py-1.5">
-                <span className="text-xs font-bold uppercase tracking-wide text-sos">Blood</span>
-                <span className="font-display text-3xl font-extrabold leading-none text-sos">{p.blood}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border-2 border-sos bg-sos-50 p-3">
-            <div className="text-xs font-bold uppercase tracking-wide text-sos">Allergies · <span className="font-tamil">ஒவ்வாமை</span></div>
-            <div className="mt-0.5 text-xl font-bold text-sos">{p.allergies.join(", ") || "None known"}</div>
-          </div>
-
-          {thinners.length > 0 && (
-            <div className="rounded-2xl border-2 border-warn bg-warn-50 p-3">
-              <div className="text-xs font-bold uppercase tracking-wide text-warn">On blood thinner</div>
-              <div className="mt-0.5 text-lg font-bold text-warn">{thinners.map((m) => `${m.name} ${m.dose}`).join(", ")}</div>
-            </div>
-          )}
-
-          <div>
-            <div className="text-xs font-bold uppercase tracking-wide text-ink-3">Conditions</div>
-            <ul className="mt-1 flex flex-col gap-0.5 text-[17px]">{p.conditions.map((c) => <li key={c}>• {c}</li>)}</ul>
-          </div>
-
-          <div>
-            <div className="text-xs font-bold uppercase tracking-wide text-ink-3">Current medicines</div>
-            {meds === null ? <Spinner className="mt-2" /> : (
-              <ul className="mt-1 grid grid-cols-1 gap-1.5">
+        <div className="px-4">
+          <Row label="Allergy" ta="ஒவ்வாமை"><span className="font-bold text-sos">{p.allergies.join(", ") || "None known"}</span></Row>
+          {thinners.length > 0 && <Row label="Blood thinner" ta="இரத்தம் மெலிதல்"><span className="font-bold">{thinners.map((m) => `${m.name} ${m.dose}`).join(", ")}</span></Row>}
+          <Row label="Conditions" ta="நோய்கள்">
+            <ul>{p.conditions.map((c) => <li key={c}>{c}</li>)}</ul>
+          </Row>
+          <Row label="Medicines" ta="மாத்திரைகள்">
+            {meds === null ? <Spinner /> : (
+              <ul className="flex flex-col gap-1">
                 {meds.map((m) => (
-                  <li key={m.id} className="flex items-center gap-2 text-[17px]">
-                    <span className="h-3.5 w-6 shrink-0 rounded-full border border-black/15" style={{ background: m.color }} />
-                    <span className="font-semibold">{m.name} {m.dose}</span>
-                    <span className="truncate text-sm text-ink-2">· {m.slots.join(" + ")}</span>
+                  <li key={m.id} className="flex items-start gap-2">
+                    <span className="mt-[7px] h-3 w-5 shrink-0 rounded-full border border-black/15" style={{ background: m.color }} />
+                    <span className="min-w-0 leading-tight"><span className="font-semibold">{m.name}</span> <span className="whitespace-nowrap">{m.dose}</span>
+                      <span className="block text-[13px] text-ink-3">{m.slots.join(" + ")}</span></span>
                   </li>
                 ))}
               </ul>
             )}
-          </div>
-
-          <div>
-            <div className="text-xs font-bold uppercase tracking-wide text-ink-3">Call · <span className="font-tamil">அழைக்க</span></div>
-            <ul className="mt-1 flex flex-col gap-2">
+          </Row>
+          <Row label="Call" ta="அழைக்க">
+            <ul className="flex flex-col gap-1.5">
               {family.map((m) => (
-                <li key={m.id} className="flex items-center gap-3 rounded-2xl bg-paper px-3 py-2">
-                  <Phone className="h-5 w-5 text-teal" />
-                  <span className="min-w-0 flex-1"><span className="font-bold">{m.name}</span> <span className="text-sm text-ink-2">({m.relation})</span></span>
-                  <a href={`tel:${m.phone!.replace(/\s/g, "")}`} className="select-all font-mono text-base font-semibold text-teal">{m.phone}</a>
+                <li key={m.id}>
+                  <span className="font-semibold">{m.name}</span> <span className="text-ink-2">({m.relation})</span><br />
+                  <a href={`tel:${m.phone!.replace(/\s/g, "")}`} className="select-all font-mono text-[16px] text-info">{m.phone}</a>
                 </li>
               ))}
             </ul>
-          </div>
-          {p.abha && <div className="border-t border-line pt-3 text-sm text-ink-2">ABHA: <span className="font-mono">{p.abha}</span></div>}
+          </Row>
+          {p.abha && <Row label="ABHA ID" ta="ஆபா"><span className="font-mono text-[15px]">{p.abha}</span></Row>}
         </div>
       </article>
-      <p className="text-center text-sm text-ink-3"><Bi inline ta="படம் எடுத்து அச்சிடுங்கள்" en="Take a screenshot and print it" /></p>
+      <p className="text-center text-[15px] text-ink-3"><Bi inline ta="ஸ்கிரீன்ஷாட் எடுத்து அச்சிடுங்கள்" en="Take a screenshot and print it" /></p>
     </SubScreen>
   );
 }

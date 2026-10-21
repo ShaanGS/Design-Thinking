@@ -1,7 +1,7 @@
 // Shared pieces of the elder app: language, live data context, bilingual text, screen chrome.
 import { createContext, useContext, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { cx } from "../../components/ui";
 import type { Emergency, Overview } from "../../../shared/types";
 
@@ -23,35 +23,41 @@ export interface ElderCtx {
 export const Ctx = createContext<ElderCtx>(null as unknown as ElderCtx);
 export const useElder = () => useContext(Ctx);
 
-/** Bilingual text: the chosen language large, the other small underneath. */
+/** Bilingual text: the chosen language at full size, the other beneath at ~60% in a quieter tone. */
 export function Bi({ ta, en, className, sub, inline }: { ta: ReactNode; en: ReactNode; className?: string; sub?: string; inline?: boolean }) {
   const { lang } = useElder();
   const [a, b] = lang === "ta" ? [ta, en] : [en, ta];
-  if (inline) return <span className={className}>{a}</span>;
+  if (inline) return <span className={cx(lang === "ta" && "font-tamil", className)}>{a}</span>;
   return (
     <span className={cx("flex flex-col", className)}>
       <span className={lang === "ta" ? "font-tamil" : undefined}>{a}</span>
-      <span className={cx("text-[0.62em] font-medium leading-snug opacity-75", lang === "en" && "font-tamil", sub)}>{b}</span>
+      <span className={cx("mt-0.5 text-[0.6em] font-normal leading-snug opacity-70", lang === "en" && "font-tamil", sub)}>{b}</span>
     </span>
   );
 }
 /** Pick the string for the current language. */
 export const useT = () => { const { lang } = useElder(); return (ta: string, en: string) => (lang === "ta" ? ta : en); };
 
-export function SubScreen({ ta, en, children, tone = "paper" }: { ta: string; en: string; children: ReactNode; tone?: "paper" | "white" }) {
+export function SubScreen({ ta, en, children }: { ta: string; en: string; children: ReactNode }) {
   const nav = useNavigate();
   const { lang } = useElder();
+  const [title, other] = lang === "ta" ? [ta, en] : [en, ta];
   return (
-    <div className={cx("flex min-h-[100dvh] flex-col", tone === "white" ? "bg-white" : "bg-paper")}>
-      <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-line bg-white/95 px-4 py-3 backdrop-blur safe-top">
-        <button onClick={() => nav("/elder")} aria-label={lang === "ta" ? "பின்செல்" : "Back"}
-          className="flex h-14 items-center gap-2 rounded-2xl bg-ink px-4 text-lg font-bold text-white active:scale-[.98]">
-          <ArrowLeft className="h-6 w-6" />
-          <span className={lang === "ta" ? "font-tamil" : undefined}>{lang === "ta" ? "பின்" : "Back"}</span>
-        </button>
-        <h1 className="min-w-0 flex-1 truncate text-2xl font-bold leading-tight"><span className={lang === "ta" ? "font-tamil" : undefined}>{lang === "ta" ? ta : en}</span></h1>
+    <div className="flex min-h-[100dvh] flex-col bg-white">
+      <header className="sticky top-0 z-20 border-b border-line bg-white safe-top">
+        <div className="flex items-center gap-1 px-2 pt-2">
+          <button onClick={() => nav("/elder")} aria-label={lang === "ta" ? "பின்செல்" : "Back"}
+            className="flex h-12 items-center gap-0.5 rounded-xl pl-1 pr-3 text-[19px] font-semibold text-ink hover:bg-paper active:bg-paper-2">
+            <ChevronLeft className="h-7 w-7" strokeWidth={2} />
+            <span className={lang === "ta" ? "font-tamil" : undefined}>{lang === "ta" ? "முகப்பு" : "Home"}</span>
+          </button>
+        </div>
+        <div className="px-5 pb-4 pt-1">
+          <h1 className={cx("text-[30px] font-bold leading-tight", lang === "ta" && "font-tamil")}>{title}</h1>
+          <p className={cx("text-[17px] text-ink-2", lang === "en" && "font-tamil")}>{other}</p>
+        </div>
       </header>
-      <div className="flex flex-1 flex-col gap-4 px-4 py-5">{children}</div>
+      <div className="flex flex-1 flex-col gap-5 px-5 py-5">{children}</div>
     </div>
   );
 }
