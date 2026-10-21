@@ -1,3 +1,10 @@
+@import "@fontsource-variable/anek-latin/standard.css";
+@import "@fontsource-variable/anek-tamil/standard.css";
+@import "@fontsource/hind-madurai/400.css";
+@import "@fontsource/hind-madurai/500.css";
+@import "@fontsource/hind-madurai/600.css";
+@import "@fontsource/hind-madurai/700.css";
+@import "@fontsource/ibm-plex-mono/500.css";
 @import "leaflet/dist/leaflet.css";
 @tailwind base;
 @tailwind components;
@@ -5,13 +12,15 @@
 
 :root { color-scheme: light; }
 html, body, #root { height: 100%; }
-body { @apply bg-paper text-ink font-sans antialiased; -webkit-tap-highlight-color: transparent; }
-h1, h2, h3, h4 { @apply font-display; text-wrap: balance; }
+body { @apply bg-paper text-ink font-sans antialiased; font-size: 15px; line-height: 1.5; -webkit-tap-highlight-color: transparent; }
+h1, h2, h3, h4 { @apply font-display; font-stretch: 92%; text-wrap: balance; letter-spacing: -0.01em; }
 .tnum { font-variant-numeric: tabular-nums; }
+.condensed { font-stretch: 82%; }
 .safe-top { padding-top: env(safe-area-inset-top, 0px); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
-.leaflet-container { font-family: inherit; }
+.leaflet-container { font-family: inherit; background: #E8EAEE; }
 .scrollbar-none::-webkit-scrollbar { display: none; }
 .scrollbar-none { scrollbar-width: none; }
-:focus-visible { outline: 3px solid #D98E04; outline-offset: 2px; }
+:focus-visible { outline: 2px solid #2F49D1; outline-offset: 2px; }
+::selection { background: #FFEDA8; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }

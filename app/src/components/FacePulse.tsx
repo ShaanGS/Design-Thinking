@@ -78,7 +78,7 @@ export default function FacePulse({ onResult, big }: { onResult: (bpm: number, q
     const s = sig.map((v, i) => (sig[Math.max(0, i - 2)] + sig[Math.max(0, i - 1)] + v + sig[Math.min(sig.length - 1, i + 1)] + sig[Math.min(sig.length - 1, i + 2)]) / 5);
     const g = cv.getContext("2d")!; g.clearRect(0, 0, cv.width, cv.height);
     const lo = Math.min(...s), hi = Math.max(...s);
-    g.strokeStyle = "#D62839"; g.lineWidth = 4; g.lineJoin = "round"; g.beginPath();
+    g.strokeStyle = "#14172B"; g.lineWidth = 3; g.lineJoin = "round"; g.beginPath();
     s.forEach((v, i) => { const x = (i / (s.length - 1)) * cv.width, y = cv.height - 10 - ((v - lo) / (hi - lo || 1)) * (cv.height - 20); i ? g.lineTo(x, y) : g.moveTo(x, y); });
     g.stroke();
   }
@@ -86,13 +86,13 @@ export default function FacePulse({ onResult, big }: { onResult: (bpm: number, q
   const q = quality > 0.45 ? "good" : quality > 0.28 ? "fair" : "weak";
   return (
     <div className="flex flex-col gap-3">
-      <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-ink">
+      <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-ink">
         <video ref={video} playsInline muted className="h-full w-full -scale-x-100 object-cover" />
         <svg viewBox="0 0 400 300" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 h-full w-full">
           <defs><mask id="fp-m"><rect width="400" height="300" fill="#fff" /><ellipse cx="200" cy="140" rx="78" ry="104" fill="#000" /></mask></defs>
           <rect width="400" height="300" fill="rgba(0,0,0,.45)" mask="url(#fp-m)" />
-          <ellipse cx="200" cy="140" rx="78" ry="104" fill="none" stroke="#F0B13A" strokeWidth="3" strokeDasharray="6 6" />
-          {ROIS.map((r, i) => <rect key={i} x={r.x} y={r.y} width={r.w} height={r.h} rx="6" fill="rgba(60,197,148,.15)" stroke="#3CC594" strokeWidth="2" />)}
+          <ellipse cx="200" cy="140" rx="78" ry="104" fill="none" stroke="#F5B800" strokeWidth="3" strokeDasharray="6 6" />
+          {ROIS.map((r, i) => <rect key={i} x={r.x} y={r.y} width={r.w} height={r.h} rx="6" fill="rgba(245,184,0,.12)" stroke="#F5B800" strokeWidth="1.5" />)}
         </svg>
         {state === "idle" && (
           <div className="absolute inset-0 grid place-items-center bg-ink/60 p-4 text-center text-white">
@@ -106,12 +106,12 @@ export default function FacePulse({ onResult, big }: { onResult: (bpm: number, q
         {state === "running" && <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3 text-sm text-white">Keep still… {Math.min(20, Math.floor(elapsed / 1000))} / 20 s</div>}
       </div>
       <div className="flex items-center gap-4">
-        <Heart className={cx("h-9 w-9 text-sos", bpm != null && "animate-pulse")} fill="currentColor" />
-        <div className="font-display text-6xl font-bold leading-none text-sos tnum">{bpm ?? "--"}</div>
+        <Heart className={cx("h-8 w-8 text-ink", bpm != null && "animate-blink")} strokeWidth={1.75} />
+        <div className="font-display text-6xl font-semibold leading-none text-ink tnum">{bpm ?? "--"}</div>
         <div className="text-ink-2">beats<br />per min</div>
         <div className="ml-auto text-right text-xs text-ink-2">Signal<div className={cx("text-sm font-bold", q === "good" ? "text-teal" : q === "fair" ? "text-warn" : "text-sos")}>{state === "idle" ? "—" : q}</div></div>
       </div>
-      <canvas ref={wave} width={800} height={160} className="h-20 w-full rounded-xl bg-paper-2" />
+      <canvas ref={wave} width={800} height={160} className="h-20 w-full rounded-xl border border-line bg-white" />
       <div className="h-1.5 overflow-hidden rounded-full bg-paper-2"><div className="h-full bg-brand transition-all" style={{ width: `${Math.min(100, (elapsed / DURATION) * 100)}%` }} /></div>
       {state === "done" && <Button variant="outline" onClick={() => { setErr(""); start(); }}>Measure again</Button>}
       {state === "done" && err && <p className="text-sm text-sos">{err}</p>}

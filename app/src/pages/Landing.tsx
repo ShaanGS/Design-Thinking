@@ -1,18 +1,18 @@
 // Sign-in: one-tap demo personas, join a family by code, create a family, or hospital staff login.
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { Building2, HeartHandshake, Smartphone, ArrowRight, Sparkles, ShieldCheck, Activity, FileHeart, Siren, Users } from "lucide-react";
+import { Building2, HeartHandshake, Smartphone, ArrowRight } from "lucide-react";
 import { api } from "../lib/api";
 import { homeFor, useAuth } from "../lib/auth";
-import { Badge, Button, Card, Field, Input, Logo, Modal, Segmented, Select, useToast, cx } from "../components/ui";
+import { Button, Field, Input, Logo, Modal, Segmented, Select, useToast, cx } from "../components/ui";
 import type { Hospital, User } from "../../shared/types";
 
 type AuthRes = { token: string; user: User; code?: string };
 
 const PERSONAS = [
-  { key: "elder", title: "Paati's phone", who: "Kamala, 72 · Tambaram", desc: "Huge buttons, Tamil voice. Hold SOS, confirm tablets, talk to Saathi, check her pulse.", icon: Smartphone, tone: "bg-brand-100 text-brand-700" },
-  { key: "guardian", title: "Family app", who: "Karthik, son · Bengaluru", desc: "Live status, medicines, Health Vault, emergency tracking on a map.", icon: HeartHandshake, tone: "bg-teal-50 text-teal" },
-  { key: "hospital", title: "Hospital console", who: "Dr. Priya · Saraswathi ER", desc: "Incoming patients with pre-arrival brief, network beds and medicine stock.", icon: Building2, tone: "bg-info-50 text-info" },
+  { key: "elder", title: "Paati's phone", who: "Kamala, 72 · Tambaram", desc: "Large Tamil-first screen: the help button, today's tablets, talking to Saathi.", icon: Smartphone },
+  { key: "guardian", title: "Family app", who: "Karthik, her son · Bengaluru", desc: "How she is today, her medicines, her full medical history, and live emergency tracking.", icon: HeartHandshake },
+  { key: "hospital", title: "Hospital console", who: "Dr. Priya · Saraswathi ER", desc: "Patients on the way with their records, and beds and medicine stock across the network.", icon: Building2 },
 ] as const;
 
 export default function Landing() {
@@ -33,49 +33,65 @@ export default function Landing() {
 
   return (
     <div className="min-h-full bg-paper">
-      <div className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
-        <header className="flex items-center justify-between py-5 safe-top">
-          <Logo sub="Care for your family" />
-          {info && <Badge tone={info.ai === "claude" ? "ok" : "mute"} dot>{info.ai === "claude" ? `AI live · ${info.model}` : "Demo mode AI"}</Badge>}
-        </header>
+      <div className="mx-auto grid min-h-full max-w-6xl gap-x-16 gap-y-8 px-5 pb-12 pt-6 sm:px-8 lg:grid-cols-[1.15fr_1fr] lg:grid-rows-[auto_1fr] lg:pt-10">
+        <section className="flex flex-col lg:col-start-1 lg:row-start-1">
+          <header className="flex items-center justify-between safe-top">
+            <Logo size={38} sub="Care for your family" />
+          </header>
 
-        <section className="grid items-center gap-10 py-8 lg:grid-cols-[1.1fr_1fr] lg:py-14">
-          <div>
-            <Badge tone="brand" className="mb-4"><Sparkles className="h-3.5 w-3.5" /> Design Thinking · Group 4</Badge>
-            <h1 className="text-[40px] font-extrabold leading-[1.02] sm:text-6xl">No one should face an emergency alone.</h1>
-            <p className="mt-5 max-w-xl text-lg text-ink-2">
-              Saathi calls elders every day in their language, keeps their whole medical history in one place, and when something goes wrong,
-              alerts the family, sends the records ahead and routes the ambulance to the hospital that can actually treat them.
+          <div className="mt-10 lg:mt-20">
+            <p className="text-[15px] text-ink-2">Design Thinking · Group 4 · SRM</p>
+            <h1 className="mt-3 text-[44px] font-bold leading-[0.98] sm:text-[64px]" style={{ fontStretch: "80%" }}>
+              When Paati needs help, everyone moves at once.
+            </h1>
+            <p className="mt-5 max-w-[34rem] text-[17px] leading-relaxed text-ink-2">
+              Saathi checks on elders every day in their own language and keeps their medical history in one place. In an emergency it gets the family,
+              the neighbour, the ambulance and the right hospital moving in the same minute.
             </p>
-            <div className="mt-6 grid max-w-xl grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-              {[{ i: Siren, t: "One-press SOS" }, { i: FileHeart, t: "Health Vault" }, { i: Activity, t: "Daily AI check-ins" }, { i: ShieldCheck, t: "Hospital network" }].map(({ i: I, t }) => (
-                <div key={t} className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 font-semibold shadow-card"><I className="h-4 w-4 text-brand-600" />{t}</div>
-              ))}
-            </div>
           </div>
+        </section>
 
-          <Card className="p-5 sm:p-6">
-            <h2 className="text-xl font-bold">Try it as…</h2>
-            <p className="mb-4 text-sm text-ink-2">Open each one on a different phone or tab. They update each other live.</p>
-            <div className="flex flex-col gap-3">
+        <ol className="grid max-w-[34rem] content-start gap-0 border-t border-line lg:col-start-1 lg:row-start-2">
+            {[
+              ["Paati holds the help button", "On her phone, a pendant, or by telling Saathi she feels unwell."],
+              ["Everyone hears at the same time", "Her son, the neighbour and 108, in one moment instead of a chain of calls."],
+              ["The ambulance goes where she can be treated", "The nearest hospital with a cath lab, not just the nearest building. Her records arrive first."],
+            ].map(([t, d], i) => (
+              <li key={t} className="grid grid-cols-[2.25rem_1fr] gap-x-2 border-b border-line py-4">
+                <span className="font-display text-[22px] font-semibold leading-none text-ink-3 tnum">{i + 1}</span>
+                <div><p className="font-semibold">{t}</p><p className="text-[15px] text-ink-2">{d}</p></div>
+              </li>
+            ))}
+        </ol>
+
+        <section className="flex flex-col lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:pt-[7.5rem]">
+          <div className="rounded-xl border border-line bg-white">
+            <div className="border-b border-line px-5 py-4">
+              <h2 className="text-[20px] font-semibold">Open Saathi as</h2>
+              <p className="text-[15px] text-ink-2">Use a different phone or tab for each. They update each other live.</p>
+            </div>
+            <ul>
               {PERSONAS.map((p) => (
-                <button key={p.key} disabled={!!busy} onClick={() => go(api.post<AuthRes>("/api/auth/demo", { persona: p.key }), p.key)}
-                  className="group flex items-center gap-4 rounded-2xl border border-line bg-white p-4 text-left transition hover:border-ink-3 hover:shadow-card disabled:opacity-60">
-                  <div className={cx("grid h-12 w-12 shrink-0 place-items-center rounded-2xl", p.tone)}><p.icon className="h-6 w-6" /></div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-baseline gap-x-2"><span className="text-lg font-bold">{p.title}</span><span className="text-xs text-ink-3">{p.who}</span></div>
-                    <p className="text-sm text-ink-2">{p.desc}</p>
-                  </div>
-                  <ArrowRight className={cx("h-5 w-5 shrink-0 text-ink-3 transition group-hover:translate-x-0.5", busy === p.key && "animate-pulse")} />
-                </button>
+                <li key={p.key} className="border-b border-line last:border-b-0">
+                  <button disabled={!!busy} onClick={() => go(api.post<AuthRes>("/api/auth/demo", { persona: p.key }), p.key)}
+                    className="group flex w-full items-start gap-4 px-5 py-4 text-left transition-colors hover:bg-paper disabled:opacity-60">
+                    <p.icon className="mt-1 h-5 w-5 shrink-0 text-ink-2" strokeWidth={1.75} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-baseline gap-x-2"><span className="text-[17px] font-semibold">{p.title}</span><span className="text-[13px] text-ink-3">{p.who}</span></div>
+                      <p className="text-[15px] leading-snug text-ink-2">{p.desc}</p>
+                    </div>
+                    <ArrowRight className={cx("mt-1 h-5 w-5 shrink-0 text-ink-3 transition-transform group-hover:translate-x-0.5 group-hover:text-ink", busy === p.key && "animate-blink")} strokeWidth={1.75} />
+                  </button>
+                </li>
               ))}
-            </div>
-            <div className="mt-5 grid grid-cols-1 gap-2 border-t border-line pt-4 sm:grid-cols-3">
-              <Button variant="outline" icon={<Users className="h-4 w-4" />} onClick={() => setModal("join")}>Join a family</Button>
-              <Button variant="outline" icon={<HeartHandshake className="h-4 w-4" />} onClick={() => setModal("create")}>New family</Button>
-              <Button variant="outline" icon={<Building2 className="h-4 w-4" />} onClick={() => setModal("hospital")}>Hospital staff</Button>
-            </div>
-          </Card>
+            </ul>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 px-1 text-[15px]">
+            <button className="font-semibold text-info hover:underline" onClick={() => setModal("join")}>Join with a family code</button>
+            <button className="font-semibold text-info hover:underline" onClick={() => setModal("create")}>Set up a new family</button>
+            <button className="font-semibold text-info hover:underline" onClick={() => setModal("hospital")}>Hospital staff sign-in</button>
+          </div>
+          {info && <p className="mt-auto pt-10 text-[13px] text-ink-3">AI: {info.ai === "claude" ? `Claude (${info.model})` : "demo mode. Add an API key on the server for live AI."}</p>}
         </section>
       </div>
 
