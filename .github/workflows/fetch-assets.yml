@@ -1,0 +1,29 @@
+# Downloads generated design images listed in app/design-src/urls.txt ("name url" per line)
+# into app/design-src/raw/ and commits them. The dev container can't reach the image CDN, GitHub can.
+name: Fetch design assets
+on:
+  push:
+    paths: ["app/design-src/urls.txt"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download
+        run: |
+          mkdir -p app/design-src/raw
+          while read -r name url; do
+            [ -z "$name" ] && continue
+            [ -f "app/design-src/raw/$name.png" ] && continue
+            curl -fsSL "$url" -o "app/design-src/raw/$name.png"
+          done < app/design-src/urls.txt
+          ls -la app/design-src/raw
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/design-src/raw
+          git diff --cached --quiet || { git commit -m "Add generated design assets"; git push; }
