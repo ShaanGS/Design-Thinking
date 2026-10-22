@@ -30,22 +30,50 @@ export async function roadTable(from: LatLng, to: LatLng[]): Promise<{ km: numbe
   });
 }
 
-/** Road geometry through the given stops as [lat, lng] points (at most ~300), with per-leg drive minutes. */
+/** Road geometry through the given stops as [lat, lng] points, with per-leg drive minutes and the path index where each leg ends.
+ *  The shape is simplified (Douglas-Peucker, ~2 m) rather than sampled, so every bend in the road survives. */
 export async function roadRoute(stops: LatLng[]): Promise<{ path: [number, number][]; legMin: number[]; legEnd: number[] } | null> {
-  const url = `${OSRM}/route/v1/driving/${stops.map(fmt).join(";")}?overview=full&geometries=geojson&steps=false`;
+  const url = `${OSRM}/route/v1/driving/${stops.map(fmt).join(";")}?overview=full&geometries=geojson&steps=false&annotations=distance`;
   const d = await getJSON(url, 6000);
   const r = d?.routes?.[0];
   if (!r?.geometry?.coordinates?.length) return null;
   const coords: [number, number][] = r.geometry.coordinates.map(([lng, lat]: [number, number]) => [lat, lng]);
-  // Keep the path light enough to stream every second: thin to ~300 points but keep the leg endpoints
-  const step = Math.max(1, Math.ceil(coords.length / 300));
-  const legEnds = stops.slice(1).map((s) => nearestIndex(coords, s));
-  const keep = new Set<number>([0, coords.length - 1, ...legEnds]);
-  for (let i = 0; i < coords.length; i += step) keep.add(i);
-  const idx = [...keep].sort((a, b) => a - b);
-  const path = idx.map((i) => coords[i]);
-  const legEnd = legEnds.map((e) => idx.indexOf(e));
-  return { path, legMin: (r.legs || []).map((l: { duration: number }) => (l.duration / 60) * AMBULANCE_FACTOR), legEnd };
+  const legs: { duration: number; annotation?: { distance?: number[] } }[] = r.legs || [];
+  // Leg boundaries: the overview geometry is the legs' segments end to end, so cumulative segment counts give exact indices
+  let ends: number[] = [], acc = 0;
+  for (const l of legs) { acc += l.annotation?.distance?.length ?? NaN; ends.push(acc); }
+  if (ends.some((e) => !Number.isFinite(e)) || ends[ends.length - 1] !== coords.length - 1) ends = stops.slice(1).map((s) => nearestIndex(coords, s));
+  const path: [number, number][] = [coords[0]];
+  const legEnd: number[] = [];
+  let from = 0;
+  for (const e of ends) {
+    const to = Math.max(from, e);
+    if (to > from) path.push(...simplify(coords.slice(from, to + 1), 2).slice(1));
+    legEnd.push(path.length - 1);
+    from = to;
+  }
+  return { path, legMin: legs.map((l) => (l.duration / 60) * AMBULANCE_FACTOR), legEnd };
+}
+
+/** Douglas-Peucker on [lat, lng] points with a tolerance in metres; always keeps both ends. */
+function simplify(pts: [number, number][], tolM: number): [number, number][] {
+  if (pts.length < 3) return pts;
+  const k = Math.cos((pts[0][0] * Math.PI) / 180), M = 111_320;
+  const xy = pts.map(([lat, lng]) => [lng * k * M, lat * M]);
+  const keep = new Uint8Array(pts.length); keep[0] = keep[pts.length - 1] = 1;
+  const stack: [number, number][] = [[0, pts.length - 1]];
+  while (stack.length) {
+    const [a, b] = stack.pop()!;
+    const [ax, ay] = xy[a], [bx, by] = xy[b], dx = bx - ax, dy = by - ay, len2 = dx * dx + dy * dy;
+    let best = -1, bd = 0;
+    for (let i = a + 1; i < b; i++) {
+      const t = len2 ? Math.max(0, Math.min(1, ((xy[i][0] - ax) * dx + (xy[i][1] - ay) * dy) / len2)) : 0;
+      const dd = Math.hypot(xy[i][0] - (ax + t * dx), xy[i][1] - (ay + t * dy));
+      if (dd > bd) { bd = dd; best = i; }
+    }
+    if (best > 0 && bd > tolM) { keep[best] = 1; stack.push([a, best], [best, b]); }
+  }
+  return pts.filter((_, i) => keep[i]);
 }
 
 function nearestIndex(coords: [number, number][], p: LatLng) {

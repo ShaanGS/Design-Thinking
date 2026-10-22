@@ -209,6 +209,8 @@ export interface RouteDecision {
   /** Index in `path` of the patient's home, and the share of the trip spent reaching her */
   pickupIndex?: number;
   pickupShare?: number;
+  /** Road path from home to the nearest hospital, drawn for comparison when it is not the one chosen */
+  nearestPath?: [number, number][];
 }
 
 export interface Triage {

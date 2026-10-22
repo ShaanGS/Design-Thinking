@@ -95,6 +95,11 @@ async function dispatch(id: string, text: string | null, condition: Condition | 
     const total = Math.max(3, Math.round(pickup + geo.legMin[1]));
     Object.assign(route, { path: geo.path, pickupIndex: geo.legEnd[0], pickupShare: Math.min(0.6, pickup / total), etaMin: total });
   }
+  if (route.nearestId !== route.hospitalId) {
+    const near = list.find((h) => h.id === route.nearestId)!;
+    const alt = await roadRoute([p, near]);
+    if (alt) route.nearestPath = alt.path;
+  }
   const rec = healthRecord(p.id);
   const brief = await erBrief(p, tri, current, rec);
   const fresh = emergencyById(id);

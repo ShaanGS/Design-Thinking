@@ -12,12 +12,12 @@ const ambIcon = pin(`<div style="width:36px;height:36px;border-radius:50%;backgr
 
 function Fit({ points }: { points: [number, number][] }) {
   const map = useMap();
-  const key = points.map((p) => p.join(",")).join("|");
+  const key = `${points.length}|${points[0]?.join(",")}|${points[points.length - 1]?.join(",")}`;
   useEffect(() => { if (points.length) map.fitBounds(L.latLngBounds(points), { padding: [36, 36], maxZoom: 15 }); }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
   return null;
 }
 
-export default function MapView({ home, hospitals, chosenId, nearestId, ambulance, path, height = 320, className, onlyRelevant }: {
+export default function MapView({ home, hospitals, chosenId, nearestId, ambulance, path, nearestPath, height = 320, className, onlyRelevant }: {
   home: { lat: number; lng: number; name?: string };
   hospitals: Hospital[];
   chosenId?: string | null;
@@ -25,6 +25,8 @@ export default function MapView({ home, hospitals, chosenId, nearestId, ambulanc
   ambulance?: { lat: number; lng: number } | null;
   /** Real road route ([lat, lng] points) for the ambulance; drawn instead of a straight line */
   path?: [number, number][] | null;
+  /** Road route from home to the nearest hospital, dashed for comparison */
+  nearestPath?: [number, number][] | null;
   height?: number | string;
   className?: string;
   onlyRelevant?: boolean;
@@ -33,13 +35,15 @@ export default function MapView({ home, hospitals, chosenId, nearestId, ambulanc
   const chosen = hospitals.find((h) => h.id === chosenId);
   const nearest = hospitals.find((h) => h.id === nearestId);
   const hasPath = !!path && path.length > 1;
-  const points = useMemo(() => [[home.lat, home.lng] as [number, number], ...shown.map((h) => [h.lat, h.lng] as [number, number]), ...(hasPath ? [path![0], path![path!.length - 1]] : [])], [home.lat, home.lng, shown, hasPath, path]);
+  const hasNearPath = !!nearestPath && nearestPath.length > 1;
+  // Fit the whole road route, not just its ends, so no bend runs off the edge of the map
+  const points = useMemo(() => [[home.lat, home.lng] as [number, number], ...shown.map((h) => [h.lat, h.lng] as [number, number]), ...(hasPath ? path! : []), ...(hasNearPath ? nearestPath! : [])], [home.lat, home.lng, shown, hasPath, path, hasNearPath, nearestPath]);
   return (
     <div className={className} style={{ height }}>
       <MapContainer center={[home.lat, home.lng]} zoom={13} scrollWheelZoom={false} style={{ height: "100%", width: "100%", borderRadius: 10 }} attributionControl>
         <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         <Fit points={points} />
-        {nearest && chosen && nearest.id !== chosen.id && <Polyline positions={[[home.lat, home.lng], [nearest.lat, nearest.lng]]} pathOptions={{ color: "#B25E00", weight: 3, dashArray: "4 7", opacity: 0.9 }} />}
+        {nearest && chosen && nearest.id !== chosen.id && <Polyline positions={hasNearPath ? nearestPath! : [[home.lat, home.lng], [nearest.lat, nearest.lng]]} pathOptions={{ color: "#B25E00", weight: 3, dashArray: "4 7", opacity: 0.9 }} />}
         {hasPath && <Polyline positions={path!} pathOptions={{ color: "#FFFFFF", weight: 9, opacity: 0.9 }} />}
         {hasPath && <Polyline positions={path!} pathOptions={{ color: "#14172B", weight: 5, opacity: 0.95 }} />}
         {!hasPath && chosen && <Polyline positions={[[home.lat, home.lng], [chosen.lat, chosen.lng]]} pathOptions={{ color: "#14172B", weight: 5, opacity: 0.9 }} />}
