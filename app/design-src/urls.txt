@@ -1,2 +1,3 @@
 icons https://pikaso.cdnpk.net/private/production/5813792095/render.png?token=exp=1792886400~hmac=414d771fa5752b9cc0426add25577f8713f915abfc681fb6f468e4026edda7cb
 people https://pikaso.cdnpk.net/private/production/5813927390/render.png?token=exp=1792886400~hmac=f5918b08c18a624571ab120ddebc113db4c09690a366c9c96bf0607d2f8ceaf6
+hero https://pikaso.cdnpk.net/private/production/5813964463/render.png?token=exp=1792886400~hmac=950a8acfc47d342c56bbffc35bacd57c721aecd190e5691985e984afeaaff802
