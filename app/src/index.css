@@ -1,9 +1,5 @@
-@import "@fontsource-variable/anek-latin/standard.css";
+@import "@fontsource-variable/plus-jakarta-sans/index.css";
 @import "@fontsource-variable/anek-tamil/standard.css";
-@import "@fontsource/hind-madurai/400.css";
-@import "@fontsource/hind-madurai/500.css";
-@import "@fontsource/hind-madurai/600.css";
-@import "@fontsource/hind-madurai/700.css";
 @import "@fontsource/ibm-plex-mono/500.css";
 @import "leaflet/dist/leaflet.css";
 @tailwind base;
@@ -12,15 +8,21 @@
 
 :root { color-scheme: light; }
 html, body, #root { height: 100%; }
-body { @apply bg-paper text-ink font-sans antialiased; font-size: 15px; line-height: 1.5; -webkit-tap-highlight-color: transparent; }
-h1, h2, h3, h4 { @apply font-display; font-stretch: 92%; text-wrap: balance; letter-spacing: -0.01em; }
+body { @apply bg-canvas text-ink font-sans antialiased; font-size: 15px; line-height: 1.5; -webkit-tap-highlight-color: transparent; }
+h1, h2, h3, h4 { @apply font-display; text-wrap: balance; letter-spacing: -0.02em; }
 .tnum { font-variant-numeric: tabular-nums; }
-.condensed { font-stretch: 82%; }
-.safe-top { padding-top: env(safe-area-inset-top, 0px); }
+.safe-top { padding-top: max(env(safe-area-inset-top, 0px), 20px); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
-.leaflet-container { font-family: inherit; background: #E8EAEE; }
+.leaflet-container { font-family: inherit; background: #EAE8F6; }
 .scrollbar-none::-webkit-scrollbar { display: none; }
 .scrollbar-none { scrollbar-width: none; }
-:focus-visible { outline: 2px solid #2F49D1; outline-offset: 2px; }
-::selection { background: #FFEDA8; }
+:focus-visible { outline: 2px solid #6F5CF6; outline-offset: 2px; }
+::selection { background: #E7E3FF; }
+
+/* The violet header every app screen sits under (ref: soft clay health apps) */
+.hero-violet { background: radial-gradient(120% 90% at 85% 0%, #9C8CFF 0%, transparent 55%), linear-gradient(160deg, #7E6CFA 0%, #5B47E6 100%); }
+.hero-sos { background: radial-gradient(120% 90% at 85% 0%, #FF8A95 0%, transparent 55%), linear-gradient(160deg, #FF4D5E 0%, #D91F33 100%); }
+.glass { background: rgba(255,255,255,.18); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,.28); }
+.art-shadow { filter: drop-shadow(0 10px 14px rgba(73,54,196,.22)); }
+
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }

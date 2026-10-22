@@ -9,8 +9,10 @@ const ElderApp = lazy(() => import("./pages/elder/ElderApp"));
 const FamilyApp = lazy(() => import("./pages/family/FamilyApp"));
 const HospitalApp = lazy(() => import("./pages/hospital/HospitalApp"));
 const DoctorShare = lazy(() => import("./pages/vault/DoctorShare"));
+const Stage = lazy(() => import("./pages/Stage"));
+const Bystander = lazy(() => import("./pages/Bystander"));
 
-const Loading = () => <div className="grid h-full place-items-center"><Spinner className="h-8 w-8" /></div>;
+const Loading = () => <div className="grid h-full place-items-center"><Spinner className="h-8 w-8 text-violet" /></div>;
 
 function Guard({ roles, children }: { roles: Role[]; children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -29,6 +31,8 @@ export default function App() {
         <Route path="/family/*" element={<Guard roles={["guardian"]}><FamilyApp /></Guard>} />
         <Route path="/hospital/*" element={<Guard roles={["hospital"]}><HospitalApp /></Guard>} />
         <Route path="/share/:token" element={<DoctorShare />} />
+        <Route path="/stage" element={<Stage />} />
+        <Route path="/help/:code" element={<Bystander />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>

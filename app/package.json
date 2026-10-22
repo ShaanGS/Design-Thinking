@@ -26,6 +26,7 @@
   "devDependencies": {
     "@fontsource-variable/anek-latin": "^5.2.5",
     "@fontsource-variable/anek-tamil": "^5.2.5",
+    "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
     "@fontsource/hind-madurai": "^5.2.5",
     "@fontsource/ibm-plex-mono": "^5.2.5",
     "@types/express": "4.17.21",
@@ -38,6 +39,7 @@
     "@vitejs/plugin-react": "4.3.4",
     "autoprefixer": "10.4.20",
     "concurrently": "9.1.0",
+    "framer-motion": "^11.18.2",
     "leaflet": "1.9.4",
     "lucide-react": "0.468.0",
     "postcss": "8.4.49",

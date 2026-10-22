@@ -1,28 +1,47 @@
-// Sign-in: one-tap demo personas, join a family by code, create a family, or hospital staff login.
-import { useEffect, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
-import { Building2, HeartHandshake, Smartphone, ArrowRight } from "lucide-react";
+// Sign-in: an app-style welcome screen. One tap opens a demo persona; "?as=elder" does it automatically (used by the stage view).
+import { useEffect, useRef, useState } from "react";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
+import { motion } from "framer-motion";
+import { ArrowRight, MonitorSmartphone, LogOut } from "lucide-react";
 import { api } from "../lib/api";
 import { homeFor, useAuth } from "../lib/auth";
 import { Button, Field, Input, Logo, Modal, Segmented, Select, useToast, cx } from "../components/ui";
+import { Art, Person, PhoneFrame, type Who } from "../components/kit";
 import type { Hospital, User } from "../../shared/types";
 
 type AuthRes = { token: string; user: User; code?: string };
 
-const PERSONAS = [
-  { key: "elder", title: "Paati's phone", who: "Kamala, 72 · Tambaram", desc: "Large Tamil-first screen: the help button, today's tablets, talking to Saathi.", icon: Smartphone },
-  { key: "guardian", title: "Family app", who: "Karthik, her son · Bengaluru", desc: "How she is today, her medicines, her full medical history, and live emergency tracking.", icon: HeartHandshake },
-  { key: "hospital", title: "Hospital console", who: "Dr. Priya · Saraswathi ER", desc: "Patients on the way with their records, and beds and medicine stock across the network.", icon: Building2 },
-] as const;
+const PERSONAS: { key: "elder" | "guardian" | "hospital"; who: Who; title: string; person: string; desc: string; tone: string }[] = [
+  { key: "elder", who: "paati", title: "Paati's phone", person: "Kamala, 72 · Tambaram", desc: "Big Tamil help button, tablets, talk to Saathi", tone: "bg-peach" },
+  { key: "guardian", who: "karthik", title: "Family app", person: "Karthik, her son · Bengaluru", desc: "Her day, records, live emergency tracking", tone: "bg-sky" },
+  { key: "hospital", who: "priya", title: "Hospital ER", person: "Dr. Priya · Saraswathi", desc: "Patients on the way, with records first", tone: "bg-lilac" },
+];
+
+/** Caption shown beside the phone on a laptop. */
+export function StageLabel({ who, title, text }: { who: Who; title: string; text: string }) {
+  const { signOut } = useAuth();
+  const nav = useNavigate();
+  return (
+    <div>
+      <Person who={who} size={88} />
+      <h2 className="mt-4 text-[28px] font-extrabold leading-tight">{title}</h2>
+      <p className="mt-2 text-[15px] leading-relaxed text-ink-2">{text}</p>
+      <div className="mt-6 flex flex-col items-start gap-2">
+        <Link to="/stage" className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-[13.5px] font-semibold text-white"><MonitorSmartphone className="h-4 w-4" />All three phones at once</Link>
+        <button onClick={async () => { await signOut(); nav("/"); }} className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-[13.5px] font-semibold shadow-card"><LogOut className="h-4 w-4" />Switch app</button>
+      </div>
+    </div>
+  );
+}
 
 export default function Landing() {
   const { user, info, loading, signIn } = useAuth();
   const nav = useNavigate();
   const toast = useToast();
+  const [params] = useSearchParams();
   const [busy, setBusy] = useState<string | null>(null);
   const [modal, setModal] = useState<"join" | "create" | "hospital" | null>(null);
-
-  if (!loading && user) return <Navigate to={homeFor(user)} replace />;
+  const auto = useRef(false);
 
   async function go(p: Promise<AuthRes>, key: string) {
     setBusy(key);
@@ -31,74 +50,74 @@ export default function Landing() {
     finally { setBusy(null); }
   }
 
+  // ?as=elder|guardian|hospital signs straight in (each stage phone is an iframe with its own session)
+  const as = params.get("as");
+  useEffect(() => {
+    if (loading || user || auto.current || !as || !PERSONAS.some((p) => p.key === as)) return;
+    auto.current = true;
+    void go(api.post<AuthRes>("/api/auth/demo", { persona: as }), as);
+  }, [loading, user, as]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!loading && user) return <Navigate to={homeFor(user)} replace />;
+
+  const side = (
+    <div>
+      <Logo size={44} sub="Design Thinking · Group 4 · SRM" />
+      <h2 className="mt-6 text-[30px] font-extrabold leading-tight">One button. The family, the ambulance and the right hospital move together.</h2>
+      <p className="mt-3 text-[15px] leading-relaxed text-ink-2">Pick a phone to open, or show all three side by side and press Paati's help button live.</p>
+      <Link to="/stage" className="mt-6 inline-flex items-center gap-2 rounded-full bg-violet px-5 py-3 text-[14px] font-bold text-white shadow-[0_10px_24px_-10px_rgba(91,71,230,.8)]"><MonitorSmartphone className="h-4 w-4" />Open all three phones</Link>
+    </div>
+  );
+
   return (
-    <div className="min-h-full bg-paper">
-      <div className="mx-auto grid min-h-full max-w-6xl gap-x-16 gap-y-8 px-5 pb-12 pt-6 sm:px-8 lg:grid-cols-[1.15fr_1fr] lg:grid-rows-[auto_1fr] lg:pt-10">
-        <section className="flex flex-col lg:col-start-1 lg:row-start-1">
-          <header className="flex items-center justify-between safe-top">
-            <Logo size={38} sub="Care for your family" />
-          </header>
-
-          <div className="mt-10 lg:mt-20">
-            <p className="text-[15px] text-ink-2">Design Thinking · Group 4 · SRM</p>
-            <h1 className="mt-3 text-[44px] font-bold leading-[0.98] sm:text-[64px]" style={{ fontStretch: "80%" }}>
-              When Paati needs help, everyone moves at once.
-            </h1>
-            <p className="mt-5 max-w-[34rem] text-[17px] leading-relaxed text-ink-2">
-              Saathi checks on elders every day in their own language and keeps their medical history in one place. In an emergency it gets the family,
-              the neighbour, the ambulance and the right hospital moving in the same minute.
-            </p>
+    <PhoneFrame label={side}>
+      <div className="min-h-full bg-canvas">
+        <div className="hero-violet relative overflow-hidden px-5 pb-16 pt-5 text-white safe-top">
+          <div className="flex items-center justify-between">
+            <Logo size={34} light />
+            {info && <span className="glass rounded-full px-3 py-1 text-[11.5px] font-semibold">{info.ai === "claude" ? "Live AI" : "Demo mode"}</span>}
           </div>
-        </section>
+          <div className="relative mx-auto mt-2 h-[270px] w-[270px]">
+            <div className="absolute inset-6 rounded-full bg-white/20 blur-2xl" />
+            <motion.img src="/art/hero.webp" alt="" initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.6 }} className="relative h-full w-full object-contain" />
+          </div>
+          <h1 className="mt-1 text-[30px] font-extrabold leading-[1.08]">When Paati needs help, everyone moves at once.</h1>
+          <p className="mt-2 text-[14.5px] leading-relaxed text-white/80">Daily care in her own language, all her medical papers in one place, and a golden-hour emergency network.</p>
+        </div>
 
-        <ol className="grid max-w-[34rem] content-start gap-0 border-t border-line lg:col-start-1 lg:row-start-2">
-            {[
-              ["Paati holds the help button", "On her phone, a pendant, or by telling Saathi she feels unwell."],
-              ["Everyone hears at the same time", "Her son, the neighbour and 108, in one moment instead of a chain of calls."],
-              ["The ambulance goes where she can be treated", "The nearest hospital with a cath lab, not just the nearest building. Her records arrive first."],
-            ].map(([t, d], i) => (
-              <li key={t} className="grid grid-cols-[2.25rem_1fr] gap-x-2 border-b border-line py-4">
-                <span className="font-display text-[22px] font-semibold leading-none text-ink-3 tnum">{i + 1}</span>
-                <div><p className="font-semibold">{t}</p><p className="text-[15px] text-ink-2">{d}</p></div>
-              </li>
+        <div className="relative -mt-8 rounded-t-[32px] bg-canvas px-4 pb-10 pt-5">
+          <h2 className="px-1 text-[17px] font-bold">Open Saathi as</h2>
+          <div className="mt-3 flex flex-col gap-3">
+            {PERSONAS.map((p, i) => (
+              <motion.button key={p.key} disabled={!!busy} initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 + i * 0.07 }}
+                whileTap={{ scale: 0.98 }} onClick={() => go(api.post<AuthRes>("/api/auth/demo", { persona: p.key }), p.key)}
+                className="flex items-center gap-3 rounded-[26px] bg-white p-3 pr-4 text-left shadow-card disabled:opacity-60">
+                <Person who={p.who} size={60} />
+                <div className="min-w-0 flex-1">
+                  <div className="text-[16px] font-extrabold leading-tight">{p.title}</div>
+                  <div className="text-[12px] font-semibold text-ink-3">{p.person}</div>
+                  <div className="mt-0.5 text-[13px] leading-snug text-ink-2">{p.desc}</div>
+                </div>
+                <span className={cx("grid h-10 w-10 shrink-0 place-items-center rounded-full", p.tone)}><ArrowRight className={cx("h-[18px] w-[18px]", busy === p.key && "animate-blink")} /></span>
+              </motion.button>
             ))}
-        </ol>
+          </div>
 
-        <section className="flex flex-col lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:pt-[7.5rem]">
-          <div className="rounded-xl border border-line bg-white">
-            <div className="border-b border-line px-5 py-4">
-              <h2 className="text-[20px] font-semibold">Open Saathi as</h2>
-              <p className="text-[15px] text-ink-2">Use a different phone or tab for each. They update each other live.</p>
-            </div>
-            <ul>
-              {PERSONAS.map((p) => (
-                <li key={p.key} className="border-b border-line last:border-b-0">
-                  <button disabled={!!busy} onClick={() => go(api.post<AuthRes>("/api/auth/demo", { persona: p.key }), p.key)}
-                    className="group flex w-full items-start gap-4 px-5 py-4 text-left transition-colors hover:bg-paper disabled:opacity-60">
-                    <p.icon className="mt-1 h-5 w-5 shrink-0 text-ink-2" strokeWidth={1.75} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-baseline gap-x-2"><span className="text-[17px] font-semibold">{p.title}</span><span className="text-[13px] text-ink-3">{p.who}</span></div>
-                      <p className="text-[15px] leading-snug text-ink-2">{p.desc}</p>
-                    </div>
-                    <ArrowRight className={cx("mt-1 h-5 w-5 shrink-0 text-ink-3 transition-transform group-hover:translate-x-0.5 group-hover:text-ink", busy === p.key && "animate-blink")} strokeWidth={1.75} />
-                  </button>
-                </li>
-              ))}
-            </ul>
+          <div className="mt-5 grid grid-cols-3 gap-2">
+            {([["join", "Join a family", "home"], ["create", "New family", "heart"], ["hospital", "Hospital sign-in", "hospital"]] as const).map(([k, t, a]) => (
+              <button key={k} onClick={() => setModal(k)} className="flex flex-col items-center gap-1 rounded-3xl bg-white px-2 py-3 text-[12px] font-bold shadow-card">
+                <Art name={a} size={42} />{t}
+              </button>
+            ))}
           </div>
-          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 px-1 text-[15px]">
-            <button className="font-semibold text-info hover:underline" onClick={() => setModal("join")}>Join with a family code</button>
-            <button className="font-semibold text-info hover:underline" onClick={() => setModal("create")}>Set up a new family</button>
-            <button className="font-semibold text-info hover:underline" onClick={() => setModal("hospital")}>Hospital staff sign-in</button>
-          </div>
-          {info && <p className="mt-auto pt-10 text-[13px] text-ink-3">AI: {info.ai === "claude" ? `Claude (${info.model})` : "demo mode. Add an API key on the server for live AI."}</p>}
-        </section>
+          <p className="mt-6 text-center text-[11.5px] text-ink-3">Design Thinking · Group 4 · SRM</p>
+        </div>
       </div>
 
       <JoinModal open={modal === "join"} onClose={() => setModal(null)} onSubmit={(p, k) => go(p, k)} busy={busy} />
       <CreateModal open={modal === "create"} onClose={() => setModal(null)} onSubmit={(p) => go(p, "create")} busy={busy} />
       <HospitalModal open={modal === "hospital"} onClose={() => setModal(null)} onSubmit={(p) => go(p, "hospital-login")} busy={busy} />
-    </div>
+    </PhoneFrame>
   );
 }
 
@@ -116,7 +135,7 @@ function JoinModal({ open, onClose, onSubmit, busy }: { open: boolean; onClose: 
           <Field label="Your name"><Input value={name} onChange={(e) => setName(e.target.value)} required placeholder="e.g. Divya" /></Field>
           <Field label="Relation"><Select value={relation} onChange={(e) => setRelation(e.target.value)}>{["Son", "Daughter", "Grandchild", "Neighbour", "Spouse", "Caregiver", "Friend"].map((r) => <option key={r}>{r}</option>)}</Select></Field>
         </>}
-        <Button type="submit" size="lg" loading={busy === "join"}>{as === "elder" ? "Open the elder's app" : "Join and get alerts"}</Button>
+        <Button type="submit" variant="brand" size="lg" loading={busy === "join"}>{as === "elder" ? "Open the elder's app" : "Join and get alerts"}</Button>
       </form>
     </Modal>
   );
@@ -128,7 +147,7 @@ function CreateModal({ open, onClose, onSubmit, busy }: { open: boolean; onClose
   const locate = () => navigator.geolocation?.getCurrentPosition((p) => setF((x) => ({ ...x, lat: String(p.coords.latitude), lng: String(p.coords.longitude) })));
   return (
     <Modal open={open} onClose={onClose} title="Set up Saathi for your family" wide>
-      <form className="grid gap-4 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); onSubmit(api.post<AuthRes>("/api/auth/create-family", { ...f, conditions: f.conditions.split(",").map((s) => s.trim()), allergies: f.allergies.split(",").map((s) => s.trim()) })); }}>
+      <form className="grid gap-4" onSubmit={(e) => { e.preventDefault(); onSubmit(api.post<AuthRes>("/api/auth/create-family", { ...f, conditions: f.conditions.split(",").map((s) => s.trim()), allergies: f.allergies.split(",").map((s) => s.trim()) })); }}>
         <Field label="Elder's full name"><Input value={f.elderName} onChange={set("elderName")} required placeholder="Kamala Ramasamy" /></Field>
         <Field label="What the family calls them"><Input value={f.nickname} onChange={set("nickname")} placeholder="Amma, Paati, Thatha…" /></Field>
         <div className="grid grid-cols-3 gap-3">
@@ -141,11 +160,11 @@ function CreateModal({ open, onClose, onSubmit, busy }: { open: boolean; onClose
         <Field label="Allergies (comma separated)"><Input value={f.allergies} onChange={set("allergies")} placeholder="Penicillin" /></Field>
         <Field label="Your name"><Input value={f.guardianName} onChange={set("guardianName")} required /></Field>
         <Field label="Your relation"><Select value={f.relation} onChange={set("relation")}>{["Son", "Daughter", "Grandchild", "Spouse", "Caregiver"].map((r) => <option key={r}>{r}</option>)}</Select></Field>
-        <div className="flex items-center gap-3 sm:col-span-2">
+        <div className="flex flex-wrap items-center gap-3">
           <Button type="button" variant="soft" onClick={locate}>Use this phone's location as home</Button>
           <span className="text-sm text-ink-2">{f.lat ? `${(+f.lat).toFixed(4)}, ${(+f.lng).toFixed(4)}` : "Defaults to Tambaram, Chennai"}</span>
         </div>
-        <Button type="submit" size="lg" className="sm:col-span-2" loading={busy === "create"}>Create family</Button>
+        <Button type="submit" size="lg" variant="brand" className="" loading={busy === "create"}>Create family</Button>
       </form>
     </Modal>
   );
@@ -161,7 +180,7 @@ function HospitalModal({ open, onClose, onSubmit, busy }: { open: boolean; onClo
       <form className="flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); onSubmit(api.post<AuthRes>("/api/auth/hospital", { hospitalId: id, name })); }}>
         <Field label="Hospital"><Select value={id} onChange={(e) => setId(e.target.value)}>{(list.length ? list : [{ id: "h3", name: "Saraswathi Multispeciality Hospital" } as Hospital]).map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}</Select></Field>
         <Field label="Your name and role"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Dr. Priya, ER" required /></Field>
-        <Button type="submit" size="lg" loading={busy === "hospital-login"}>Open the console</Button>
+        <Button type="submit" variant="brand" size="lg" loading={busy === "hospital-login"}>Open the console</Button>
       </form>
     </Modal>
   );

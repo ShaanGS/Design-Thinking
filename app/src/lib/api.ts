@@ -1,5 +1,6 @@
 // Thin fetch wrapper: adds the session token, parses JSON, turns API errors into readable Errors.
-const TOKEN_KEY = "saathi-token";
+// Each named window (the three phones on the stage view are iframes named elder / guardian / hospital) keeps its own session.
+const TOKEN_KEY = typeof window !== "undefined" && window.name ? `saathi-token:${window.name}` : "saathi-token";
 export const getToken = () => { try { return localStorage.getItem(TOKEN_KEY); } catch { return null; } };
 export const setToken = (t: string | null) => { try { if (t) localStorage.setItem(TOKEN_KEY, t); else localStorage.removeItem(TOKEN_KEY); } catch { /* private mode */ } };
 
