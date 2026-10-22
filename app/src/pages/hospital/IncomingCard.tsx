@@ -1,132 +1,239 @@
-// One row of the incoming queue: ETA, who, condition and danger flags; the selected row opens to the brief and the ER's actions.
-import { Check } from "lucide-react";
+// The incoming patient: the big red card (siren, portrait, live ETA, why us), then her red flags, the brief and the ER's steps.
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { Check, ChevronRight, FileText, Lock, Users } from "lucide-react";
 import type { Emergency, Hospital } from "../../../shared/types";
-import { Button, cx } from "../../components/ui";
+import { NEED_LABEL } from "../../../shared/types";
+import { Avatar, cx } from "../../components/ui";
+import { Art, Pill, type ArtName } from "../../components/kit";
 import { fmtTime, timeAgo } from "../../lib/format";
 import { redFlags, type PatientFile } from "./useNetwork";
-
-const STATUS: Record<Emergency["status"], { label: string; cls: string }> = {
-  triage: { label: "Triaging", cls: "text-warn" },
-  dispatched: { label: "En route", cls: "text-sos" },
-  arrived: { label: "Arrived", cls: "text-ink" },
-  admitted: { label: "In ER", cls: "text-teal" },
-  resolved: { label: "Closed", cls: "text-ink-3" },
-  cancelled: { label: "Cancelled", cls: "text-ink-3" },
-};
-
-export function statusOf(e: Emergency) { return STATUS[e.status]; }
+import { STATUS_LABEL, teamLabel, useHospital } from "./ctx";
 
 const month = (iso: string) => new Date(iso).toLocaleDateString("en-IN", { month: "short", year: "numeric" });
+const pronoun = (sex?: "F" | "M") => (sex === "M" ? { sub: "he", obj: "him", pos: "his" } : { sub: "she", obj: "her", pos: "her" });
 
-export default function IncomingRow({ e, file, hospitals, ownId, selected, onSelect, onAction, busy, onOpenRecord, fresh }: {
-  e: Emergency;
-  file: PatientFile | "denied" | undefined;
-  hospitals: Hospital[];
-  ownId: string | null;
-  selected: boolean;
-  onSelect: () => void;
-  onAction: (action: "ready" | "admit" | "resolve") => void;
-  busy: string | null;
-  onOpenRecord: () => void;
-  fresh?: boolean;
-}) {
-  const mine = !!ownId && e.hospitalId === ownId;
-  const dest = hospitals.find((h) => h.id === e.hospitalId);
-  const f = file && file !== "denied" ? file : undefined;
-  const flags = redFlags(f);
-  const p = f?.record.patient;
-  const st = STATUS[e.status];
+/** Live countdown in the simulation's minutes, ticking smoothly between server updates. */
+function useCountdown(e: Emergency, speed: number) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    if (e.status !== "dispatched") return;
+    const t = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(t);
+  }, [e.status]);
+  if (!e.route || !e.dispatchedAt) return null;
+  const total = e.route.etaMin * 60;
+  let left = Math.max(0, total - ((now - Date.parse(e.dispatchedAt)) / 1000) * speed);
+  // Trust the server if the two clocks disagree
+  if (e.etaLeftMin != null && Math.abs(left / 60 - e.etaLeftMin) > 2) left = e.etaLeftMin * 60;
+  if (e.status !== "dispatched") left = 0;
+  return { left, total, progress: total ? 1 - left / total : 1 };
+}
+const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+
+/* ---------------------------------------------------------------- The big card */
+
+export function IncomingHero({ e, file, hospitals }: { e: Emergency; file: PatientFile | undefined; hospitals: Hospital[] }) {
+  const { demoSpeed, ownId, openRecord } = useHospital();
+  const cd = useCountdown(e, demoSpeed);
+  const p = file?.record.patient;
+  const r = e.route;
+  const nearest = hospitals.find((h) => h.id === r?.nearestId);
+  const nearestMissing = r?.ranking.find((o) => o.hospitalId === r.nearestId)?.missing ?? [];
+  const admitted = e.status === "admitted", arrived = e.status === "arrived";
+  const progress = admitted || arrived ? 1 : cd?.progress ?? e.progress;
+  const pickup = r?.pickupShare ?? 0.3;
+  const onBoard = progress >= pickup;
   const conf = e.triage ? Math.round(e.triage.confidence * 100) : null;
-  const open = selected && mine;
+  const red = !admitted;
 
   return (
-    <li className={cx("border-b border-line last:border-b-0", fresh && "animate-slidein")}>
-      <button type="button" onClick={onSelect} aria-expanded={open}
-        className={cx("grid w-full grid-cols-[4.5rem_minmax(0,1fr)] gap-x-4 px-4 py-3.5 text-left transition-colors sm:grid-cols-[5.5rem_minmax(0,1fr)_auto] sm:px-5",
-          selected ? "bg-paper" : "hover:bg-paper/60")}>
-        {/* ETA */}
-        <div className="row-span-2 sm:row-span-1">
-          {e.status === "arrived" || e.status === "admitted" ? (
-            <div className="font-display text-[26px] font-semibold leading-none" style={{ fontStretch: "85%" }}>{e.status === "admitted" ? "In ER" : "Here"}</div>
-          ) : e.etaLeftMin != null ? (
-            <div className="flex items-baseline gap-1">
-              <span className="font-display text-[42px] font-semibold leading-[0.9] tnum" style={{ fontStretch: "85%" }}>{e.etaLeftMin}</span>
-              <span className="text-[13px] text-ink-3">min</span>
+    <motion.div layout initial={{ opacity: 0, y: 40, scale: 0.92 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }}
+      transition={{ type: "spring", stiffness: 320, damping: 24 }}
+      className={cx("relative mt-5 overflow-hidden rounded-[28px] p-4", red ? "hero-sos text-white shadow-sos" : "bg-white text-ink shadow-lift", red && !e.teamReady && "animate-pulsering")}>
+      {red && <span className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/15 animate-ripple" />}
+      <Art name={red ? "siren" : "stethoscope"} size={92} float={red} className="absolute -right-2 -top-2" />
+
+      <div className={cx("flex items-center gap-1.5 text-[11.5px] font-extrabold tracking-[0.12em]", red ? "text-white/90" : "text-mint-ink")}>
+        {red && <span className="h-2 w-2 rounded-full bg-white animate-blink" />}
+        {admitted ? "IN YOUR ER" : arrived ? "AT THE ER DOOR" : "INCOMING PATIENT"}
+      </div>
+
+      {/* Who and what */}
+      <div className="mt-3 flex items-center gap-3 pr-20">
+        {p ? <Avatar name={p.name} size={60} className="ring-[3px] ring-white/60" /> : <span className="grid h-[60px] w-[60px] shrink-0 place-items-center rounded-full bg-white/20"><Art name="heart" size={40} /></span>}
+        <div className="min-w-0 leading-tight">
+          <div className="truncate text-[17px] font-extrabold">{p ? `${p.name.split(" ")[0]}, ${p.age} ${p.sex}` : "Opening her record…"}</div>
+          {p && <div className={cx("text-[12.5px]", red ? "text-white/80" : "text-ink-2")}>Blood {p.blood} · {p.nickname}</div>}
+        </div>
+      </div>
+      <div className="mt-3 font-display text-[23px] font-extrabold leading-tight">{e.triage?.label || "Emergency"}</div>
+      <div className={cx("mt-0.5 text-[12.5px]", red ? "text-white/80" : "text-ink-2")}>
+        {conf != null && `${conf}% sure · `}{e.triage?.source || "triage"} · SOS {fmtTime(e.startedAt)}
+      </div>
+
+      {/* ETA */}
+      {red ? (
+        <div className="mt-4 rounded-[22px] bg-black/10 p-3.5">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <div className="text-[12px] font-semibold text-white/80">{arrived ? "The ambulance is here" : onBoard ? `On board, coming to you` : "Ambulance reaching her home"}</div>
+              <div className="font-display text-[46px] font-extrabold leading-none tnum">{arrived ? "Here" : cd ? mmss(cd.left) : e.etaLeftMin != null ? `${e.etaLeftMin}` : "…"}</div>
             </div>
-          ) : <div className="font-display text-[22px] font-semibold leading-none text-warn">…</div>}
-          {e.status === "dispatched" && (
-            <div className="mt-2 h-[3px] w-full overflow-hidden rounded-full bg-line">
-              <div className="h-full bg-ink transition-all duration-700" style={{ width: `${Math.max(4, Math.round(e.progress * 100))}%` }} />
+            <div className="pb-1 text-right text-[12px] leading-snug text-white/80">
+              {arrived ? `arrived ${timeAgo(e.arrivedAt || e.startedAt)}` : <>min left<br />of a {r?.etaMin ?? "?"} min trip</>}
             </div>
-          )}
-        </div>
-
-        {/* Who and why */}
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-baseline gap-x-2">
-            <span className="text-[17px] font-semibold">{p ? `${p.name}, ${p.age} ${p.sex}` : mine ? "Opening her record…" : "Patient"}</span>
-            {p?.blood && <span className="font-mono text-[13px] text-ink-2">{p.blood}</span>}
           </div>
-          <div className="text-[15px]">
-            {e.triage ? <><span className="font-semibold">{e.triage.label}</span><span className="text-ink-3"> · {conf}% · {e.triage.source}</span></>
-              : <span className="text-warn">Waiting for symptoms</span>}
+          <div className="relative mt-5 h-2.5 rounded-full bg-white/25">
+            <motion.div className="h-full rounded-full bg-white" animate={{ width: `${Math.max(3, progress * 100)}%` }} transition={{ duration: 0.3 }} />
+            <span className="absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-peach" style={{ left: `${pickup * 100}%` }} title="Her home" />
+            <motion.div className="absolute -top-[26px]" animate={{ left: `calc(${Math.min(1, progress) * 100}% - 20px)` }} transition={{ duration: 0.3 }}>
+              <Art name="ambulance" size={40} />
+            </motion.div>
           </div>
-          {mine && f && (
-            <p className="mt-1 text-[13.5px] leading-snug text-ink">
-              <Flag k="ALLERGY" v={flags.allergies.length ? flags.allergies.join(", ") : "none recorded"} />
-              {flags.thinners.length > 0 && <><Sep /><Flag k={`ON ${flags.thinners.map((t) => t.split(" ")[0].toUpperCase()).join(", ")}`} v={flags.thinners.map((t) => t.split(" ").slice(1).join(" ")).join(", ")} /></>}
-              {flags.egfr && <><Sep /><Flag k="eGFR" v={`${flags.egfr.value} (${month(flags.egfr.date)})`} warn={flags.egfr.value < 45} /></>}
-            </p>
-          )}
-          {!mine && <p className="mt-0.5 text-[13.5px] text-ink-3">To {dest?.short || "another hospital"} · details shared only with the receiving ER</p>}
+          <div className="relative mt-1.5 h-4 text-[11px] font-semibold text-white/70"><span className="absolute left-0">108 base</span><span className="absolute -translate-x-1/2 whitespace-nowrap" style={{ left: `${Math.min(70, Math.max(30, pickup * 100))}%` }}>Her home</span><span className="absolute right-0">You</span></div>
         </div>
+      ) : (
+        <p className="mt-3 rounded-2xl bg-mint px-3 py-2.5 text-[13.5px] font-semibold text-mint-ink">Received {timeAgo(e.arrivedAt || e.startedAt)}. Close the case when {pronoun(p?.sex).sub} is stable.</p>
+      )}
 
-        {/* Status */}
-        <div className="col-start-2 mt-1.5 flex items-center gap-3 text-[13px] sm:col-start-3 sm:mt-0 sm:flex-col sm:items-end sm:gap-0.5">
-          <span className={cx("inline-flex items-center gap-1.5 font-semibold", st.cls)}>
-            {e.status === "dispatched" && <span className="h-2 w-2 rounded-full bg-sos animate-blink" />}{st.label}
-          </span>
-          <span className="text-ink-3">SOS {fmtTime(e.startedAt)} · {e.source}</span>
-          {e.teamReady && e.status !== "admitted" && <span className="inline-flex items-center gap-1 font-semibold text-teal"><Check className="h-3.5 w-3.5" strokeWidth={2.5} />Team ready</span>}
-        </div>
-      </button>
-
-      {open && (
-        <div className="border-t border-line bg-paper px-4 pb-4 pt-3 sm:px-5 sm:pl-[7.25rem]">
-          {e.symptomText && (
-            <p className="text-[15px] text-ink-2">Said on the call: <span className="text-ink">“{e.symptomText}”</span>{e.triage?.english && e.triage.english !== e.symptomText ? ` (${e.triage.english})` : ""}</p>
-          )}
-          {e.brief && (
-            <figure className="mt-3 border-l-2 border-ink pl-4">
-              <blockquote className="text-[15px] leading-relaxed text-ink">{e.brief}</blockquote>
-              <figcaption className="mt-1 text-[13px] text-ink-3">Pre-arrival brief, written by Saathi from her records</figcaption>
-            </figure>
-          )}
-          <dl className="mt-4 grid gap-x-6 gap-y-2 text-[14px] sm:grid-cols-3">
-            <div><dt className="text-ink-3">Needs</dt><dd className="font-semibold">{e.route?.needLabel || "Being worked out"}</dd></div>
-            <div><dt className="text-ink-3">Routing</dt><dd className="font-semibold">{e.route ? (e.route.savedMin > 0 ? `~${e.route.savedMin} min saved vs nearest` : "Nearest capable hospital") : "Pending"}</dd></div>
-            <div><dt className="text-ink-3">Family</dt><dd className="font-semibold">{e.responders.length ? `${e.responders.map((r) => `${r.name}${r.relation ? ` (${r.relation.toLowerCase()})` : ""}`).join(", ")} on the way` : "Notified, no one confirmed yet"}</dd></div>
-          </dl>
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            {e.teamReady ? (
-              <span className="inline-flex h-10 items-center gap-1.5 px-1 text-[15px] font-semibold text-teal"><Check className="h-4 w-4" strokeWidth={2.5} />Team ready</span>
-            ) : (
-              <Button variant="primary" disabled={e.status === "admitted"} loading={busy === `${e.id}:ready`} onClick={() => onAction("ready")}>
-                {e.triage?.condition === "cardiac" ? "Page cath lab team" : "Mark team ready"}
-              </Button>
-            )}
-            <Button variant="outline" disabled={e.status !== "arrived"} loading={busy === `${e.id}:admit`} onClick={() => onAction("admit")}>Patient received</Button>
-            <Button variant="ghost" disabled={e.status !== "admitted"} loading={busy === `${e.id}:resolve`} onClick={() => onAction("resolve")}>Close case</Button>
-            <button type="button" disabled={!f} onClick={onOpenRecord} className="ml-auto text-[15px] font-semibold text-info hover:underline disabled:text-ink-3 disabled:no-underline">Open full record</button>
-          </div>
-          <p className="mt-2 text-[13px] text-ink-3">Started {timeAgo(e.startedAt)}. Opening the record is logged and the family is told.</p>
+      {/* Why us */}
+      {r && red && (
+        <div className="glass mt-3 rounded-[22px] p-3.5">
+          <div className="text-[12px] font-bold text-white/80">Why Saathi sent {pronoun(p?.sex).obj} to you</div>
+          <ul className="mt-2 flex flex-col gap-1.5 text-[13.5px] font-semibold leading-snug">
+            <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={3} />Needs {r.needLabel}. You have it.</li>
+            {r.hospitalId === ownId && r.nearestId !== r.hospitalId && nearest ? (
+              <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={3} />
+                <span>About <span className="font-display text-[16px] font-extrabold tnum">{r.savedMin} min</span> sooner to treatment than {nearest.short}, the nearest{nearestMissing.length ? ` (no ${nearestMissing.map((m) => NEED_LABEL[m] || m).join(", ")})` : ""}.</span>
+              </li>
+            ) : <li className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={3} />You are the nearest hospital that can treat {pronoun(p?.sex).obj}.</li>}
+          </ul>
         </div>
       )}
-    </li>
+
+      <div className="mt-3 flex gap-2">
+        <Pill variant="white" icon={FileText} className="flex-1" disabled={!file} onClick={() => openRecord(e.patientId)}>{file ? "Open full record" : "Opening record…"}</Pill>
+      </div>
+    </motion.div>
   );
 }
 
-function Flag({ k, v, warn }: { k: string; v: string; warn?: boolean }) {
-  return <span className="inline-block max-w-full align-top"><b className={cx("text-[12px] font-bold tracking-[0.03em]", warn ? "text-warn" : "text-ink")}>{k}</b> <span className={cx(warn && "text-warn")}>{v}</span></span>;
+/* ---------------------------------------------------------------- Nothing on the way */
+
+export function QuietCard({ hospitalShort }: { hospitalShort: string }) {
+  return (
+    <motion.div layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+      className="relative overflow-hidden rounded-[28px] bg-white p-5 pr-28 shadow-card">
+      <div className="text-[12px] font-semibold text-mint-ink">All calm at {hospitalShort}</div>
+      <div className="mt-1 font-display text-[19px] font-extrabold leading-tight">No one is on the way</div>
+      <p className="mt-1.5 text-[13px] leading-snug text-ink-2">Saathi will page you the moment an SOS is routed here, with the records, red flags and a live ETA.</p>
+      <Art name="ambulance" size={110} float className="absolute -right-3 bottom-2" />
+    </motion.div>
+  );
 }
-const Sep = () => <span className="px-1.5 text-ink-3">·</span>;
+
+/* ---------------------------------------------------------------- What the ER does next */
+
+export function CaseSteps({ e, file }: { e: Emergency; file: PatientFile | undefined }) {
+  const { act, busy } = useHospital();
+  const pr = pronoun(file?.record.patient.sex);
+  const steps: { key: string; title: string; sub: string; done: boolean; now: boolean; action?: () => void; label?: string; busyKey: string }[] = [
+    { key: "ready", title: e.teamReady ? "Team ready" : teamLabel(e), sub: e.teamReady ? "The family can see the team is waiting." : e.status === "admitted" ? `Not needed now. ${pr.sub[0].toUpperCase()}${pr.sub.slice(1)} is with you.` : `So they are waiting when ${pr.sub} arrives.`, done: e.teamReady, now: !e.teamReady && e.status !== "admitted", action: () => act(e, "ready"), label: "Page now", busyKey: `${e.id}:ready` },
+    { key: "admit", title: "Patient received", sub: e.status === "dispatched" ? "Unlocks when the ambulance reaches you." : e.status === "arrived" ? `Tap when ${pr.sub} is through the door.` : "Received. The family was told.", done: e.status === "admitted", now: e.status === "arrived", action: () => act(e, "admit"), label: "Received", busyKey: `${e.id}:admit` },
+    { key: "resolve", title: "Close the case", sub: e.status === "admitted" ? `When ${pr.sub} is stable.` : "After the patient is received.", done: false, now: e.status === "admitted", action: () => act(e, "resolve"), label: "Close", busyKey: `${e.id}:resolve` },
+  ];
+  return (
+    <ol className="rounded-3xl bg-white p-2 shadow-card">
+      {steps.map((s, i) => (
+        <li key={s.key} className={cx("flex items-center gap-3 rounded-[20px] p-2.5", s.now && "bg-violet-50")}>
+          <span className={cx("grid h-9 w-9 shrink-0 place-items-center rounded-full font-display text-[14px] font-extrabold", s.done ? "bg-mint text-mint-ink" : s.now ? "bg-violet text-white" : "bg-canvas text-ink-3")}>
+            {s.done ? <Check className="h-[18px] w-[18px]" strokeWidth={3} /> : i + 1}
+          </span>
+          <div className="min-w-0 flex-1 leading-tight">
+            <div className={cx("text-[15px] font-bold", !s.done && !s.now && "text-ink-2")}>{s.title}</div>
+            <div className="mt-0.5 text-[12.5px] text-ink-2">{s.sub}</div>
+          </div>
+          {s.now && <Pill variant="violet" size="sm" className="h-11 shrink-0" disabled={busy === s.busyKey} onClick={s.action}>{busy === s.busyKey ? "…" : s.label}</Pill>}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/* ---------------------------------------------------------------- Red flags */
+
+export function RedFlags({ file }: { file: PatientFile | undefined }) {
+  if (!file) return <p className="rounded-3xl bg-white p-5 text-[14px] text-ink-2 shadow-card">Opening her record to check allergies, blood thinners and kidney function…</p>;
+  const f = redFlags(file);
+  const rows: { art: ArtName; tone: string; label: string; value: string; note?: string; alert: boolean }[] = [
+    { art: "shield", tone: "bg-peach", label: "Allergies", value: f.allergies.length ? f.allergies.join(", ") : "None recorded", alert: f.allergies.length > 0 },
+    { art: "blood", tone: "bg-rose", label: "Blood thinners", value: f.thinners.length ? f.thinners.join(", ") : "None", note: f.thinners.length ? "Bleeding risk with thrombolysis and procedures" : undefined, alert: f.thinners.length > 0 },
+    { art: "stethoscope", tone: "bg-sky", label: "Kidney function", value: f.egfr ? `eGFR ${f.egfr.value}` : "No eGFR on record", note: f.egfr ? `${month(f.egfr.date)}${f.egfr.value < 45 ? " · go easy on contrast" : ""}` : undefined, alert: !!f.egfr && f.egfr.value < 45 },
+  ];
+  return (
+    <ul className="flex flex-col gap-2.5">
+      {rows.map((r) => (
+        <li key={r.label} className={cx("flex items-center gap-3 rounded-3xl p-3 pr-4", r.alert ? "bg-white shadow-card ring-2 ring-peach" : "bg-white shadow-card")}>
+          <span className={cx("grid h-14 w-14 shrink-0 place-items-center rounded-2xl", r.tone)}><Art name={r.art} size={44} /></span>
+          <div className="min-w-0 flex-1 leading-tight">
+            <div className="flex items-center gap-2 text-[12.5px] font-semibold text-ink-2">{r.label}{r.alert && <span className="rounded-full bg-peach px-2 py-0.5 text-[11px] font-bold text-peach-ink">Check</span>}</div>
+            <div className="mt-0.5 text-[16px] font-extrabold">{r.value}</div>
+            {r.note && <div className={cx("mt-0.5 text-[12.5px]", r.alert ? "text-peach-ink" : "text-ink-3")}>{r.note}</div>}
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/* ---------------------------------------------------------------- Pre-arrival brief */
+
+export function BriefCard({ e, file }: { e: Emergency; file: PatientFile | undefined }) {
+  const { openRecord } = useHospital();
+  return (
+    <div className="rounded-3xl bg-white p-4 shadow-card">
+      {e.symptomText && (
+        <div className="mb-3 rounded-2xl bg-butter px-3.5 py-2.5 text-[13.5px] leading-snug">
+          <div className="text-[12px] font-semibold text-butter-ink">Said on the call</div>
+          <div className="font-semibold">“{e.symptomText}”</div>
+          {e.triage?.english && e.triage.english !== e.symptomText && <div className="text-ink-2">{e.triage.english}</div>}
+        </div>
+      )}
+      <div className="flex items-start gap-3">
+        <Art name="chat" size={44} className="shrink-0" />
+        <div className="min-w-0">
+          {e.brief ? <p className="text-[14.5px] leading-relaxed">{e.brief}</p> : <p className="text-[14px] text-ink-2">Saathi is writing the brief from her records.</p>}
+          <p className="mt-1.5 text-[12px] text-ink-3">Written by Saathi from her records before arrival</p>
+        </div>
+      </div>
+      <div className="mt-3 flex items-center gap-2 rounded-2xl bg-canvas px-3 py-2.5 text-[13px]">
+        <Users className="h-4 w-4 shrink-0 text-violet-600" />
+        <span className="min-w-0 flex-1">{e.responders.length ? <><b>{e.responders.map((r) => `${r.name}${r.relation ? ` (${r.relation.toLowerCase()})` : ""}`).join(", ")}</b> on the way</> : "Family notified. No one has confirmed yet."}</span>
+      </div>
+      <Pill variant="soft" icon={FileText} className="mt-3 w-full" disabled={!file} onClick={() => openRecord(e.patientId)}>Open full record</Pill>
+      <p className="mt-2 flex items-center justify-center gap-1.5 text-[12px] text-ink-3"><Lock className="h-3.5 w-3.5" />Opening the record is logged and the family is told</p>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------- Compact rows */
+
+export function CaseRow({ e, hospitals, onClick, mine, file }: { e: Emergency; hospitals: Hospital[]; onClick: () => void; mine: boolean; file?: PatientFile }) {
+  const dest = hospitals.find((h) => h.id === e.hospitalId);
+  const red = e.status === "dispatched" || e.status === "arrived" || e.status === "triage";
+  return (
+    <motion.button type="button" whileTap={{ scale: 0.98 }} onClick={onClick} className="flex w-full items-center gap-3 rounded-3xl bg-white p-3 pr-4 text-left shadow-card">
+      <span className={cx("grid h-12 w-12 shrink-0 place-items-center rounded-2xl", red ? "bg-rose" : "bg-mint")}><Art name={red ? "ambulance" : "bed"} size={40} /></span>
+      <div className="min-w-0 flex-1 leading-tight">
+        <div className="truncate text-[15px] font-bold">{e.triage?.label || "Finding out what happened"}</div>
+        <div className="truncate text-[12.5px] text-ink-2">
+          {mine ? (file ? `${file.record.patient.name.split(" ")[0]}, ${file.record.patient.age}` : "Patient") : `To ${dest?.short || "a hospital being chosen"}`} · {STATUS_LABEL[e.status]}
+        </div>
+      </div>
+      <div className="shrink-0 text-right">
+        {e.status === "dispatched" && e.etaLeftMin != null ? <><div className="font-display text-[20px] font-extrabold leading-none tnum">{e.etaLeftMin}</div><div className="text-[11px] text-ink-3">min</div></> : <ChevronRight className="h-5 w-5 text-ink-3" />}
+      </div>
+    </motion.button>
+  );
+}

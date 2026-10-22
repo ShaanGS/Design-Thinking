@@ -4,13 +4,13 @@ import multer from "multer";
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-import { all, get, run, uid, nowIso, localDate, UPLOAD_DIR } from "./db.ts";
+import { all, get, run, uid, nowIso, localDate, UPLOAD_DIR, newCardToken } from "./db.ts";
 import * as S from "./store.ts";
 import * as E from "./emergency.ts";
 import * as AI from "./ai.ts";
 import { toFamily, toNetwork, userForToken, isOnline } from "./realtime.ts";
 import { seed, SAMPLE_BY_HASH, SAMPLE_DOCS, SEED_DOC_DIR, INVENTORY_LABEL } from "./seed.ts";
-import type { Condition, Overview, Slot, User, Vital } from "../shared/types.ts";
+import type { Condition, HelpStatus, Overview, Slot, User, Vital } from "../shared/types.ts";
 import { CONDITION_INFO, SLOT_LABEL } from "../shared/types.ts";
 
 export const api = express.Router();
@@ -77,6 +77,7 @@ api.post("/auth/create-family", wrap((req, res) => {
     pid, fam, elder, elderName, clean(b.nickname, 20) || elderName.split(" ")[0], Number(b.age) || 70, b.sex === "M" ? "M" : "F", clean(b.blood, 4) || "Unknown",
     clean(b.address, 160) || "Chennai", Number(b.lat) || 12.9235, Number(b.lng) || 80.129, JSON.stringify((b.conditions || []).map((x: unknown) => clean(x, 80)).filter(Boolean)),
     JSON.stringify((b.allergies || []).map((x: unknown) => clean(x, 80)).filter(Boolean)), null, null, "");
+  run("UPDATE patients SET card_token = ? WHERE id = ?", newCardToken(), pid);
   res.json({ token: newSession(guardian), user: S.toUser(get("SELECT * FROM users WHERE id = ?", guardian)), code });
 }));
 
@@ -100,6 +101,9 @@ export function overview(patientId: string, familyId: string): Overview {
 const pushOverview = (patientId: string, familyId: string) => toFamily(familyId, "overview", overview(patientId, familyId));
 
 api.get("/overview", wrap((req, res) => { const p = needFamily(req); res.json(overview(p.id, p.familyId)); }));
+
+// The emergency card, with the token behind its QR. Only the family and the elder see the token.
+api.get("/card", wrap((req, res) => { const p = needFamily(req); res.json({ ...S.cardInfo(p.id), cardToken: S.cardTokenOf(p.id), abha: p.abha }); }));
 
 api.patch("/patient", wrap((req, res) => {
   const p = needFamily(req); const b = req.body || {};
@@ -330,6 +334,50 @@ publicApi.get("/share/:token", (req, res) => {
   const s = shares.get(req.params.token);
   if (!s || s.expires < Date.now()) return res.status(404).json({ error: "This link has expired. Ask the family for a new one." });
   res.json({ record: S.healthRecord(s.patientId), meds: S.meds(s.patientId), expires: new Date(s.expires).toISOString() });
+});
+
+/* Bystander page (/help/:token): anyone who scans the QR on the elder's emergency card. No login.
+   The token is a separate random value per patient (not the family code, which would let anyone join the family). */
+function helpStatus(patientId: string, familyId: string): HelpStatus {
+  const r = get("SELECT * FROM emergencies WHERE patient_id = ? AND started_at > ? ORDER BY started_at DESC LIMIT 1", patientId, new Date(Date.now() - 3 * 3600000).toISOString());
+  const e = r ? E.hydrate(r) : null;
+  const h = e ? S.hospitalById(e.hospitalId || e.route?.hospitalId || "") : null;
+  return {
+    emergency: e && {
+      id: e.id, status: e.status, startedAt: e.startedAt, source: e.source, condition: e.triage?.label ?? null, etaLeftMin: e.etaLeftMin, progress: e.progress,
+      hospital: h && { name: h.name, short: h.short, phone: h.phone }, responders: e.responders.map((x) => ({ name: x.name, relation: x.relation })),
+    },
+    familyTold: S.members(familyId).filter((m) => m.role === "guardian").map((m) => ({ name: m.name, relation: m.relation })),
+  };
+}
+const helpAlerts = new Map<string, number>();
+publicApi.get("/help/:token", (req, res) => {
+  const p = S.patientByCardToken(req.params.token);
+  if (!p) return res.status(404).json({ error: "This card isn't active. Call 108 for an ambulance." });
+  res.json(S.cardInfo(p.id));
+});
+publicApi.get("/help/:token/status", (req, res) => {
+  const p = S.patientByCardToken(req.params.token);
+  if (!p) return res.status(404).json({ error: "This card isn't active. Call 108 for an ambulance." });
+  res.json(helpStatus(p.id, p.familyId));
+});
+publicApi.post("/help/:token/alert", async (req, res) => {
+  try {
+    const p = S.patientByCardToken(req.params.token);
+    if (!p) return res.status(404).json({ error: "This card isn't active. Call 108 for an ambulance." });
+    const last = helpAlerts.get(p.id) || 0;
+    if (Date.now() - last > 60000 || !E.activeForFamily(p.familyId)) {
+      helpAlerts.set(p.id, Date.now());
+      const lat = Number(req.body?.lat), lng = Number(req.body?.lng);
+      const where = Number.isFinite(lat) && Number.isFinite(lng) && req.body?.lat != null ? ` They shared where she is: https://maps.google.com/?q=${lat.toFixed(5)},${lng.toFixed(5)}` : "";
+      toFamily(p.familyId, "feed", S.addFeed(p.familyId, "sos", "sos", `A passer-by scanned ${p.nickname}'s card`, `Someone found ${p.nickname} and started an emergency from her Saathi card.${where}`));
+      await E.startSOS(p.id, "bystander", "Found unwell in a public place by a passer-by who scanned her Saathi emergency card.", null, "A passer-by");
+    }
+    res.json(helpStatus(p.id, p.familyId));
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Couldn't reach her family. Call 108 now." });
+  }
 });
 
 /* ------------------------------------------------------------------ Emergencies */

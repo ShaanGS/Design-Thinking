@@ -303,6 +303,42 @@ export interface Overview {
   insightsCount: number;
 }
 
+/** What the emergency card (and the public bystander page) shows. */
+export interface CardInfo {
+  name: string;
+  nickname: string;
+  age: number;
+  sex: "F" | "M";
+  blood: string;
+  allergies: string[];
+  conditions: string[];
+  doctor: string | null;
+  meds: { name: string; dose: string; color: string; slots: Slot[] }[];
+  /** Blood thinners / antiplatelets (bleeding risk) */
+  thinners: { name: string; dose: string }[];
+  contacts: { name: string; relation: string | null; phone: string }[];
+  /** Only for the signed-in family and elder (GET /api/card): the token behind the card's QR, /help/:token */
+  cardToken?: string;
+  abha?: string | null;
+}
+
+/** Live status of the emergency, as the bystander page sees it (GET /api/public/help/:token/status). */
+export interface HelpStatus {
+  emergency: null | {
+    id: string;
+    status: Emergency["status"];
+    startedAt: string;
+    source: string;
+    condition: string | null;
+    etaLeftMin: number | null;
+    progress: number;
+    hospital: { name: string; short: string; phone: string } | null;
+    responders: { name: string; relation: string | null }[];
+  };
+  /** Family members Saathi has alerted */
+  familyTold: { name: string; relation: string | null }[];
+}
+
 export interface ServerInfo {
   ai: "claude" | "demo";
   model: string;

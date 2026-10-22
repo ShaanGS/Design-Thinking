@@ -2,7 +2,7 @@
 import { all, get, run, uid, nowIso, parse, localDate } from "./db.ts";
 import type {
   Patient, Medication, Slot, TodayDose, Vital, FeedItem, Member, Family, MedDocument, Insight, HealthRecord,
-  RecordEvent, LabPoint, Hospital, InventoryItem, Emergency, Relay, Visit, ChatTurn, Checkin, User, DocExtraction,
+  RecordEvent, LabPoint, Hospital, InventoryItem, Emergency, Relay, Visit, ChatTurn, Checkin, User, DocExtraction, CardInfo,
 } from "../shared/types.ts";
 import { SLOT_LABEL } from "../shared/types.ts";
 
@@ -16,6 +16,23 @@ export const toPatient = (r: any): Patient => ({
 export const patientOfFamily = (familyId: string) => { const r = get("SELECT * FROM patients WHERE family_id = ? LIMIT 1", familyId); return r ? toPatient(r) : null; };
 export const patientById = (id: string) => { const r = get("SELECT * FROM patients WHERE id = ?", id); return r ? toPatient(r) : null; };
 export const patientMemory = (id: string) => String(get("SELECT memory FROM patients WHERE id = ?", id)?.memory || "");
+
+/* Emergency card: the token behind the QR (never the family code, which lets people join the family). */
+export const cardTokenOf = (patientId: string) => String(get("SELECT card_token FROM patients WHERE id = ?", patientId)?.card_token || "");
+export const patientByCardToken = (token: string) => { const r = token ? get("SELECT * FROM patients WHERE card_token = ?", token) : undefined; return r ? toPatient(r) : null; };
+export const THINNER_RE = /clopidogrel|aspirin|warfarin|apixaban|rivaroxaban|dabigatran/i;
+/** The facts printed on the emergency card and shown to a bystander who scans it. */
+export function cardInfo(patientId: string): CardInfo {
+  const p = patientById(patientId)!;
+  const ms = meds(patientId);
+  return {
+    name: p.name, nickname: p.nickname, age: p.age, sex: p.sex, blood: p.blood, allergies: p.allergies, conditions: p.conditions, doctor: p.doctor,
+    meds: ms.map((m) => ({ name: m.name, dose: m.dose, color: m.color, slots: m.slots })),
+    thinners: ms.filter((m) => THINNER_RE.test(`${m.name} ${m.generic || ""}`)).map((m) => ({ name: m.name, dose: m.dose })),
+    contacts: all("SELECT * FROM users WHERE family_id = ? AND role = 'guardian' AND phone IS NOT NULL AND phone != '' ORDER BY created_at", p.familyId)
+      .map((r) => ({ name: r.name, relation: r.relation, phone: r.phone })),
+  };
+}
 
 export const familyById = (id: string): Family | null => { const r = get("SELECT * FROM families WHERE id = ?", id); return r ? { id: r.id, code: r.code, name: r.name } : null; };
 export const members = (familyId: string): Member[] =>

@@ -1,19 +1,49 @@
-// Live map (OpenStreetMap tiles via Leaflet): home, hospitals, chosen route and the ambulance.
+// Live map (OpenStreetMap tiles via Leaflet): Paati's home, hospitals, the chosen road route and the ambulance.
+// Markers use the 3D clay art so the map matches the rest of the app.
 import { useEffect, useMemo } from "react";
 import { MapContainer, TileLayer, Marker, Polyline, Tooltip, useMap } from "react-leaflet";
 import L from "leaflet";
 import type { Hospital } from "../../shared/types";
 
-const pin = (html: string, size = 34) => L.divIcon({ html, className: "", iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
-const homeIcon = pin(`<div style="width:30px;height:30px;border-radius:8px;background:#F5B800;border:3px solid #14172B;box-shadow:0 2px 6px rgba(20,23,43,.3);display:grid;place-items:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="#14172B"><path d="M12 3 2 11h3v9h5v-6h4v6h5v-9h3z"/></svg></div>`, 30);
-const hospIcon = (state: "chosen" | "nearest" | "other", label: string) => pin(
-  `<div style="display:flex;align-items:center;gap:6px;white-space:nowrap"><div style="width:26px;height:26px;border-radius:6px;background:${state === "chosen" ? "#14172B" : "#fff"};border:2px solid ${state === "chosen" ? "#14172B" : state === "nearest" ? "#B25E00" : "#858AA0"};display:grid;place-items:center;box-shadow:0 1px 4px rgba(20,23,43,.25)"><svg width="13" height="13" viewBox="0 0 24 24"><path d="M12 4v16M4 12h16" stroke="${state === "chosen" ? "#F5B800" : "#14172B"}" stroke-width="4" stroke-linecap="round"/></svg></div><span style="background:#fff;border:1px solid #E1E3E9;border-radius:5px;padding:0 5px;font:600 11.5px 'Hind Madurai',sans-serif;color:#14172B">${label}</span></div>`, 26);
-const ambIcon = pin(`<div style="width:36px;height:36px;border-radius:50%;background:#E0262F;border:3px solid #fff;box-shadow:0 0 0 6px rgba(224,38,47,.22),0 2px 6px rgba(20,23,43,.35);display:grid;place-items:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M3 16V7h11v9M14 10h4l3 3v3h-7M7 19a2 2 0 1 0 0-.01M17 19a2 2 0 1 0 0-.01M8 9.5v4M6 11.5h4"/></svg></div>`, 38);
+const VIOLET = "#6F5CF6", PEACH_INK = "#B54A12", INK = "#17142E";
 
-function Fit({ points }: { points: [number, number][] }) {
+const pin = (html: string, w: number, h = w, anchor: [number, number] = [w / 2, h / 2]) =>
+  L.divIcon({ html, className: "", iconSize: [w, h], iconAnchor: anchor });
+
+/** Paati's portrait in a white ring, with a soft violet halo. */
+const homeIcon = pin(
+  `<div style="position:relative;width:48px;height:48px">
+     <span style="position:absolute;inset:-6px;border-radius:50%;background:rgba(111,92,246,.18)"></span>
+     <div style="position:relative;width:48px;height:48px;border-radius:50%;background:#FFE3D1;border:3px solid #fff;overflow:hidden;box-shadow:0 8px 18px -6px rgba(73,54,196,.55)">
+       <img src="/art/paati.webp" alt="" style="width:100%;height:100%;object-fit:cover;object-position:top" draggable="false"/>
+     </div>
+   </div>`, 48);
+
+/** Hospital clay icon with a label pill. Chosen is violet, the nearest (that can't treat) is peach, the rest white. */
+const hospIcon = (state: "chosen" | "nearest" | "other", label: string) => {
+  const pill = state === "chosen" ? `background:${VIOLET};color:#fff`
+    : state === "nearest" ? `background:#FFE3D1;color:${PEACH_INK}` : `background:#fff;color:${INK}`;
+  const size = state === "chosen" ? 42 : 34;
+  return pin(
+    `<div style="display:flex;align-items:center;gap:2px;white-space:nowrap;${state === "other" ? "opacity:.85" : ""}">
+       <img src="/art/hospital.webp" alt="" width="${size}" height="${size}" style="width:${size}px;height:${size}px;object-fit:contain;filter:drop-shadow(0 6px 8px rgba(73,54,196,.3))" draggable="false"/>
+       <span style="${pill};border-radius:999px;padding:3px 9px;font:700 11.5px 'Plus Jakarta Sans Variable',system-ui,sans-serif;box-shadow:0 4px 12px -4px rgba(23,20,46,.3)">${label}</span>
+     </div>`, size, size, [size / 2, size / 2]);
+};
+
+/** The ambulance with a soft red pulse behind it. */
+const ambIcon = pin(
+  `<div style="position:relative;width:52px;height:52px;display:grid;place-items:center">
+     <span class="animate-ripple" style="position:absolute;inset:4px;border-radius:50%;background:rgba(255,59,77,.35)"></span>
+     <span style="position:absolute;inset:8px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px rgba(255,59,77,.35),0 8px 18px -6px rgba(255,59,77,.7)"></span>
+     <img src="/art/ambulance.webp" alt="" style="position:relative;width:44px;height:44px;object-fit:contain" draggable="false"/>
+   </div>`, 52);
+
+/** Fits the map to the route. `extra` (the ambulance) is included when fitting but doesn't trigger a refit as it moves. */
+function Fit({ points, extra }: { points: [number, number][]; extra?: [number, number] | null }) {
   const map = useMap();
-  const key = `${points.length}|${points[0]?.join(",")}|${points[points.length - 1]?.join(",")}`;
-  useEffect(() => { if (points.length) map.fitBounds(L.latLngBounds(points), { padding: [36, 36], maxZoom: 15 }); }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const key = `${points.length}|${points[0]?.join(",")}|${points[points.length - 1]?.join(",")}|${extra ? 1 : 0}`;
+  useEffect(() => { if (points.length) map.fitBounds(L.latLngBounds(extra ? [...points, extra] : points), { padding: [44, 44], maxZoom: 15 }); }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
   return null;
 }
 
@@ -38,18 +68,21 @@ export default function MapView({ home, hospitals, chosenId, nearestId, ambulanc
   const hasNearPath = !!nearestPath && nearestPath.length > 1;
   // Fit the whole road route, not just its ends, so no bend runs off the edge of the map
   const points = useMemo(() => [[home.lat, home.lng] as [number, number], ...shown.map((h) => [h.lat, h.lng] as [number, number]), ...(hasPath ? path! : []), ...(hasNearPath ? nearestPath! : [])], [home.lat, home.lng, shown, hasPath, path, hasNearPath, nearestPath]);
+  const mainLine: [number, number][] | null = hasPath ? path! : chosen ? [[home.lat, home.lng], [chosen.lat, chosen.lng]] : null;
   return (
     <div className={className} style={{ height }}>
       <MapContainer center={[home.lat, home.lng]} zoom={13} scrollWheelZoom={false} style={{ height: "100%", width: "100%", borderRadius: 10 }} attributionControl>
         <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-        <Fit points={points} />
-        {nearest && chosen && nearest.id !== chosen.id && <Polyline positions={hasNearPath ? nearestPath! : [[home.lat, home.lng], [nearest.lat, nearest.lng]]} pathOptions={{ color: "#B25E00", weight: 3, dashArray: "4 7", opacity: 0.9 }} />}
-        {hasPath && <Polyline positions={path!} pathOptions={{ color: "#FFFFFF", weight: 9, opacity: 0.9 }} />}
-        {hasPath && <Polyline positions={path!} pathOptions={{ color: "#14172B", weight: 5, opacity: 0.95 }} />}
-        {!hasPath && chosen && <Polyline positions={[[home.lat, home.lng], [chosen.lat, chosen.lng]]} pathOptions={{ color: "#14172B", weight: 5, opacity: 0.9 }} />}
-        <Marker position={[home.lat, home.lng]} icon={homeIcon}><Tooltip direction="top" offset={[0, -14]}>{home.name || "Home"}</Tooltip></Marker>
+        <Fit points={points} extra={ambulance ? [ambulance.lat, ambulance.lng] : null} />
+        {nearest && chosen && nearest.id !== chosen.id && (
+          <Polyline positions={hasNearPath ? nearestPath! : [[home.lat, home.lng], [nearest.lat, nearest.lng]]} pathOptions={{ color: PEACH_INK, weight: 3.5, dashArray: "2 9", lineCap: "round", opacity: 0.9 }} />
+        )}
+        {mainLine && <Polyline positions={mainLine} pathOptions={{ color: "#FFFFFF", weight: 10, opacity: 0.95, lineCap: "round", lineJoin: "round" }} />}
+        {mainLine && <Polyline positions={mainLine} pathOptions={{ color: VIOLET, weight: 5.5, opacity: 1, lineCap: "round", lineJoin: "round" }} />}
+        <Marker position={[home.lat, home.lng]} icon={homeIcon} zIndexOffset={500}><Tooltip direction="top" offset={[0, -26]}>{home.name || "Home"}</Tooltip></Marker>
         {shown.map((h) => (
-          <Marker key={h.id} position={[h.lat, h.lng]} icon={hospIcon(h.id === chosenId ? "chosen" : h.id === nearestId ? "nearest" : "other", h.short)} />
+          <Marker key={h.id} position={[h.lat, h.lng]} zIndexOffset={h.id === chosenId ? 400 : h.id === nearestId ? 300 : 0}
+            icon={hospIcon(h.id === chosenId ? "chosen" : h.id === nearestId ? "nearest" : "other", h.short)} />
         ))}
         {ambulance && <Marker position={[ambulance.lat, ambulance.lng]} icon={ambIcon} zIndexOffset={1000} />}
       </MapContainer>

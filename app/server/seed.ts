@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { db, run, get, uid, nowIso, localDate, UPLOAD_DIR, tx } from "./db.ts";
+import { db, run, get, uid, nowIso, localDate, UPLOAD_DIR, tx, newCardToken } from "./db.ts";
 import type { DocExtraction, Insight } from "../shared/types.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -125,6 +125,8 @@ export function addSampleDocument(patientId: string, key: string, by: string | n
 
 export function seed() {
   const tables = ["families", "users", "sessions", "patients", "medications", "dose_logs", "vitals", "feed", "documents", "insights", "hospitals", "inventory", "emergencies", "relays", "visits", "chats", "checkins"];
+  // Keep the emergency card token across demo resets so a printed card's QR keeps working.
+  const cardToken = String(get("SELECT card_token FROM patients WHERE id = 'pat_kamala'")?.card_token || "") || newCardToken();
   tx(() => {
     for (const t of tables) db.exec(`DELETE FROM ${t}`);
     for (const f of fs.readdirSync(UPLOAD_DIR)) fs.rmSync(path.join(UPLOAD_DIR, f), { force: true });
@@ -151,11 +153,11 @@ export function seed() {
     u("u_raghu", "Raghu (Pharmacy)", "hospital", "Store manager", "+91 44 0000 1002", "en", "h2");
 
     const pid = "pat_kamala";
-    run(`INSERT INTO patients (id, family_id, user_id, name, nickname, age, sex, blood, address, lat, lng, conditions, allergies, abha, doctor, memory)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, pid, fam, "u_kamala", "Kamala Ramasamy", "Paati", 72, "F", "B+", "12, Kamaraj Street, East Tambaram, Chennai", 12.9235, 80.1290,
+    run(`INSERT INTO patients (id, family_id, user_id, name, nickname, age, sex, blood, address, lat, lng, conditions, allergies, abha, doctor, memory, card_token)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, pid, fam, "u_kamala", "Kamala Ramasamy", "Paati", 72, "F", "B+", "12, Kamaraj Street, East Tambaram, Chennai", 12.9235, 80.1290,
       JSON.stringify(["Type 2 diabetes", "Hypertension", "Coronary artery disease, LAD stent (2022)", "Mild heart pumping weakness (LVEF 48%)"]),
       JSON.stringify(["Penicillin (skin rash)"]), "91-1234-5678-9012 (sample)", "Dr. S. Raman (cardiology), Dr. P. Meenakshi (GP)",
-      "Yesterday she went to Kapaleeshwarar temple with neighbour Meena. Granddaughter Divya has an exam on Friday. She slept badly on 2 of the last 4 nights and mentioned breathlessness on the stairs once. Husband Ramasamy (78) is hard of hearing.");
+      "Yesterday she went to Kapaleeshwarar temple with neighbour Meena. Granddaughter Divya has an exam on Friday. She slept badly on 2 of the last 4 nights and mentioned breathlessness on the stairs once. Husband Ramasamy (78) is hard of hearing.", cardToken);
 
     const med = (id: string, name: string, generic: string, dose: string, purpose: string, slots: string[], stock: number, color: string, by: string) =>
       run("INSERT INTO medications (id, patient_id, name, generic, dose, purpose, slots, stock, color, active, prescribed_by, created_at) VALUES (?,?,?,?,?,?,?,?,?,1,?,?)",

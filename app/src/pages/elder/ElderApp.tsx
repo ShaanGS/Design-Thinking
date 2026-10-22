@@ -1,10 +1,12 @@
-// The elder's app (Paati's phone): Tamil-first, huge targets, live family and emergency state.
+// The elder's app (Paati's phone): Tamil-first, huge targets, live family and emergency state, in the soft-clay style.
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Route, Routes, Navigate } from "react-router-dom";
+import { Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { useOverview } from "../../lib/data";
 import { Spinner, Button, useToast } from "../../components/ui";
+import { PhoneFrame } from "../../components/kit";
+import { StageLabel } from "../Landing";
 import type { Emergency } from "../../../shared/types";
 import { Ctx, readLang, saveLang, ACTIVE, type ElderCtx, type Lang } from "./shared";
 import Home from "./Home";
@@ -21,6 +23,10 @@ export default function ElderApp() {
   const [lang, setLangState] = useState<Lang>(() => readLang(user?.lang === "en" ? "en" : "ta"));
   const [fallOn, setFallOn] = useState(false);
   const [local, setLocal] = useState<{ e: Emergency; at: number } | null>(null);
+
+  const loc = useLocation();
+  // Each screen starts at the top (inside the phone frame the scroller is .phone-scroll)
+  useEffect(() => { document.querySelector(".phone-scroll")?.scrollTo(0, 0); window.scrollTo(0, 0); }, [loc.pathname]);
 
   const setLang = useCallback((l: Lang) => { setLangState(l); saveLang(l); }, []);
 
@@ -47,18 +53,22 @@ export default function ElderApp() {
 
   const ctx: ElderCtx = useMemo(() => ({ lang, setLang, data, reload: () => void reload(), raiseSOS, fallOn, setFallOn }), [lang, setLang, data, reload, raiseSOS, fallOn]);
 
+  const label = <StageLabel who="paati" title="Paati's phone" text="Kamala, 72, in Tambaram. Big Tamil-first buttons: hold the red button for help, take her tablets, talk to Saathi, check her pulse. Her emergency card's QR lets a stranger help her too." />;
+
   if (!data) {
     return (
-      <div className="grid min-h-full place-items-center bg-white p-6 text-center">
-        {error ? <div className="flex flex-col items-center gap-3"><p className="text-lg">{error}</p><Button onClick={() => void reload()}>Try again</Button></div> : <Spinner className="h-10 w-10" />}
-      </div>
+      <PhoneFrame label={label}>
+        <div className="grid h-full min-h-[60vh] place-items-center p-6 text-center">
+          {error ? <div className="flex flex-col items-center gap-3"><p className="text-lg">{error}</p><Button variant="brand" size="lg" onClick={() => void reload()}>Try again</Button></div> : <Spinner className="h-10 w-10 text-violet" />}
+        </div>
+      </PhoneFrame>
     );
   }
 
   return (
     <Ctx.Provider value={ctx}>
-      <div className="min-h-full bg-paper">
-        <div className="mx-auto min-h-full max-w-[480px] bg-white sm:border-x sm:border-line">
+      <PhoneFrame label={label}>
+        <div className="relative flex min-h-full flex-col bg-canvas">
           <Routes>
             <Route index element={<Home />} />
             <Route path="talk" element={<Talk />} />
@@ -66,11 +76,11 @@ export default function ElderApp() {
             <Route path="card" element={<Card />} />
             <Route path="*" element={<Navigate to="/elder" replace />} />
           </Routes>
+          {emergency && (needsSymptom ? <SymptomPicker key={emergency.id} emergency={emergency} /> : <EmergencyScreen emergency={emergency} />)}
+          <EscalationCall />
+          <FallWatcher />
         </div>
-        {emergency && (needsSymptom ? <SymptomPicker key={emergency.id} emergency={emergency} /> : <EmergencyScreen emergency={emergency} />)}
-        <EscalationCall />
-        <FallWatcher />
-      </div>
+      </PhoneFrame>
     </Ctx.Provider>
   );
 }

@@ -1,9 +1,11 @@
-// Check my pulse: 20-second selfie heart-rate reading, saved to her record.
+// Check my pulse: a 20-second selfie heart-rate reading (Face Pulse), saved to her record for the family.
 import { useState } from "react";
+import { Check } from "lucide-react";
 import { api } from "../../lib/api";
 import { fmtDateTime } from "../../lib/format";
 import FacePulse from "../../components/FacePulse";
 import { useToast, cx } from "../../components/ui";
+import { Art } from "../../components/kit";
 import type { Vital } from "../../../shared/types";
 import { Bi, SubScreen, useElder, useT } from "./shared";
 
@@ -23,26 +25,34 @@ export default function Pulse() {
   const fine = result != null && result >= 50 && result <= 110;
 
   return (
-    <SubScreen ta="நாடித்துடிப்பு பார்" en="Check my pulse">
-      <p className="-mt-1 text-[18px] leading-snug"><Bi ta="முகத்தை கோட்டுக்குள் வைத்து 20 விநாடி அசையாமல் இருங்கள்." en="Keep your face inside the outline and stay still for 20 seconds." /></p>
-      <FacePulse big onResult={(b) => void save(b)} />
+    <SubScreen ta="நாடித்துடிப்பு பார்" en="Check my pulse" art="heart">
+      <section className="rounded-[28px] bg-white p-4 shadow-card">
+        <Bi ta="முகத்தை கோட்டுக்குள் வைத்து 20 விநாடி அசையாமல் இருங்கள்." en="Keep your face inside the outline and stay still for 20 seconds." className="mb-3 text-[19px] font-bold leading-snug" />
+        <FacePulse big onResult={(b) => void save(b)} />
+      </section>
 
       {result != null && (
-        <section className={cx("animate-slidein border-l-4 py-1 pl-4", fine ? "border-teal" : "border-warn")}>
-          <p className="text-[24px] font-bold leading-tight">
-            {fine ? <Bi ta={`நன்று! உங்கள் நாடி ${result}`} en={`Good. Your pulse is ${result}`} /> : <Bi ta={`உங்கள் நாடி ${result}. குடும்பத்துக்கு சொல்கிறேன்.`} en={`Your pulse is ${result}. I'll let your family know.`} />}
-          </p>
-          {usual && <p className="mt-1 text-[17px] text-ink-2"><Bi inline ta={`வழக்கமாக சுமார் ${usual}`} en={`Your usual is about ${usual}`} /></p>}
+        <section className={cx("flex items-center gap-3 rounded-[28px] p-4 animate-slidein", fine ? "bg-mint" : "bg-peach")}>
+          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-white">
+            {fine ? <Check className="h-7 w-7 text-mint-ink" strokeWidth={3} /> : <Art name="heart" size={44} />}
+          </span>
+          <div className="min-w-0">
+            <p className="text-[22px] font-extrabold leading-tight">
+              {fine ? <Bi ta={`நன்று! உங்கள் நாடி ${result}`} en={`Good. Your pulse is ${result}`} /> : <Bi ta={`உங்கள் நாடி ${result}. குடும்பத்துக்கு சொல்கிறேன்.`} en={`Your pulse is ${result}. I'll let your family know.`} />}
+            </p>
+            {usual && <p className={cx("mt-1 text-[16px] font-semibold", fine ? "text-mint-ink" : "text-peach-ink")}><Bi inline ta={`வழக்கமாக சுமார் ${usual}`} en={`Your usual is about ${usual}`} /></p>}
+          </div>
         </section>
       )}
 
       {history.length > 0 && (
-        <section>
-          <h2 className="text-[20px] font-semibold"><Bi inline ta="முந்தைய அளவீடுகள்" en="Recent readings" /></h2>
-          <ul className="mt-2 border-t border-line">
+        <section className="rounded-[28px] bg-white px-4 pb-2 pt-4 shadow-card">
+          <h2 className="text-[20px] font-extrabold"><Bi ta="முந்தைய அளவீடுகள்" en="Recent readings" /></h2>
+          <ul className="mt-2">
             {history.map((v) => (
-              <li key={v.id} className="flex items-baseline gap-2 border-b border-line py-3">
-                <span className="font-display text-[28px] font-semibold leading-none tnum">{v.value}</span>
+              <li key={v.id} className="flex min-h-[60px] items-center gap-3 border-b border-line py-2 last:border-b-0">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-rose"><Art name="heart" size={30} /></span>
+                <span className="font-display text-[28px] font-extrabold leading-none tnum">{v.value}</span>
                 <span className="text-[15px] text-ink-3">bpm</span>
                 <span className="ml-auto text-right text-[15px] text-ink-2">{fmtDateTime(v.at)}</span>
               </li>

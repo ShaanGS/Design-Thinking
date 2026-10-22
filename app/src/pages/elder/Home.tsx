@@ -1,17 +1,19 @@
-// Paati's home screen: time and greeting, a family check-in, the tablets to take now,
-// a short list of things she can do, and the help slab fixed at the bottom.
+// Paati's home: a warm violet header with her portrait, greeting and the time; the big red help button;
+// the tablets to take now; four big tiles; fall detection; and simple sheets for calling family and settings.
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageCircle, HeartPulse, IdCard, Phone, Volume2, Check, Menu, LogOut, ChevronRight } from "lucide-react";
+import { motion } from "framer-motion";
+import { Settings2, Phone, Volume2, Check, LogOut } from "lucide-react";
 import { api } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { speak } from "../../lib/speech";
 import Blister from "../../components/Blister";
-import { Button, Modal, useToast, cx } from "../../components/ui";
+import { Avatar, useToast, cx, Spinner } from "../../components/ui";
+import { Art, BottomSheet, Person, whoFor } from "../../components/kit";
 import { SLOT_LABEL, type Slot, type TodayDose } from "../../../shared/types";
 import SosButton from "./SosButton";
 import { enableMotion } from "./Overlays";
-import { Bi, useElder, useT } from "./shared";
+import { BigButton, Bi, ElderSheet, ElderTile, tamilName, useElder, useT } from "./shared";
 
 const ORDER: Slot[] = ["morning", "afternoon", "night"];
 const TA_DAYS = ["ஞாயிறு", "திங்கள்", "செவ்வாய்", "புதன்", "வியாழன்", "வெள்ளி", "சனி"];
@@ -38,14 +40,14 @@ export default function Home() {
   const toast = useToast();
   const t = useT();
   const now = useClock();
-  const [menu, setMenu] = useState(false);
-  const [callOpen, setCallOpen] = useState(false);
+  const [sheet, setSheet] = useState<"call" | "menu" | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
   const p = data?.patient;
   const next = useMemo(() => pickSlot(data?.today || []), [data?.today]);
   const checkin = data?.checkin && !data.checkin.answeredAt ? data.checkin : null;
   const family = (data?.members || []).filter((m) => m.role === "guardian");
+  const me = (data?.members || []).find((m) => m.role === "elder");
 
   const hour = now.getHours();
   const greetTa = hour < 12 ? "காலை வணக்கம்" : hour < 17 ? "மதிய வணக்கம்" : "மாலை வணக்கம்";
@@ -54,6 +56,7 @@ export default function Home() {
   const [hm, ampm] = now.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" }).split(" ");
   const dateTa = `${TA_DAYS[now.getDay()]}, ${now.getDate()} ${TA_MONTHS[now.getMonth()]}`;
   const dateEn = now.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
+  const ta = lang === "ta";
 
   async function answer(a: "ok" | "help") {
     if (!checkin) return;
@@ -73,8 +76,8 @@ export default function Home() {
     if (!next.slot) return;
     const pending = next.doses.filter((d) => d.status !== "taken");
     const ok = speak(
-      `${name}, ${SLOT_LABEL[next.slot].ta} மாத்திரை நேரம். ${pending.map((d) => d.med.name).join(", ")}. சாப்பிட்டதும் மஞ்சள் பொத்தானை அழுத்துங்கள்.`,
-      `${name}, it's time for your ${SLOT_LABEL[next.slot].en.toLowerCase()} tablets: ${pending.map((d) => `${d.med.name} ${d.med.dose}`).join(", ")}. Press the yellow button after you take them.`,
+      `${tamilName(name)}, ${SLOT_LABEL[next.slot].ta} மாத்திரை நேரம். ${pending.map((d) => d.med.name).join(", ")}. சாப்பிட்டதும் சாப்பிட்டேன் பொத்தானை அழுத்துங்கள்.`,
+      `${name}, it's time for your ${SLOT_LABEL[next.slot].en.toLowerCase()} tablets: ${pending.map((d) => `${d.med.name} ${d.med.dose}`).join(", ")}. Press "I took them" after you take them.`,
     );
     if (!ok) toast(t("இந்த போனில் குரல் இல்லை", "Voice isn't available on this phone"));
   }
@@ -88,167 +91,191 @@ export default function Home() {
   const pendingCount = next.doses.filter((d) => d.status !== "taken").length;
   const slotAllTaken = !!next.slot && pendingCount === 0;
   const slotHour = next.slot ? SLOT_LABEL[next.slot].hour : 0;
-
-  const rows = [
-    { key: "talk", icon: MessageCircle, ta: "சாத்தியிடம் பேசு", en: "Talk to Saathi", go: () => nav("/elder/talk") },
-    { key: "pulse", icon: HeartPulse, ta: "நாடித்துடிப்பு பார்", en: "Check my pulse", go: () => nav("/elder/pulse") },
-    { key: "card", icon: IdCard, ta: "என் அவசர அட்டை", en: "My emergency card", go: () => nav("/elder/card") },
-    { key: "call", icon: Phone, ta: "குடும்பத்தை அழை", en: "Call family", go: () => setCallOpen(true) },
-  ];
+  const askerWho = checkin ? whoFor(checkin.requestedBy) : null;
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-white pb-[124px]">
-      {/* Top bar */}
-      <header className="flex items-center justify-between px-5 pt-3 safe-top">
-        <img src="/icons/icon.svg" alt="Saathi" className="h-8 w-8" style={{ borderRadius: 7 }} />
-        <button onClick={() => setMenu(true)} aria-label={t("அமைப்புகள்", "Menu")}
-          className="grid h-12 w-12 place-items-center rounded-xl border border-line text-ink hover:bg-paper active:bg-paper-2">
-          <Menu className="h-6 w-6" strokeWidth={1.75} />
-        </button>
+    <div className="flex min-h-full flex-1 flex-col bg-canvas">
+      {/* Warm violet header */}
+      <header className="hero-violet relative overflow-hidden px-5 pb-12 pt-4 text-white safe-top">
+        <div className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-white/10" />
+        <div className="relative flex items-center gap-3">
+          <Person who="paati" size={64} online={me?.online} className="ring-4 ring-white/30" />
+          <div className="min-w-0 flex-1">
+            <Bi ta={`${greetTa}, ${tamilName(name)}`} en={`${greetEn}, ${name}`} className="text-[22px] font-extrabold leading-tight" sub="!opacity-80" />
+          </div>
+          <motion.button whileTap={{ scale: 0.92 }} onClick={() => setSheet("menu")} aria-label={t("அமைப்புகள்", "Settings")}
+            className="glass grid h-14 w-14 shrink-0 place-items-center rounded-full">
+            <Settings2 className="h-6 w-6" strokeWidth={2} />
+          </motion.button>
+        </div>
+        <div className="relative mt-5 flex items-end justify-between gap-3">
+          <div className="leading-none">
+            <span className="font-display text-[54px] font-extrabold tracking-tight tnum">{hm}</span>
+            <span className="ml-1.5 font-display text-[20px] font-bold text-white/80">{ampm}</span>
+          </div>
+          <div className="pb-1 text-right leading-tight">
+            <div className={cx("text-[18px] font-bold", ta && "font-tamil")}>{ta ? dateTa : dateEn}</div>
+            <div className={cx("text-[14px] text-white/75", !ta && "font-tamil")}>{ta ? dateEn : dateTa}</div>
+          </div>
+        </div>
       </header>
 
-      {/* Time and greeting */}
-      <section className="px-5 pb-6 pt-4">
-        <div className="flex items-baseline gap-2">
-          <span className="font-display text-[64px] font-semibold leading-none tnum" style={{ fontStretch: "88%" }}>{hm}</span>
-          <span className="font-display text-[24px] font-medium text-ink-2">{ampm}</span>
-        </div>
-        <p className={cx("mt-2 text-[17px] text-ink-2", lang === "ta" && "font-tamil")}>{lang === "ta" ? dateTa : dateEn}</p>
-        <h1 className={cx("mt-4 text-[30px] font-bold leading-tight", lang === "ta" && "font-tamil")}>{lang === "ta" ? `${greetTa}, ${name}` : `${greetEn}, ${name}`}</h1>
-        <p className={cx("text-[18px] text-ink-2", lang === "en" && "font-tamil")}>{lang === "ta" ? `${greetEn}, ${name}` : `${greetTa}, ${name}`}</p>
-      </section>
+      <ElderSheet>
+        {/* A family member is checking on her */}
+        {checkin && (
+          <motion.section initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="rounded-[28px] bg-lilac p-4 shadow-card">
+            <div className="flex items-center gap-3">
+              {askerWho ? <Person who={askerWho} size={60} /> : <Avatar name={checkin.requestedBy} size={60} />}
+              <Bi ta={`${checkin.requestedBy} உங்களை விசாரிக்கிறார்`} en={`${checkin.requestedBy} is checking on you`} className="min-w-0 flex-1 text-[22px] font-extrabold leading-tight" />
+            </div>
+            <div className="mt-4 flex flex-col gap-2.5">
+              <BigButton tone="violet" disabled={!!busy} onClick={() => void answer("ok")} icon={busy === "ok" ? <Spinner className="h-6 w-6 text-white" /> : <Check className="h-7 w-7" strokeWidth={2.6} />}>
+                <Bi ta="நான் நலம்" en="I'm OK" />
+              </BigButton>
+              <BigButton tone="white" disabled={!!busy} onClick={() => void answer("help")} className="!min-h-[64px] !text-sos-600">
+                <Bi ta="உதவி வேண்டும்" en="I need help" className="text-[20px]" />
+              </BigButton>
+            </div>
+          </motion.section>
+        )}
 
-      {/* Check-in from family */}
-      {checkin && (
-        <section className="animate-slidein border-y-2 border-brand bg-brand-50 px-5 py-5">
-          <p className="text-[24px] font-bold leading-tight">
-            <Bi ta={`${checkin.requestedBy} உங்களை விசாரிக்கிறார்`} en={`${checkin.requestedBy} is checking on you`} />
-          </p>
-          <div className="mt-4 grid grid-cols-1 gap-3">
-            <Button variant="brand" size="xl" className="!min-h-[72px] !text-[22px]" loading={busy === "ok"} onClick={() => answer("ok")}><Bi ta="நான் நலம்" en="I'm OK" /></Button>
-            <Button variant="outline" size="xl" className="!min-h-[64px] border-2 border-sos text-sos" loading={busy === "help"} onClick={() => answer("help")}><Bi ta="உதவி வேண்டும்" en="I need help" /></Button>
+        {/* The help button */}
+        <section className="relative overflow-hidden rounded-[32px] bg-white px-4 pb-5 pt-4 shadow-card">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-[radial-gradient(60%_80%_at_50%_30%,#FFE6E9_0%,transparent_70%)]" />
+          <div className="relative">
+            <SosButton onTrigger={() => void raiseSOS("app")} />
+            <div className="mt-2 text-center">
+              <Bi ta="2 விநாடி அழுத்திப் பிடியுங்கள்" en="Press and hold for 2 seconds" className="items-center text-[20px] font-extrabold leading-tight" />
+              <p className={cx("mt-2 text-[15px] leading-snug text-ink-2", ta && "font-tamil")}>
+                {ta ? "குடும்பம், ஆம்புலன்ஸ், மருத்துவமனை எல்லோருக்கும் உடனே தெரியும்" : "Your family, the ambulance and the hospital all hear at once"}
+              </p>
+            </div>
           </div>
         </section>
-      )}
 
-      {/* Tablets now */}
-      <section className="border-t border-line px-5 py-6">
-        {next.slot ? (
-          <>
-            <div className="flex items-baseline justify-between gap-3">
-              <h2 className="text-[26px] font-bold leading-tight"><Bi ta={`${SLOT_LABEL[next.slot].ta} மாத்திரைகள்`} en={`${SLOT_LABEL[next.slot].en} tablets`} /></h2>
-              <span className="shrink-0 text-right text-[17px] text-ink-2">
-                <Bi inline ta={`சுமார் ${hour12(slotHour)} மணி`} en={`About ${hour12(slotHour)} ${slotHour >= 12 ? "pm" : "am"}`} />
-              </span>
-            </div>
-            <div className="mt-5">
-              <Blister size="lg" doses={next.doses.map((d) => ({ id: `${d.med.id}-${d.slot}`, color: d.med.color, name: d.med.name, status: d.status }))} />
-            </div>
-            <ul className="mt-4 flex flex-col gap-2">
-              {next.doses.map((d) => (
-                <li key={`${d.med.id}-${d.slot}`} className="flex items-center gap-3 text-[19px] leading-tight">
-                  <span className="h-3.5 w-6 shrink-0 rounded-full border border-black/15" style={{ background: d.med.color }} />
-                  <span className={cx("min-w-0 flex-1", d.status === "taken" && "text-ink-3 line-through decoration-1")}>
-                    <span className="font-semibold">{d.med.name}</span> <span className="text-ink-2">{d.med.dose}</span>
+        {/* Tablets now */}
+        <section className="rounded-[28px] bg-white p-4 shadow-card">
+          {next.slot ? (
+            <>
+              <div className="flex items-start gap-3">
+                <span className="grid h-[68px] w-[68px] shrink-0 place-items-center rounded-2xl bg-butter"><Art name="pills" size={58} /></span>
+                <div className="min-w-0 flex-1">
+                  <Bi ta={`${SLOT_LABEL[next.slot].ta} மாத்திரைகள்`} en={`${SLOT_LABEL[next.slot].en} tablets`} className="text-[24px] font-extrabold leading-tight" />
+                  <span className="mt-1 inline-block rounded-full bg-canvas px-3 py-1 text-[15px] font-semibold text-ink-2">
+                    <Bi inline ta={`சுமார் ${hour12(slotHour)} மணி`} en={`About ${hour12(slotHour)} ${slotHour >= 12 ? "pm" : "am"}`} />
                   </span>
-                  {d.status === "taken" && <Check className="h-6 w-6 shrink-0 text-teal" strokeWidth={2.5} />}
-                  {d.status === "missed" && <span className="shrink-0 text-[15px] font-semibold text-warn"><Bi inline ta="தாமதம்" en="Late" /></span>}
-                </li>
-              ))}
-            </ul>
-            {slotAllTaken ? (
-              <p className="mt-5 flex items-center gap-2 text-[20px] font-semibold text-teal"><Check className="h-6 w-6" strokeWidth={2.5} /><Bi inline ta="எல்லாம் சாப்பிட்டீர்கள்" en="All taken" /></p>
-            ) : (
-              <div className="mt-5 flex gap-3">
-                <Button variant="brand" size="xl" className="!min-h-[80px] flex-1 !text-[24px]" loading={busy === "took"} onClick={tookSlot}>
-                  <Bi ta="சாப்பிட்டேன்" en="I took them" />
-                </Button>
-                <button onClick={hear} aria-label={t("கேளுங்கள்", "Hear")}
-                  className="flex w-[80px] shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border border-line-2 text-ink hover:bg-paper active:bg-paper-2">
-                  <Volume2 className="h-7 w-7" strokeWidth={1.75} />
-                  <span className="text-[15px] font-semibold"><Bi inline ta="கேள்" en="Hear" /></span>
-                </button>
+                </div>
               </div>
-            )}
-          </>
-        ) : (
-          <div>
-            <h2 className="text-[26px] font-bold leading-tight">{next.allDone ? <Bi ta="இன்றைய மாத்திரை முடிந்தது" en="All tablets done for today" /> : <Bi ta="இன்று மாத்திரை இல்லை" en="No tablets today" />}</h2>
-            {next.allDone && <p className="mt-2 flex items-center gap-2 text-[18px] text-teal"><Check className="h-5 w-5" strokeWidth={2.5} /><Bi inline ta="நன்று!" en="Well done!" /></p>}
-          </div>
-        )}
-      </section>
+              <div className="mt-4 flex justify-center rounded-2xl bg-canvas py-3">
+                <Blister size="lg" doses={next.doses.map((d) => ({ id: `${d.med.id}-${d.slot}`, color: d.med.color, name: d.med.name, status: d.status }))} />
+              </div>
+              <ul className="mt-3 flex flex-col">
+                {next.doses.map((d) => (
+                  <li key={`${d.med.id}-${d.slot}`} className="flex min-h-[48px] items-center gap-3 border-b border-line py-2 text-[19px] leading-tight last:border-b-0">
+                    <span className="h-4 w-7 shrink-0 rounded-full border border-black/15" style={{ background: d.med.color }} />
+                    <span className={cx("min-w-0 flex-1", d.status === "taken" && "text-ink-3 line-through decoration-1")}>
+                      <span className="font-bold">{d.med.name}</span> <span className="text-ink-2">{d.med.dose}</span>
+                    </span>
+                    {d.status === "taken" && <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-mint"><Check className="h-5 w-5 text-mint-ink" strokeWidth={3} /></span>}
+                    {d.status === "missed" && <span className="shrink-0 rounded-full bg-peach px-2.5 py-0.5 text-[15px] font-bold text-peach-ink"><Bi inline ta="தாமதம்" en="Late" /></span>}
+                  </li>
+                ))}
+              </ul>
+              {slotAllTaken ? (
+                <div className="mt-3 flex items-center gap-3 rounded-2xl bg-mint px-4 py-3 text-mint-ink">
+                  <Check className="h-7 w-7 shrink-0" strokeWidth={3} />
+                  <Bi ta="எல்லாம் சாப்பிட்டீர்கள்" en="All taken. Well done!" className="text-[20px] font-extrabold" />
+                </div>
+              ) : (
+                <div className="mt-3 flex gap-2.5">
+                  <BigButton tone="violet" className="!min-h-[80px] flex-1" disabled={busy === "took"} onClick={() => void tookSlot()}
+                    icon={busy === "took" ? <Spinner className="h-6 w-6 text-white" /> : <Check className="h-7 w-7" strokeWidth={2.6} />}>
+                    <Bi ta="சாப்பிட்டேன்" en="I took them" />
+                  </BigButton>
+                  <motion.button whileTap={{ scale: 0.95 }} onClick={hear} aria-label={t("கேளுங்கள்", "Hear")}
+                    className="flex w-[80px] shrink-0 flex-col items-center justify-center gap-1 rounded-[24px] bg-violet-50 text-violet-700">
+                    <Volume2 className="h-7 w-7" strokeWidth={2} />
+                    <span className="text-[16px] font-bold"><Bi inline ta="கேள்" en="Hear" /></span>
+                  </motion.button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="flex items-center gap-3">
+              <span className="grid h-[68px] w-[68px] shrink-0 place-items-center rounded-2xl bg-mint"><Art name="pills" size={58} /></span>
+              {next.allDone
+                ? <Bi ta="இன்றைய மாத்திரை முடிந்தது" en="All tablets done for today" className="text-[22px] font-extrabold leading-tight" />
+                : <Bi ta="இன்று மாத்திரை இல்லை" en="No tablets today" className="text-[22px] font-extrabold leading-tight" />}
+            </div>
+          )}
+        </section>
 
-      {/* Things to do */}
-      <nav aria-label={t("செயல்கள்", "Actions")}>
-        <ul className="border-y border-line">
-          {rows.map((r) => (
-            <li key={r.key} className="border-b border-line last:border-b-0">
-              <button onClick={r.go} className="flex min-h-[84px] w-full items-center gap-4 px-5 py-3 text-left hover:bg-paper active:bg-paper-2">
-                <r.icon className="h-7 w-7 shrink-0 text-ink-2" strokeWidth={1.75} />
-                <span className="min-w-0 flex-1 text-[22px] font-semibold leading-tight"><Bi ta={r.ta} en={r.en} /></span>
-                <ChevronRight className="h-6 w-6 shrink-0 text-ink-3" strokeWidth={1.75} />
-              </button>
-            </li>
-          ))}
-        </ul>
-      </nav>
+        {/* Big tiles */}
+        <div className="grid grid-cols-2 gap-3">
+          <ElderTile tone="lilac" art="chat" ta="சாத்தியிடம் பேசு" en="Talk to Saathi" onClick={() => nav("/elder/talk")} />
+          <ElderTile tone="rose" art="heart" ta="நாடித்துடிப்பு" en="Check my pulse" onClick={() => nav("/elder/pulse")} />
+          <ElderTile tone="sky" art="shield" ta="என் அட்டை" en="My card" onClick={() => nav("/elder/card")} />
+          <ElderTile tone="mint" art="home" ta="குடும்பத்தை அழை" en="Call family" onClick={() => setSheet("call")} />
+        </div>
 
-      {/* Fall detection */}
-      <button onClick={toggleFall} role="switch" aria-checked={fallOn} className="flex items-center gap-4 px-5 py-5 text-left">
-        <span className="min-w-0 flex-1 text-[17px] font-medium leading-tight text-ink-2">
-          <Bi ta="விழுந்தால் தானாக உதவி அழைக்கும்" en="Call for help automatically if I fall" sub="text-[14px]" />
-        </span>
-        <span className={cx("relative h-8 w-14 shrink-0 rounded-full transition-colors", fallOn ? "bg-teal" : "bg-line-2")} aria-hidden="true">
-          <span className={cx("absolute top-1 h-6 w-6 rounded-full bg-white transition-all", fallOn ? "left-7" : "left-1")} />
-        </span>
-      </button>
-
-      <SosButton onTrigger={() => void raiseSOS("app")} />
+        {/* Fall detection */}
+        <button onClick={() => void toggleFall()} role="switch" aria-checked={fallOn}
+          className="flex min-h-[88px] items-center gap-4 rounded-[28px] bg-white px-5 py-4 text-left shadow-card">
+          <Bi ta="விழுந்தால் தானாக உதவி அழைக்கும்" en="Call for help by itself if I fall" className="min-w-0 flex-1 text-[19px] font-bold leading-snug" />
+          <span className={cx("relative h-10 w-[68px] shrink-0 rounded-full transition-colors", fallOn ? "bg-violet" : "bg-line-2")} aria-hidden="true">
+            <span className={cx("absolute top-1 h-8 w-8 rounded-full bg-white shadow transition-all", fallOn ? "left-[32px]" : "left-1")} />
+          </span>
+        </button>
+      </ElderSheet>
 
       {/* Call family */}
-      <Modal open={callOpen} onClose={() => setCallOpen(false)} title={<Bi inline ta="குடும்பத்தை அழை" en="Call family" />}>
-        {family.length === 0 && <p className="text-[17px] text-ink-2">{t("குடும்பத்தினர் இன்னும் சேரவில்லை", "No family members have joined yet.")}</p>}
-        <ul className="-mx-5 border-t border-line sm:-mx-6">
+      <BottomSheet open={sheet === "call"} onClose={() => setSheet(null)} title={<Bi inline ta="குடும்பத்தை அழை" en="Call family" />}>
+        {family.length === 0 && <p className="text-[18px] text-ink-2">{t("குடும்பத்தினர் இன்னும் சேரவில்லை", "No family members have joined yet.")}</p>}
+        <ul className="flex flex-col gap-3">
           {family.map((m) => (
-            <li key={m.id} className="flex items-center gap-4 border-b border-line px-5 py-4 sm:px-6">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 text-[22px] font-semibold leading-tight">
-                  {m.name}
-                  {m.online && <span className="h-2.5 w-2.5 rounded-full bg-teal" aria-label="online" />}
-                </div>
+            <li key={m.id} className="flex items-center gap-3 rounded-3xl bg-canvas p-3">
+              <Avatar name={m.name} size={60} online={m.online} />
+              <div className="min-w-0 flex-1 leading-tight">
+                <div className="truncate text-[21px] font-extrabold">{m.name}</div>
                 <div className="text-[15px] text-ink-2">{m.relation}</div>
-                {m.phone && <div className="mt-0.5 select-all font-mono text-[17px] text-ink">{m.phone}</div>}
               </div>
               {m.phone ? (
-                <a href={`tel:${m.phone.replace(/\s/g, "")}`} className="flex h-14 items-center gap-2 rounded-xl bg-ink px-5 text-[17px] font-semibold text-white active:bg-ink/85" aria-label={`Call ${m.name}`}>
-                  <Phone className="h-5 w-5" strokeWidth={2} /><Bi inline ta="அழை" en="Call" />
+                <a href={`tel:${m.phone.replace(/\s/g, "")}`} aria-label={`Call ${m.name}`}
+                  className="flex h-16 shrink-0 items-center gap-2 rounded-full bg-violet px-5 text-[18px] font-bold text-white shadow-[0_10px_24px_-10px_rgba(91,71,230,.8)]">
+                  <Phone className="h-6 w-6" strokeWidth={2.2} /><Bi inline ta="அழை" en="Call" />
                 </a>
               ) : <span className="text-[15px] text-ink-3">{t("எண் இல்லை", "No number")}</span>}
             </li>
           ))}
         </ul>
-      </Modal>
+      </BottomSheet>
 
-      {/* Menu */}
-      <Modal open={menu} onClose={() => setMenu(false)} title={<Bi inline ta="அமைப்புகள்" en="Settings" />}>
-        <div className="flex flex-col gap-6">
+      {/* Settings */}
+      <BottomSheet open={sheet === "menu"} onClose={() => setSheet(null)} title={<Bi inline ta="அமைப்புகள்" en="Settings" />}>
+        <div className="flex flex-col gap-5">
           <div>
-            <p className="mb-2 text-[17px] font-semibold"><Bi inline ta="மொழி" en="Language" /></p>
+            <p className="mb-2 text-[18px] font-bold"><Bi inline ta="மொழி" en="Language" /></p>
             <div className="grid grid-cols-2 gap-2">
-              <Button size="lg" variant={lang === "ta" ? "primary" : "outline"} onClick={() => setLang("ta")}><span className="font-tamil text-[18px]">தமிழ்</span></Button>
-              <Button size="lg" variant={lang === "en" ? "primary" : "outline"} onClick={() => setLang("en")}><span className="text-[18px]">English</span></Button>
+              {(["ta", "en"] as const).map((l) => (
+                <button key={l} onClick={() => setLang(l)}
+                  className={cx("h-16 rounded-[22px] text-[20px] font-bold transition-colors", lang === l ? "bg-violet text-white" : "bg-canvas text-ink", l === "ta" && "font-tamil")}>
+                  {l === "ta" ? "தமிழ்" : "English"}
+                </button>
+              ))}
             </div>
           </div>
-          <div className="border-t border-line pt-4 text-[15px] text-ink-2">
-            <div className="text-[17px] font-semibold text-ink">{user?.name}</div>
-            {p && <div>{p.address}</div>}
+          <div className="flex items-center gap-3 rounded-3xl bg-canvas p-3">
+            <Person who="paati" size={56} />
+            <div className="min-w-0 leading-tight">
+              <div className="text-[18px] font-bold">{user?.name}</div>
+              {p && <div className="text-[14px] text-ink-2">{p.address}</div>}
+            </div>
           </div>
-          <Button size="lg" variant="outline" icon={<LogOut className="h-5 w-5" strokeWidth={1.75} />} onClick={async () => { await signOut(); nav("/"); }}>
+          <BigButton tone="white" className="!min-h-[64px] !text-[19px]" icon={<LogOut className="h-6 w-6" strokeWidth={2} />} onClick={async () => { await signOut(); nav("/"); }}>
             <Bi inline ta="வெளியேறு" en="Sign out" />
-          </Button>
+          </BigButton>
         </div>
-      </Modal>
+      </BottomSheet>
     </div>
   );
 }

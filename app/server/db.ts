@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, user_id TEXT NOT NU
 CREATE TABLE IF NOT EXISTS patients (
   id TEXT PRIMARY KEY, family_id TEXT NOT NULL, user_id TEXT, name TEXT NOT NULL, nickname TEXT NOT NULL, age INTEGER, sex TEXT,
   blood TEXT, address TEXT, lat REAL, lng REAL, conditions TEXT NOT NULL DEFAULT '[]', allergies TEXT NOT NULL DEFAULT '[]',
-  abha TEXT, doctor TEXT, memory TEXT NOT NULL DEFAULT '');
+  abha TEXT, doctor TEXT, memory TEXT NOT NULL DEFAULT '', card_token TEXT);
 CREATE TABLE IF NOT EXISTS medications (
   id TEXT PRIMARY KEY, patient_id TEXT NOT NULL, name TEXT NOT NULL, generic TEXT, dose TEXT NOT NULL, purpose TEXT,
   slots TEXT NOT NULL, stock INTEGER NOT NULL DEFAULT 0, color TEXT NOT NULL DEFAULT '#FFFFFF', active INTEGER NOT NULL DEFAULT 1,
@@ -56,6 +56,18 @@ CREATE TABLE IF NOT EXISTS visits (
 CREATE TABLE IF NOT EXISTS chats (id TEXT PRIMARY KEY, patient_id TEXT NOT NULL, role TEXT NOT NULL, text TEXT NOT NULL, english TEXT, red_flag INTEGER NOT NULL DEFAULT 0, at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS checkins (id TEXT PRIMARY KEY, patient_id TEXT NOT NULL, requested_by TEXT NOT NULL, requested_at TEXT NOT NULL, answered_at TEXT, answer TEXT);
 `);
+
+/** Random, unguessable token printed (as a QR) on the elder's emergency card. Separate from the family code. */
+export const newCardToken = () => crypto.randomBytes(9).toString("base64url");
+
+// Migration: databases created before the emergency card QR have no card_token column.
+if (!(db.prepare("PRAGMA table_info(patients)").all() as { name: string }[]).some((c) => c.name === "card_token")) {
+  db.exec("ALTER TABLE patients ADD COLUMN card_token TEXT");
+}
+for (const r of db.prepare("SELECT id FROM patients WHERE card_token IS NULL OR card_token = ''").all() as { id: string }[]) {
+  db.prepare("UPDATE patients SET card_token = ? WHERE id = ?").run(newCardToken(), r.id);
+}
+db.exec("CREATE UNIQUE INDEX IF NOT EXISTS patients_card_token ON patients(card_token)");
 
 export const uid = (prefix = "") => prefix + crypto.randomBytes(8).toString("hex");
 export const nowIso = () => new Date().toISOString();

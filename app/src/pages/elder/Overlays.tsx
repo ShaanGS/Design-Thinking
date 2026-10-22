@@ -1,11 +1,12 @@
 // Saathi's escalation call and the fall-detection countdown, shown over any elder screen.
 import { useEffect, useRef, useState } from "react";
-import { Phone, PhoneOff } from "lucide-react";
+import { Phone, Check } from "lucide-react";
 import { api } from "../../lib/api";
 import { useLive } from "../../lib/socket";
 import { speak, stopSpeaking } from "../../lib/speech";
-import { Button, useToast } from "../../components/ui";
-import { Bi, useElder } from "./shared";
+import { ProgressRing, Spinner, useToast } from "../../components/ui";
+import { Art } from "../../components/kit";
+import { BigButton, Bi, useElder } from "./shared";
 
 export function EscalationCall() {
   const { raiseSOS, reload } = useElder();
@@ -28,23 +29,29 @@ export function EscalationCall() {
     finally { setBusy(false); stopSpeaking(); }
   };
   return (
-    <div className="fixed inset-0 z-[950] overflow-y-auto bg-night text-white safe-top safe-bottom animate-slidein">
-      <div className="mx-auto flex min-h-full max-w-[480px] flex-col px-5 pb-6 pt-10">
-        <p className="text-[15px] text-white/60"><Bi inline ta="அழைப்பு வருகிறது" en="Incoming call" /></p>
-        <div className="mt-4 flex items-center gap-4">
-          <img src="/icons/icon.svg" alt="" className="h-16 w-16" style={{ borderRadius: 14 }} />
-          <h1 className="text-[36px] font-bold leading-tight"><Bi ta="சாத்தி" en="Saathi" /></h1>
+    <div className="hero-violet fixed inset-0 z-[950] overflow-y-auto text-white animate-slidein">
+      <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-white/10" />
+      <div className="relative flex min-h-full flex-col items-center px-5 pb-8 pt-6 text-center safe-top">
+        <span className="glass inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[16px] font-bold">
+          <span className="h-2.5 w-2.5 animate-blink rounded-full bg-[#5BE39A]" /><Bi inline ta="அழைப்பு வருகிறது" en="Incoming call" />
+        </span>
+        <div className="relative mt-10 grid h-[180px] w-[180px] place-items-center">
+          <span className="absolute h-[150px] w-[150px] rounded-full bg-white/25 animate-ripple" />
+          <span className="absolute h-[150px] w-[150px] rounded-full bg-white/20 animate-ripple [animation-delay:1s]" />
+          <span className="relative grid h-[150px] w-[150px] place-items-center rounded-full bg-white shadow-lift"><Art name="chat" size={104} /></span>
         </div>
-        <blockquote className="mt-8 border-l-4 border-brand pl-4 text-[26px] font-semibold leading-snug">
+        <h1 className="mt-5 text-[40px] font-extrabold leading-tight"><Bi ta="சாத்தி" en="Saathi" className="items-center" /></h1>
+        <blockquote className="glass mt-6 w-full rounded-[28px] px-5 py-4 text-left text-[23px] font-bold leading-snug">
           <Bi ta="“பாட்டி, காலை மாத்திரை சாப்பிட்டீங்களா? நலமா?”" en="“Paati, did you take your morning tablets? Are you well?”" />
         </blockquote>
-        <div className="mt-auto flex flex-col gap-3 pt-10">
-          <Button variant="brand" size="xl" className="!min-h-[84px] !text-[24px]" icon={<Phone className="h-7 w-7" strokeWidth={2} />} loading={busy} onClick={ok}>
-            <Bi ta="ஆம், நலம்" en="Yes, I'm fine" />
-          </Button>
-          <Button variant="sos" size="xl" className="!min-h-[72px] !text-[22px]" icon={<PhoneOff className="h-6 w-6" strokeWidth={2} />} onClick={() => { setOpen(false); stopSpeaking(); void raiseSOS("Saathi call (pressed help)"); }}>
+        <div className="mt-auto flex w-full flex-col gap-3 pt-8">
+          <BigButton tone="white" className="!min-h-[84px] !text-[24px] !text-mint-ink" disabled={busy} onClick={() => void ok()}
+            icon={busy ? <Spinner className="h-7 w-7" /> : <span className="grid h-11 w-11 place-items-center rounded-full bg-mint"><Phone className="h-6 w-6" strokeWidth={2.4} /></span>}>
+            <Bi ta="ஆம், நலம்" en="Yes, I'm fine" className="text-ink" />
+          </BigButton>
+          <BigButton tone="sos" onClick={() => { setOpen(false); stopSpeaking(); void raiseSOS("Saathi call (pressed help)"); }}>
             <Bi ta="உதவி வேண்டும்" en="I need help" />
-          </Button>
+          </BigButton>
         </div>
       </div>
     </div>
@@ -87,21 +94,28 @@ export function FallWatcher() {
 
   if (left === null) return null;
   return (
-    <div className="fixed inset-0 z-[940] overflow-y-auto bg-white safe-top safe-bottom animate-slidein">
-      <div className="mx-auto flex min-h-full max-w-[480px] flex-col px-5 pb-6">
-        <div className="-mx-5 bg-warn px-5 py-3 text-[17px] font-semibold text-white"><Bi inline ta="விழுந்தது போல் தெரிகிறது" en="It looks like you fell" /></div>
-        <h1 className="mt-7 text-[40px] font-bold leading-[1.05]"><Bi ta="நீங்கள் நலமா?" en="Are you OK?" /></h1>
-        <div className="mt-8 border-y border-line py-6">
-          <p className="text-[17px] text-ink-2"><Bi inline ta="உதவி அழைக்கப்படும்" en="Calling for help in" /></p>
-          <p className="mt-1 flex items-baseline gap-2">
-            <span className="font-display text-[96px] font-semibold leading-[0.85] text-warn tnum">{left}</span>
-            <span className="text-[22px] font-semibold text-warn"><Bi inline ta="விநாடி" en="sec" /></span>
-          </p>
-          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-paper-2"><div className="h-full bg-warn transition-[width] duration-1000 ease-linear" style={{ width: `${(left / FALL_SECONDS) * 100}%` }} /></div>
+    <div className="fixed inset-0 z-[940] overflow-y-auto bg-[radial-gradient(90%_60%_at_50%_0%,#FFD2B5_0%,#FFE3D1_45%,#FFF4EC_100%)] animate-slidein">
+      <div className="flex min-h-full flex-col items-center px-5 pb-8 pt-6 text-center safe-top">
+        <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-[16px] font-bold text-peach-ink shadow-card">
+          <span className="h-2.5 w-2.5 animate-blink rounded-full bg-peach-ink" /><Bi inline ta="விழுந்தது போல் தெரிகிறது" en="It looks like you fell" />
+        </span>
+        <h1 className="mt-6 text-[44px] font-extrabold leading-[1.05]"><Bi ta="நீங்கள் நலமா?" en="Are you OK?" className="items-center" /></h1>
+        <div className="mt-8 rounded-full bg-white p-3 shadow-lift">
+          <ProgressRing value={left / FALL_SECONDS} size={190} stroke={14} color="#B54A12" track="#FFE3D1">
+            <div className="flex flex-col items-center leading-none">
+              <span className="font-display text-[76px] font-extrabold text-peach-ink tnum">{left}</span>
+              <span className="mt-1 text-[16px] font-bold text-ink-2"><Bi inline ta="விநாடி" en="seconds" /></span>
+            </div>
+          </ProgressRing>
         </div>
-        <div className="mt-auto flex flex-col gap-3 pt-8">
-          <Button variant="primary" size="xl" className="!min-h-[84px] !text-[24px]" onClick={() => setLeft(null)}><Bi ta="நான் நலம்" en="I'm OK" /></Button>
-          <Button variant="sos" size="xl" className="!min-h-[72px] !text-[22px]" onClick={() => { setLeft(null); void raiseSOS("fall sensor", "fall"); }}><Bi ta="இப்போதே உதவி" en="Get help now" /></Button>
+        <p className="mt-5 text-[19px] font-bold text-ink-2"><Bi ta="பிறகு தானாக உதவி அழைக்கப்படும்" en="Then help is called by itself" className="items-center" /></p>
+        <div className="mt-auto flex w-full flex-col gap-3 pt-8">
+          <BigButton tone="violet" className="!min-h-[84px] !text-[24px]" icon={<Check className="h-8 w-8" strokeWidth={2.6} />} onClick={() => setLeft(null)}>
+            <Bi ta="நான் நலம்" en="I'm OK" />
+          </BigButton>
+          <BigButton tone="sos" onClick={() => { setLeft(null); void raiseSOS("fall sensor", "fall"); }}>
+            <Bi ta="இப்போதே உதவி" en="Get help now" />
+          </BigButton>
         </div>
       </div>
     </div>
