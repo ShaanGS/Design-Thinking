@@ -50,7 +50,8 @@ npm start                     # http://localhost:3000
 
 ### Put it online (so any phone can open it)
 
-- **Render:** push this repo, then New → Blueprint → pick the repo (uses `render.yaml`). Add `ANTHROPIC_API_KEY` in the dashboard. The free tier sleeps when idle, so open it 1 minute before the demo.
+- **Render (free, always the same link):** open https://render.com/deploy?repo=https://github.com/ShaanGS/Design-Thinking, sign in with GitHub and click *Apply* (it reads `render.yaml` at the repo root). Paste `ANTHROPIC_API_KEY` when asked, or leave it blank for demo mode. The free tier sleeps when idle, so open it 1 minute before the demo.
+- Ambulance routes come from OSRM over OpenStreetMap roads (`OSRM_URL` overrides the public server). If the host can't reach it, routing falls back to straight-line estimates.
 - **Docker:** `docker build -t saathi . && docker run -p 3000:3000 -e ANTHROPIC_API_KEY=... saathi`.
 - Camera (Face Pulse), microphone (voice) and motion sensors (fall detection) need **https** (or localhost).
 - Install on a phone: open the link → browser menu → *Add to Home screen*. It opens full-screen like a native app.
