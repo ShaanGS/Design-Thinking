@@ -31,11 +31,14 @@ export function needsFor(condition: Condition, onAntiplatelet: boolean): string[
   return base;
 }
 
-export function decideRoute(condition: Condition, lat: number, lng: number, list: Hospital[], onAntiplatelet = true): RouteDecision {
+/** `roads[i]` (optional) gives real road km and drive minutes from the patient to `list[i]`. */
+export function decideRoute(condition: Condition, lat: number, lng: number, list: Hospital[], onAntiplatelet = true, roads?: { km: number; min: number }[] | null): RouteDecision {
   const needs = needsFor(condition, onAntiplatelet);
-  const ranking: RouteOption[] = list.map((h) => {
-    const d = km(lat, lng, h.lat, h.lng);
-    const etaMin = Math.round((d / AVG_KMH) * 60 + DISPATCH_MIN);
+  const ranking: RouteOption[] = list.map((h, i) => {
+    const road = roads?.[i];
+    const useRoad = !!road && Number.isFinite(road.km) && Number.isFinite(road.min);
+    const d = useRoad ? road!.km : km(lat, lng, h.lat, h.lng);
+    const etaMin = Math.round((useRoad ? road!.min : (d / AVG_KMH) * 60) + DISPATCH_MIN);
     const missing = needs.filter((n) => !hasNeed(h, n));
     let score = etaMin + (missing.length ? TRANSFER_PENALTY : 0);
     if (!missing.length && h.icuBeds === 0 && condition !== "unknown") score += NO_ICU_PENALTY;
@@ -45,6 +48,6 @@ export function decideRoute(condition: Condition, lat: number, lng: number, list
   const pick = ranking[0];
   return {
     hospitalId: pick.hospitalId, nearestId: nearest.hospitalId, etaMin: pick.etaMin, savedMin: Math.max(0, nearest.score - pick.score),
-    needs, needLabel: CONDITION_INFO[condition].needLabel, ranking,
+    needs, needLabel: CONDITION_INFO[condition].needLabel, ranking, roads: !!roads?.some((r) => Number.isFinite(r.km)),
   };
 }

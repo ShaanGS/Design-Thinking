@@ -2,6 +2,7 @@
 import { all, get, run, uid, nowIso, parse } from "./db.ts";
 import { addFeed, hospitals, hospitalById, meds, patientById, healthRecord, rowToEmergencyBase, relays as listRelays, toRelay } from "./store.ts";
 import { decideRoute, km } from "./routing.ts";
+import { roadTable, roadRoute, along } from "./roads.ts";
 import { triage as aiTriage, erBrief, ruleTriage } from "./ai.ts";
 import { toFamily, toNetwork } from "./realtime.ts";
 import type { Condition, Emergency, Triage } from "../shared/types.ts";
@@ -23,8 +24,12 @@ export function hydrate(r: any): Emergency {
     const elapsed = simMinutesSince(e.dispatchedAt);
     progress = ["arrived", "admitted", "resolved"].includes(e.status) ? 1 : Math.min(1, elapsed / total);
     etaLeftMin = Math.max(0, Math.ceil(total - elapsed));
-    if (h) {
-      // first leg base → home (share of time for pickup), second leg home → hospital
+    const r = e.route;
+    if (r.path && r.path.length > 1 && r.pickupIndex != null && r.pickupShare != null) {
+      // follow the real road: 108 base → her home, then her home → the hospital
+      const toHome = r.path.slice(0, r.pickupIndex + 1), toHosp = r.path.slice(r.pickupIndex);
+      ambulance = progress < r.pickupShare ? along(toHome, progress / r.pickupShare) : along(toHosp, (progress - r.pickupShare) / (1 - r.pickupShare));
+    } else if (h) {
       const pickupShare = Math.min(0.4, 4 / total);
       const lerp = (a: { lat: number; lng: number }, b: { lat: number; lng: number }, t: number) => ({ lat: a.lat + (b.lat - a.lat) * t, lng: a.lng + (b.lng - a.lng) * t });
       ambulance = progress < pickupShare ? lerp(AMBULANCE_BASE, p, progress / pickupShare) : lerp(p, h, (progress - pickupShare) / (1 - pickupShare));
@@ -80,7 +85,16 @@ async function dispatch(id: string, text: string | null, condition: Condition | 
     : text ? await aiTriage(text, p) : { ...ruleTriage(null), source: "no answer: routed on medical history" };
   const current = meds(p.id);
   const onAntiplatelet = current.some((m) => /clopidogrel|aspirin|warfarin|apixaban|rivaroxaban|dabigatran/i.test(`${m.name} ${m.generic}`));
-  const route = decideRoute(tri.condition, p.lat, p.lng, hospitals(), onAntiplatelet);
+  const list = hospitals();
+  const roads = await roadTable(p, list);
+  const route = decideRoute(tri.condition, p.lat, p.lng, list, onAntiplatelet, roads);
+  const dest = list.find((h) => h.id === route.hospitalId)!;
+  const geo = await roadRoute([AMBULANCE_BASE, p, dest]);
+  if (geo && geo.legEnd.length === 2) {
+    const pickup = geo.legMin[0] + 2; // drive to her, plus about 2 minutes to load her in
+    const total = Math.max(3, Math.round(pickup + geo.legMin[1]));
+    Object.assign(route, { path: geo.path, pickupIndex: geo.legEnd[0], pickupShare: Math.min(0.6, pickup / total), etaMin: total });
+  }
   const rec = healthRecord(p.id);
   const brief = await erBrief(p, tri, current, rec);
   const fresh = emergencyById(id);

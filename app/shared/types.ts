@@ -202,6 +202,13 @@ export interface RouteDecision {
   needs: string[];
   needLabel: string;
   ranking: RouteOption[];
+  /** true when distances and times come from real roads (OSRM), false for straight-line estimates */
+  roads?: boolean;
+  /** Ambulance path as [lat, lng] points: 108 base → home → hospital */
+  path?: [number, number][];
+  /** Index in `path` of the patient's home, and the share of the trip spent reaching her */
+  pickupIndex?: number;
+  pickupShare?: number;
 }
 
 export interface Triage {

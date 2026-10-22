@@ -114,7 +114,7 @@ export default function EmergencyPage() {
         <div className="flex min-w-0 flex-col gap-10">
           <section>
             <div className="overflow-hidden rounded-xl border border-line bg-white">
-              <MapView home={{ lat: p.lat, lng: p.lng, name: `${p.nickname}'s home` }} hospitals={hospitals} chosenId={route?.hospitalId} nearestId={route?.nearestId} ambulance={e.ambulance} height={340} />
+              <MapView home={{ lat: p.lat, lng: p.lng, name: `${p.nickname}'s home` }} hospitals={hospitals} chosenId={route?.hospitalId} nearestId={route?.nearestId} ambulance={e.ambulance} path={route?.path} height={340} />
             </div>
             <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-[13px] text-ink-2">
               <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-[3px] border-2 border-ink bg-brand" />Home</span>

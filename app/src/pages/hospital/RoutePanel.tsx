@@ -29,8 +29,8 @@ export default function RoutePanel({ e, file, hospitals }: { e: Emergency | null
 
       {e && (
         <div className="px-4 pt-3 sm:px-5">
-          {home ? <MapView home={home} hospitals={hospitals} chosenId={r?.hospitalId} nearestId={r?.nearestId} ambulance={e.ambulance} height={240} />
-            : e.ambulance ? <MapView home={e.ambulance} hospitals={hospitals} chosenId={r?.hospitalId} nearestId={r?.nearestId} ambulance={e.ambulance} height={240} />
+          {home ? <MapView home={home} hospitals={hospitals} chosenId={r?.hospitalId} nearestId={r?.nearestId} ambulance={e.ambulance} path={r?.path} height={240} />
+            : e.ambulance ? <MapView home={e.ambulance} hospitals={hospitals} chosenId={r?.hospitalId} nearestId={r?.nearestId} ambulance={e.ambulance} path={r?.path} height={240} />
             : <div className="grid h-[180px] place-items-center rounded-[10px] bg-paper-2 text-[14px] text-ink-2">The map appears once the ambulance is dispatched</div>}
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-ink-2">
             <span className="inline-flex items-center gap-1.5"><i className="inline-block h-[3px] w-5 rounded bg-ink" />Route taken</span>

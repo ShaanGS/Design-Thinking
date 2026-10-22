@@ -17,12 +17,14 @@ function Fit({ points }: { points: [number, number][] }) {
   return null;
 }
 
-export default function MapView({ home, hospitals, chosenId, nearestId, ambulance, height = 320, className, onlyRelevant }: {
+export default function MapView({ home, hospitals, chosenId, nearestId, ambulance, path, height = 320, className, onlyRelevant }: {
   home: { lat: number; lng: number; name?: string };
   hospitals: Hospital[];
   chosenId?: string | null;
   nearestId?: string | null;
   ambulance?: { lat: number; lng: number } | null;
+  /** Real road route ([lat, lng] points) for the ambulance; drawn instead of a straight line */
+  path?: [number, number][] | null;
   height?: number | string;
   className?: string;
   onlyRelevant?: boolean;
@@ -30,14 +32,17 @@ export default function MapView({ home, hospitals, chosenId, nearestId, ambulanc
   const shown = onlyRelevant && chosenId ? hospitals.filter((h) => h.id === chosenId || h.id === nearestId) : hospitals;
   const chosen = hospitals.find((h) => h.id === chosenId);
   const nearest = hospitals.find((h) => h.id === nearestId);
-  const points = useMemo(() => [[home.lat, home.lng] as [number, number], ...shown.map((h) => [h.lat, h.lng] as [number, number])], [home.lat, home.lng, shown]);
+  const hasPath = !!path && path.length > 1;
+  const points = useMemo(() => [[home.lat, home.lng] as [number, number], ...shown.map((h) => [h.lat, h.lng] as [number, number]), ...(hasPath ? [path![0], path![path!.length - 1]] : [])], [home.lat, home.lng, shown, hasPath, path]);
   return (
     <div className={className} style={{ height }}>
       <MapContainer center={[home.lat, home.lng]} zoom={13} scrollWheelZoom={false} style={{ height: "100%", width: "100%", borderRadius: 10 }} attributionControl>
         <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         <Fit points={points} />
         {nearest && chosen && nearest.id !== chosen.id && <Polyline positions={[[home.lat, home.lng], [nearest.lat, nearest.lng]]} pathOptions={{ color: "#B25E00", weight: 3, dashArray: "4 7", opacity: 0.9 }} />}
-        {chosen && <Polyline positions={[[home.lat, home.lng], [chosen.lat, chosen.lng]]} pathOptions={{ color: "#14172B", weight: 5, opacity: 0.9 }} />}
+        {hasPath && <Polyline positions={path!} pathOptions={{ color: "#FFFFFF", weight: 9, opacity: 0.9 }} />}
+        {hasPath && <Polyline positions={path!} pathOptions={{ color: "#14172B", weight: 5, opacity: 0.95 }} />}
+        {!hasPath && chosen && <Polyline positions={[[home.lat, home.lng], [chosen.lat, chosen.lng]]} pathOptions={{ color: "#14172B", weight: 5, opacity: 0.9 }} />}
         <Marker position={[home.lat, home.lng]} icon={homeIcon}><Tooltip direction="top" offset={[0, -14]}>{home.name || "Home"}</Tooltip></Marker>
         {shown.map((h) => (
           <Marker key={h.id} position={[h.lat, h.lng]} icon={hospIcon(h.id === chosenId ? "chosen" : h.id === nearestId ? "nearest" : "other", h.short)} />
