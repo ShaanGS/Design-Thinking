@@ -20,6 +20,8 @@ const CHOICES: { c: Condition; art: ArtName; tone: string }[] = [
   { c: "unknown", art: "chat", tone: "bg-mint" },
 ];
 const AUTO_SECONDS = 10;
+// Shorter spoken labels so they fit the big tiles
+const SHORT: Partial<Record<Condition, { ta: string; en: string }>> = { stroke: { ta: "பேச்சு குழறல்", en: "Slurred speech" }, unknown: { ta: "தெரியலை", en: "Not sure" } };
 
 export function SymptomPicker({ emergency }: { emergency: Emergency }) {
   const toast = useToast();
@@ -63,7 +65,7 @@ export function SymptomPicker({ emergency }: { emergency: Emergency }) {
             <motion.button key={c} whileTap={{ scale: 0.96 }} onClick={() => void send(c)} disabled={!!sent}
               className={cx("relative flex min-h-[132px] flex-col overflow-hidden rounded-3xl p-4 text-left transition-opacity",
                 tone, sent === c && "ring-4 ring-violet", sent && sent !== c && "opacity-35")}>
-              <Bi ta={CONDITION_INFO[c].ta} en={CONDITION_INFO[c].en} className="relative z-[1] max-w-[88%] text-[22px] font-extrabold leading-[1.15]" />
+              <Bi ta={(SHORT[c] ?? CONDITION_INFO[c]).ta} en={(SHORT[c] ?? CONDITION_INFO[c]).en} className="relative z-[1] max-w-full text-[21px] font-extrabold leading-[1.15]" />
               <Art name={art} size={70} className="absolute -bottom-1 -right-1" />
               {c === "unknown" && !sent && (
                 <span className="absolute bottom-3 left-4 grid h-11 w-11 place-items-center rounded-full bg-white font-display text-[20px] font-extrabold text-mint-ink tnum shadow-card">{secs}</span>
@@ -170,7 +172,7 @@ export function EmergencyScreen({ emergency }: { emergency: Emergency }) {
               <>
                 <Art name="ambulance" size={58} className="-mt-1" />
                 <span className="font-display text-[52px] font-extrabold leading-none text-sos-600 tnum">{emergency.etaLeftMin ?? "–"}</span>
-                <span className="text-[15px] font-bold text-ink-2"><Bi inline ta="நிமிடத்தில் ஆம்புலன்ஸ்" en="min to ambulance" /></span>
+                <span className="text-center text-[16px] font-bold leading-tight text-ink-2"><Bi inline ta="நிமிடம்" en="minutes" /></span>
               </>
             )}
           </div>
@@ -256,7 +258,7 @@ export function EmergencyScreen({ emergency }: { emergency: Emergency }) {
         )}
       </div>
 
-      <BottomSheet open={confirm} onClose={() => setConfirm(false)} title={<Bi inline ta="ரத்து செய்யவா?" en="Cancel the help?" />}>
+      <BottomSheet open={confirm} onClose={() => setConfirm(false)} title={<span className="text-ink"><Bi inline ta="ரத்து செய்யவா?" en="Cancel the help?" /></span>}>
         <p className="text-[18px] leading-snug text-ink-2"><Bi ta="உங்கள் குடும்பத்துக்கு நீங்கள் நலம் என்று சொல்வோம். ஆம்புலன்ஸ் திரும்பிவிடும்." en="We'll tell your family you're OK and stop the ambulance." /></p>
         <div className="mt-5 flex flex-col gap-3">
           <BigButton tone="ink" disabled={cancelling} onClick={() => void cancel()} icon={cancelling ? <Spinner className="h-6 w-6 text-white" /> : undefined}>

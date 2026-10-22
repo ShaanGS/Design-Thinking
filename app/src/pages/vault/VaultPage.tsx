@@ -10,6 +10,7 @@ import { isTamil } from "../../lib/format";
 import { Button, Segmented, Spinner, cx, useToast } from "../../components/ui";
 import { Art, BottomSheet, Pill, Section, StatCard, Tile, TopBar } from "../../components/kit";
 import Capsule from "../../components/Capsule";
+import { slotTime } from "../family/ctx";
 import QR from "../../components/QR";
 import type { HealthRecord, Insight, MedDocument, Medication } from "../../../shared/types";
 import { DocThumb, LEVEL_STYLE, SCAN_CSS, Sources, TRENDS, Timeline, TrendChart, docDate, docTitle, isImage, offTarget, prettyDate, seriesFor, targetText, verdict } from "./vaultShared";
@@ -188,7 +189,7 @@ export default function VaultPage() {
         <div className="grid grid-cols-2 gap-3">
           <Tile tone="sky" art="qr" title="Take photos" sub="Use the camera" onClick={() => camRef.current?.click()} />
           <Tile tone="lilac" art="folder" title="Choose files" sub="Photos or PDFs" onClick={() => fileRef.current?.click()} />
-          <Tile tone="butter" art="stethoscope" title={busy === "samples" ? "Adding…" : "Sample papers"} sub="6 real-looking papers" onClick={() => void samples()} />
+          <Tile tone="butter" art="stethoscope" title={busy === "samples" ? "Adding…" : "Sample papers"} sub="6 example papers" onClick={() => void samples()} />
           {docs.length > 0 && <Tile tone="mint" art="brain" title={busy === "analyse" ? "Reading…" : "Re-analyse"} sub="Compare all papers again" onClick={() => { closeUpload(); void analyse(); }} />}
         </div>
         {busy === "upload" && <p className="mt-3 flex items-center gap-2 text-[13px] text-ink-2"><Spinner className="h-4 w-4" />Uploading…</p>}
@@ -258,9 +259,9 @@ function AskCard({ docs, onOpen, pos, focus, empty }: { docs: MedDocument[]; onO
         </div>
       )}
 
-      <form className="relative mt-4 flex items-center gap-2 rounded-full bg-white p-1.5 pl-4" onSubmit={(e) => { e.preventDefault(); void ask(text); }}>
+      <form className="relative mt-4 flex items-center gap-2 rounded-full bg-white p-1.5 pl-4 ring-violet-200 focus-within:ring-4" onSubmit={(e) => { e.preventDefault(); void ask(text); }}>
         <input ref={input} value={text} onChange={(e) => setText(e.target.value)} placeholder={`When was ${pos} last echo?`} aria-label="Ask a question about the record"
-          className={cx("min-w-0 flex-1 bg-transparent text-[15px] text-ink outline-none placeholder:text-ink-3", isTamil(text) && "font-tamil")} />
+          className={cx("min-w-0 flex-1 bg-transparent text-[15px] text-ink outline-none focus-visible:outline-none placeholder:text-ink-3", isTamil(text) && "font-tamil")} />
         <motion.button whileTap={{ scale: 0.9 }} type="submit" aria-label="Ask" disabled={!text.trim()} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-violet text-white disabled:opacity-40"><ArrowUp className="h-5 w-5" strokeWidth={2.4} /></motion.button>
       </form>
       <div className="scrollbar-none relative -mx-4 mt-3 flex gap-2 overflow-x-auto px-4">
@@ -376,7 +377,7 @@ function Brief({ rec }: { rec: HealthRecord }) {
               <li key={m.id} className="flex items-center gap-3 rounded-2xl bg-canvas px-3 py-2">
                 <Capsule color={m.color} size={26} />
                 <div className="min-w-0 flex-1 leading-tight"><div className="truncate text-[13.5px] font-bold">{m.name} <span className="font-medium text-ink-2">{m.dose}</span></div><div className="truncate text-[11.5px] text-ink-3">{m.purpose || "—"}</div></div>
-                <span className="shrink-0 text-[11.5px] font-semibold text-ink-2">{m.slots.map((s) => s[0].toUpperCase() + s.slice(1, 3)).join(" · ")}</span>
+                <span className="shrink-0 text-[11.5px] font-semibold text-ink-2">{m.slots.map(slotTime).join(" · ")}</span>
               </li>
             ))}</ul>
           ) : <p className="text-[13px] text-ink-3">No medicines added yet.</p>}

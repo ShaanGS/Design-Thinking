@@ -23,7 +23,7 @@ export function LiveMap({ e, file, hospitals, height = 230 }: { e: Emergency; fi
         </div>
       )}
       <div className="flex flex-wrap gap-x-4 gap-y-1 px-2 pb-1 pt-2.5 text-[12px] font-semibold text-ink-2">
-        <span className="inline-flex items-center gap-1.5"><i className="inline-block h-[4px] w-5 rounded-full bg-ink" />Ambulance route</span>
+        <span className="inline-flex items-center gap-1.5"><i className="inline-block h-[4px] w-5 rounded-full bg-violet" />Ambulance route</span>
         <span className="inline-flex items-center gap-1.5"><i className="inline-block w-5 border-t-[3px] border-dotted border-peach-ink" />To the nearest</span>
         <span className="inline-flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-full bg-sos" />Ambulance</span>
       </div>

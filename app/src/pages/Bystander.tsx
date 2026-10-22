@@ -207,7 +207,7 @@ function LiveStatus({ status, name, shared }: { status: HelpStatus; name: string
               </>
             ) : (
               <>
-                <div className="font-display text-[22px] font-extrabold">Ambulance coming in <span className="text-sos-600 tnum">{em.etaLeftMin ?? "–"} min</span></div>
+                <div className="font-display text-[20px] font-extrabold">Ambulance coming in <span className="whitespace-nowrap text-sos-600 tnum">{em.etaLeftMin ?? "–"} min</span></div>
                 <div className="mt-0.5 text-[13.5px] text-ink-2">to {em.hospital?.name ?? "the hospital"}</div>
               </>
             )}

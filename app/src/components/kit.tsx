@@ -134,7 +134,7 @@ export interface TabItem { to: string; label: string; icon: LucideIcon; end?: bo
 export function TabBar({ items, center }: { items: TabItem[]; center?: ReactNode }) {
   const half = Math.ceil(items.length / 2);
   const render = (t: TabItem) => (
-    <NavLink key={t.to} to={t.to} end={t.end} className="relative">
+    <NavLink key={t.to} to={t.to} end={t.end} aria-label={t.label} className="relative">
       {({ isActive }) => (
         <span className={cx("relative flex h-12 items-center justify-center gap-2 rounded-full transition-colors", isActive ? "bg-violet-100 px-4 text-violet-700" : "w-12 text-ink-3")}>
           <t.icon className="h-[21px] w-[21px]" strokeWidth={isActive ? 2.3 : 1.9} />

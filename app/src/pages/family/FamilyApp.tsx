@@ -63,11 +63,12 @@ export default function FamilyApp() {
 
   const p = data.patient;
   const onEmergencyPage = loc.pathname.startsWith("/family/emergency");
+  const onHome = loc.pathname === "/family" || loc.pathname === "/family/";
   return (
     <FamilyCtx.Provider value={{ data, reload }}>
       <PhoneFrame label={label}>
         <div className="relative min-h-full">
-          {em && !onEmergencyPage && (
+          {em && !onEmergencyPage && !onHome && (
             <Link to="/family/emergency" className="fixed inset-x-3 top-3 z-[700] safe-top">
               <motion.div initial={{ y: -40, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
                 className="flex items-center gap-3 rounded-[22px] bg-sos px-3 py-2.5 text-white shadow-sos">

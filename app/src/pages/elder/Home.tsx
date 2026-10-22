@@ -99,25 +99,20 @@ export default function Home() {
       <header className="hero-violet relative overflow-hidden px-5 pb-12 pt-4 text-white safe-top">
         <div className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-white/10" />
         <div className="relative flex items-center gap-3">
-          <Person who="paati" size={64} online={me?.online} className="ring-4 ring-white/30" />
-          <div className="min-w-0 flex-1">
-            <Bi ta={`${greetTa}, ${tamilName(name)}`} en={`${greetEn}, ${name}`} className="text-[22px] font-extrabold leading-tight" sub="!opacity-80" />
+          <Person who="paati" size={64} online={me?.online} className="shrink-0 ring-4 ring-white/30" />
+          <div className="min-w-0 flex-1 leading-tight">
+            <div className="leading-none">
+              <span className="font-display text-[36px] font-extrabold tracking-tight tnum">{hm}</span>
+              <span className="ml-1 font-display text-[16px] font-bold text-white/80">{ampm}</span>
+            </div>
+            <div className={cx("mt-1 truncate text-[15px] font-semibold text-white/85", ta && "font-tamil")}>{ta ? dateTa : dateEn}</div>
           </div>
           <motion.button whileTap={{ scale: 0.92 }} onClick={() => setSheet("menu")} aria-label={t("அமைப்புகள்", "Settings")}
             className="glass grid h-14 w-14 shrink-0 place-items-center rounded-full">
             <Settings2 className="h-6 w-6" strokeWidth={2} />
           </motion.button>
         </div>
-        <div className="relative mt-5 flex items-end justify-between gap-3">
-          <div className="leading-none">
-            <span className="font-display text-[54px] font-extrabold tracking-tight tnum">{hm}</span>
-            <span className="ml-1.5 font-display text-[20px] font-bold text-white/80">{ampm}</span>
-          </div>
-          <div className="pb-1 text-right leading-tight">
-            <div className={cx("text-[18px] font-bold", ta && "font-tamil")}>{ta ? dateTa : dateEn}</div>
-            <div className={cx("text-[14px] text-white/75", !ta && "font-tamil")}>{ta ? dateEn : dateTa}</div>
-          </div>
-        </div>
+        <Bi ta={`${greetTa}, ${tamilName(name)}`} en={`${greetEn}, ${name}`} className="relative mt-5 text-[28px] font-extrabold leading-tight" sub="!opacity-80 !text-[17px]" />
       </header>
 
       <ElderSheet>

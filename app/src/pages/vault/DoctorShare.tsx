@@ -6,6 +6,7 @@ import { Printer, FileText, ExternalLink, Clock } from "lucide-react";
 import { Logo, Spinner, cx } from "../../components/ui";
 import { Art, BottomSheet, Person, PhoneFrame, Pill, Section, Sheet, VioletHeader, whoFor } from "../../components/kit";
 import Capsule from "../../components/Capsule";
+import { slotTime } from "../family/ctx";
 import type { HealthRecord, MedDocument, Medication } from "../../../shared/types";
 import { DocThumb, LEVEL_STYLE, SCAN_CSS, Sources, TRENDS, Timeline, TrendChart, docTitle, isImage, prettyDate, seriesFor } from "./vaultShared";
 
@@ -104,7 +105,7 @@ export default function DoctorShare() {
                     <div className="truncate text-[12px] text-ink-2">{[m.generic && m.generic.toLowerCase() !== m.name.toLowerCase() ? m.generic : null, m.purpose].filter(Boolean).join(" · ") || "—"}</div>
                     {m.prescribedBy && <div className="truncate text-[11.5px] text-ink-3">{m.prescribedBy}</div>}
                   </div>
-                  <span className="shrink-0 rounded-full bg-violet-50 px-2 py-1 text-[11px] font-bold text-violet-700">{m.slots.map((s) => s[0].toUpperCase() + s.slice(1, 3)).join(" · ")}</span>
+                  <span className="shrink-0 rounded-full bg-violet-50 px-2 py-1 text-[11px] font-bold text-violet-700">{m.slots.map(slotTime).join(" · ")}</span>
                 </li>
               ))}</ul>
             ) : <Empty>No current medicines listed.</Empty>}

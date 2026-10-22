@@ -48,6 +48,12 @@ npm start                     # http://localhost:3000
 - `DEMO_SPEED=20` makes the ambulance simulation run 20× faster, so a 15-minute trip takes about 45 seconds on stage.
 - `npm run seed` resets the demo family, hospitals and history.
 
+### Live demo
+
+- **App:** https://saathi-app-eta.vercel.app (open it on a phone, or on a laptop to see it inside a phone frame)
+- **All three phones at once:** https://saathi-app-eta.vercel.app/stage. Hold the red button on Paati's phone and watch the family app and the ER react live. "Reset demo" starts fresh.
+- Every push to the branch redeploys automatically (Vercel container, `Dockerfile.vercel`).
+
 ### Put it online (so any phone can open it)
 
 - **Render (free, always the same link):** open https://render.com/deploy?repo=https://github.com/ShaanGS/Design-Thinking, sign in with GitHub and click *Apply* (it reads `render.yaml` at the repo root). Paste `ANTHROPIC_API_KEY` when asked, or leave it blank for demo mode. The free tier sleeps when idle, so open it 1 minute before the demo.

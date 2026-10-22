@@ -146,7 +146,7 @@ export function TrendChart({ t, points, docs, onOpen, height = 130 }: { t: Trend
         <>
           <div style={{ height }} className="-ml-2 mt-2">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data} margin={{ top: 16, right: 28, bottom: 0, left: 0 }}>
+              <LineChart data={data} margin={{ top: 18, right: 14, bottom: 0, left: 0 }}>
                 <XAxis dataKey="x" tick={{ fontSize: 11, fill: INK3 }} tickLine={false} axisLine={{ stroke: LINE }} interval="preserveStartEnd" minTickGap={16} />
                 <YAxis width={34} domain={domain} ticks={ticks} tick={{ fontSize: 11, fill: INK3 }} tickLine={false} axisLine={false} />
                 <ReferenceLine y={t.target} stroke={INK3} strokeDasharray="4 4" strokeWidth={1}
@@ -162,7 +162,7 @@ export function TrendChart({ t, points, docs, onOpen, height = 130 }: { t: Trend
                       <g key={i} style={{ cursor: d && onOpen ? "pointer" : "default" }} onClick={() => d && onOpen?.(d)}>
                         <circle cx={props.cx} cy={props.cy} r={10} fill="transparent" />
                         <circle cx={props.cx} cy={props.cy} r={isLast ? 5 : 3.5} fill={isLast && o ? WARN : VIOLET} stroke="#fff" strokeWidth={2} />
-                        {isLast && <text x={(props.cx ?? 0) + 8} y={(props.cy ?? 0) - 8} fontSize={12} fontWeight={700} fill={o ? WARN : VIOLET}>{p.value}</text>}
+                        {isLast && <text x={(props.cx ?? 0) - 7} y={(props.cy ?? 0) - 9} textAnchor="end" fontSize={12} fontWeight={700} fill={o ? WARN : VIOLET}>{p.value}</text>}
                       </g>
                     );
                   }} />

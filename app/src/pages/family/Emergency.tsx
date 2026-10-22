@@ -378,7 +378,7 @@ function GoldenSteps({ e, chosen, nearest, triageSim, careAt, pickupShare, speed
     { key: "pickup", art: "home", title: pickedUp && e.dispatchedAt ? `${p.nickname} picked up` : "Ambulance reaching home", state: !e.dispatchedAt ? "todo" : pickedUp ? "done" : "active",
       at: triageSim != null && route ? triageSim + pickupShare * route.etaMin : null, progress: e.dispatchedAt && !pickedUp ? e.progress / pickupShare : undefined,
       detail: pickedUp && e.dispatchedAt ? "On the way to hospital, with the paramedics" : `To ${p.address.split(",").slice(0, 2).join(",")}` },
-    { key: "ready", art: "stethoscope", title: e.teamReady ? `${chosen?.short ?? "ER"} team ready` : "ER team getting ready", state: e.teamReady ? "done" : e.dispatchedAt ? "active" : "todo", clock: readyAt,
+    { key: "ready", art: "stethoscope", title: e.teamReady ? `${chosen?.short ?? "ER"} team ready` : "ER team getting ready", state: e.teamReady ? "done" : e.dispatchedAt && !after ? "active" : "todo", clock: readyAt,
       at: readyAt ? Math.max(0, ((new Date(readyAt).getTime() - new Date(e.startedAt).getTime()) / 60000) * speed) : null,
       detail: e.teamReady ? `They have ${pr.pos} records and are waiting at the door` : e.brief ? `${pr.pos[0].toUpperCase()}${pr.pos.slice(1)} records and brief were sent ahead` : "Records go ahead of the ambulance" },
     { key: "arrive", art: "hospital", title: after ? `Reached ${chosen?.short ?? "hospital"}` : `Arrive at ${chosen?.short ?? "hospital"}`, state: after ? "done" : pickedUp && e.dispatchedAt ? "active" : "todo",
