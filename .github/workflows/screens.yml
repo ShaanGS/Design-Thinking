@@ -1,0 +1,30 @@
+# Takes screenshots of the live app (including a live SOS) for the pitch deck and commits them.
+name: App screenshots
+on:
+  push:
+    paths: [".github/screens/**"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  shoot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Install Playwright
+        working-directory: .github/screens
+        run: |
+          npm init -y >/dev/null
+          npm i --no-audit --no-fund playwright@1.49.1
+          npx playwright install --with-deps chromium
+      - name: Shoot
+        working-directory: .github/screens
+        run: node shoot.mjs ../../app/design-src/screens
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/design-src/screens
+          git diff --cached --quiet || { git commit -m "Update app screenshots for the deck"; git pull --rebase; git push; }
