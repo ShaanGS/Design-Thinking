@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { db, run, get, uid, nowIso, localDate, UPLOAD_DIR, tx, newCardToken } from "./db.ts";
+import { db, run, get, all, uid, nowIso, localDate, UPLOAD_DIR, tx, newCardToken } from "./db.ts";
 import type { DocExtraction, Insight } from "../shared/types.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -123,13 +123,28 @@ export function addSampleDocument(patientId: string, key: string, by: string | n
   return id;
 }
 
-export function seed() {
+/** Clears only the demo family, the demo hospital accounts and the shared demo hospital network. */
+function clearDemo() {
+  const fam = "fam_ramasamy", pid = "pat_kamala";
+  for (const d of all("SELECT path FROM documents WHERE patient_id = ?", pid)) fs.rmSync(path.join(UPLOAD_DIR, String(d.path)), { force: true });
+  run("DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE family_id = ? OR id IN ('u_priya','u_raghu'))", fam);
+  run("DELETE FROM users WHERE family_id = ? OR id IN ('u_priya','u_raghu')", fam);
+  for (const t of ["medications", "dose_logs", "vitals", "documents", "insights", "visits", "chats", "checkins"]) run(`DELETE FROM ${t} WHERE patient_id = ?`, pid);
+  for (const t of ["feed", "emergencies", "patients"]) run(`DELETE FROM ${t} WHERE family_id = ?`, fam);
+  run("DELETE FROM families WHERE id = ?", fam);
+  for (const t of ["hospitals", "inventory", "relays"]) db.exec(`DELETE FROM ${t}`);
+}
+
+export function seed(opts: { demoOnly?: boolean } = {}) {
   const tables = ["families", "users", "sessions", "patients", "medications", "dose_logs", "vitals", "feed", "documents", "insights", "hospitals", "inventory", "emergencies", "relays", "visits", "chats", "checkins"];
   // Keep the emergency card token across demo resets so a printed card's QR keeps working.
   const cardToken = String(get("SELECT card_token FROM patients WHERE id = 'pat_kamala'")?.card_token || "") || newCardToken();
   tx(() => {
-    for (const t of tables) db.exec(`DELETE FROM ${t}`);
-    for (const f of fs.readdirSync(UPLOAD_DIR)) fs.rmSync(path.join(UPLOAD_DIR, f), { force: true });
+    if (opts.demoOnly) clearDemo();
+    else {
+      for (const t of tables) db.exec(`DELETE FROM ${t}`);
+      for (const f of fs.readdirSync(UPLOAD_DIR)) fs.rmSync(path.join(UPLOAD_DIR, f), { force: true });
+    }
 
     const now = nowIso();
     for (const h of HOSPITAL_SEED) {

@@ -4,8 +4,8 @@ import { addFeed, hospitals, hospitalById, meds, patientById, healthRecord, rowT
 import { decideRoute, km } from "./routing.ts";
 import { roadTable, roadRoute, along } from "./roads.ts";
 import { triage as aiTriage, erBrief, ruleTriage } from "./ai.ts";
-import { toFamily, toNetwork } from "./realtime.ts";
-import type { Condition, Emergency, Triage } from "../shared/types.ts";
+import { toFamily, toNetwork, emergencyToNetwork, canSeeEmergency, redactForOtherHospital } from "./realtime.ts";
+import type { Condition, Emergency, Triage, User } from "../shared/types.ts";
 import { CONDITION_INFO } from "../shared/types.ts";
 
 export const DEMO_SPEED = Math.max(1, Number(process.env.DEMO_SPEED || 20));
@@ -43,12 +43,15 @@ export const activeForFamily = (familyId: string) => {
   const r = get("SELECT * FROM emergencies WHERE family_id = ? AND status IN ('triage','dispatched','arrived','admitted') ORDER BY started_at DESC LIMIT 1", familyId);
   return r ? hydrate(r) : null;
 };
-export const networkEmergencies = () =>
-  all("SELECT * FROM emergencies WHERE status != 'cancelled' AND started_at > ? ORDER BY started_at DESC LIMIT 20", new Date(Date.now() - 12 * 3600000).toISOString()).map(hydrate);
+/** Recent cases for a hospital console: only its own sandbox, and the full brief only for cases coming to it. */
+export const networkEmergencies = (viewer: User) =>
+  all("SELECT * FROM emergencies WHERE status != 'cancelled' AND started_at > ? ORDER BY started_at DESC LIMIT 50", new Date(Date.now() - 12 * 3600000).toISOString())
+    .map(hydrate).filter((e) => canSeeEmergency(viewer, e)).slice(0, 20)
+    .map((e) => (e.hospitalId === viewer.hospitalId ? e : redactForOtherHospital(e)));
 
 function broadcast(e: Emergency) {
   toFamily(e.familyId, "emergency", e);
-  toNetwork("emergency", e);
+  emergencyToNetwork(e);
 }
 
 const pending = new Map<string, NodeJS.Timeout>();

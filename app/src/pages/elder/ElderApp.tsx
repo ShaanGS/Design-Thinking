@@ -53,7 +53,7 @@ export default function ElderApp() {
 
   const ctx: ElderCtx = useMemo(() => ({ lang, setLang, data, reload: () => void reload(), raiseSOS, fallOn, setFallOn }), [lang, setLang, data, reload, raiseSOS, fallOn]);
 
-  const label = <StageLabel who="paati" title="Paati's phone" text="Kamala, 72, in Tambaram. Big Tamil-first buttons: hold the red button for help, take her tablets, talk to Saathi, check her pulse. Her emergency card's QR lets a stranger help her too." />;
+  const label = <StageLabel who="paati" title="Paati's phone" text="Kamala, 72, in Tambaram. Big, simple buttons: hold the red button for help, take her tablets, talk to Saathi, check her pulse. Her emergency card's QR lets a stranger help her too." />;
 
   if (!data) {
     return (

@@ -8,7 +8,8 @@ import { all, get, run, uid, nowIso, localDate, UPLOAD_DIR, newCardToken } from 
 import * as S from "./store.ts";
 import * as E from "./emergency.ts";
 import * as AI from "./ai.ts";
-import { toFamily, toNetwork, userForToken, isOnline } from "./realtime.ts";
+import { toFamily, toNetwork, userForToken, isOnline, disconnectToken, canSeeEmergency } from "./realtime.ts";
+import { limit, byUser, hashToken, newFamilyCode, safeEqual, sniffMime, isDemoUser } from "./security.ts";
 import { seed, SAMPLE_BY_HASH, SAMPLE_DOCS, SEED_DOC_DIR, INVENTORY_LABEL } from "./seed.ts";
 import type { Condition, HelpStatus, Overview, Slot, User, Vital } from "../shared/types.ts";
 import { CONDITION_INFO, SLOT_LABEL } from "../shared/types.ts";
@@ -28,13 +29,24 @@ function auth(req: Request, _res: Response, next: NextFunction) {
 }
 const needFamily = (req: AuthedReq) => { if (!req.user.familyId) fail(403, "This account isn't part of a family"); const p = S.patientOfFamily(req.user.familyId!); if (!p) fail(404, "No elder profile yet"); return p!; };
 const needHospital = (req: AuthedReq) => { if (req.user.role !== "hospital") fail(403, "Hospital staff only"); };
-const newSession = (userId: string) => { const token = crypto.randomBytes(24).toString("hex"); run("INSERT INTO sessions (token, user_id, created_at) VALUES (?,?,?)", token, userId, nowIso()); return token; };
+const newSession = (userId: string) => { const token = crypto.randomBytes(24).toString("hex"); run("INSERT INTO sessions (token, user_id, created_at) VALUES (?,?,?)", hashToken(token), userId, nowIso()); return token; };
+const needDemo = (req: AuthedReq) => { if (!isDemoUser(req.user)) fail(403, "Demo controls only work on the demo family"); };
+const num = (v: unknown, min: number, max: number) => { const n = Number(v); return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : null; };
+const strList = (v: unknown) => (Array.isArray(v) ? v : typeof v === "string" ? v.split(",") : []).map((x: unknown) => clean(x, 80)).filter(Boolean).slice(0, 30);
+
+// Rate limits. A whole classroom can share one IP and one demo account, so the demo paths stay generous;
+// code guessing stays hopeless (8 random characters, at most 200 tries an hour per IP).
+const authLimit = limit("auth", 300, 60000);
+const codeLimit = [limit("code-min", 20, 60000), limit("code-hour", 200, 3600000)];
+const aiLimit = limit("ai", 60, 60000, (req) => `${byUser(req)}:${req.ip}`);
+const sosLimit = limit("sos", 30, 60000, (req) => `${byUser(req)}:${req.ip}`);
 const clean = (v: unknown, max = 200) => String(v ?? "").trim().slice(0, max);
 
 /* ------------------------------------------------------------------ Info & auth */
 
 api.get("/info", (_req, res) => res.json({ ai: AI.aiMode(), model: AI.MODEL, demoSpeed: E.DEMO_SPEED }));
 
+api.use("/auth", authLimit);
 api.post("/auth/demo", wrap((req, res) => {
   const map: Record<string, string> = { elder: "u_kamala", guardian: "u_karthik", granddaughter: "u_divya", neighbour: "u_meena", hospital: "u_priya", pharmacy: "u_raghu" };
   const id = map[clean(req.body?.persona)] || fail(400, "Unknown demo persona");
@@ -42,7 +54,7 @@ api.post("/auth/demo", wrap((req, res) => {
   res.json({ token: newSession(id), user: S.toUser(u) });
 }));
 
-api.post("/auth/join", wrap((req, res) => {
+api.post("/auth/join", ...codeLimit, wrap((req, res) => {
   const fam = get("SELECT * FROM families WHERE code = ?", clean(req.body?.code, 12).toUpperCase()) || fail(404, "No family with that code");
   const name = clean(req.body?.name, 40) || fail(400, "Please enter your name");
   const id = uid("u_");
@@ -51,13 +63,17 @@ api.post("/auth/join", wrap((req, res) => {
   res.json({ token: newSession(id), user: S.toUser(get("SELECT * FROM users WHERE id = ?", id)) });
 }));
 
-api.post("/auth/elder", wrap((req, res) => {
+api.post("/auth/elder", ...codeLimit, wrap((req, res) => {
   const fam = get("SELECT * FROM families WHERE code = ?", clean(req.body?.code, 12).toUpperCase()) || fail(404, "No family with that code");
   const u = get("SELECT * FROM users WHERE family_id = ? AND role = 'elder'", fam!.id) || fail(404, "This family has no elder profile");
   res.json({ token: newSession(u!.id), user: S.toUser(u) });
 }));
 
-api.post("/auth/hospital", wrap((req, res) => {
+// Real hospital accounts need the staff code set by the network admin (HOSPITAL_STAFF_CODE). Without it, only the demo ER exists.
+api.post("/auth/hospital", ...codeLimit, wrap((req, res) => {
+  const staffCode = process.env.HOSPITAL_STAFF_CODE || "";
+  if (!staffCode) fail(403, "Hospital accounts are issued by the network. To look around, open the demo ER from the home page.");
+  if (!safeEqual(clean(req.body?.staffCode, 64), staffCode)) fail(403, "That staff code isn't right");
   const h = S.hospitalById(clean(req.body?.hospitalId)) || fail(404, "Unknown hospital");
   const id = uid("u_");
   run("INSERT INTO users (id, hospital_id, name, role, relation, lang, created_at) VALUES (?,?,?,?,?,?,?)", id, h!.id, clean(req.body?.name, 40) || "ER desk", "hospital", "Staff", "en", nowIso());
@@ -68,15 +84,15 @@ api.post("/auth/create-family", wrap((req, res) => {
   const b = req.body || {};
   const elderName = clean(b.elderName, 60) || fail(400, "Enter the elder's name");
   const guardianName = clean(b.guardianName, 40) || fail(400, "Enter your name");
-  let code = ""; do { code = elderName.replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 4) + Math.floor(100 + Math.random() * 900); } while (get("SELECT id FROM families WHERE code = ?", code));
+  let code = ""; do { code = newFamilyCode(); } while (get("SELECT id FROM families WHERE code = ?", code));
   const fam = uid("fam_"), elder = uid("u_"), guardian = uid("u_"), pid = uid("pat_"), at = nowIso();
   run("INSERT INTO families (id, code, name, created_at) VALUES (?,?,?,?)", fam, code, `${elderName.split(" ").slice(-1)[0]} family`, at);
   run("INSERT INTO users (id, family_id, name, role, relation, lang, created_at) VALUES (?,?,?,?,?,?,?)", elder, fam, elderName, "elder", clean(b.nickname, 20) || "Elder", b.lang === "ta" ? "ta" : "en", at);
   run("INSERT INTO users (id, family_id, name, role, relation, phone, lang, created_at) VALUES (?,?,?,?,?,?,?,?)", guardian, fam, guardianName, "guardian", clean(b.relation, 30) || "Family", clean(b.phone, 20) || null, "en", at);
   run(`INSERT INTO patients (id, family_id, user_id, name, nickname, age, sex, blood, address, lat, lng, conditions, allergies, abha, doctor, memory) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-    pid, fam, elder, elderName, clean(b.nickname, 20) || elderName.split(" ")[0], Number(b.age) || 70, b.sex === "M" ? "M" : "F", clean(b.blood, 4) || "Unknown",
-    clean(b.address, 160) || "Chennai", Number(b.lat) || 12.9235, Number(b.lng) || 80.129, JSON.stringify((b.conditions || []).map((x: unknown) => clean(x, 80)).filter(Boolean)),
-    JSON.stringify((b.allergies || []).map((x: unknown) => clean(x, 80)).filter(Boolean)), null, null, "");
+    pid, fam, elder, elderName, clean(b.nickname, 20) || elderName.split(" ")[0], num(b.age, 1, 120) || 70, b.sex === "M" ? "M" : "F", clean(b.blood, 4) || "Unknown",
+    clean(b.address, 160) || "Chennai", num(b.lat, -90, 90) ?? 12.9235, num(b.lng, -180, 180) ?? 80.129, JSON.stringify(strList(b.conditions)),
+    JSON.stringify(strList(b.allergies)), null, null, "");
   run("UPDATE patients SET card_token = ? WHERE id = ?", newCardToken(), pid);
   res.json({ token: newSession(guardian), user: S.toUser(get("SELECT * FROM users WHERE id = ?", guardian)), code });
 }));
@@ -84,7 +100,7 @@ api.post("/auth/create-family", wrap((req, res) => {
 api.use(auth);
 
 api.get("/me", (req, res) => res.json({ user: (req as AuthedReq).user, info: { ai: AI.aiMode(), model: AI.MODEL, demoSpeed: E.DEMO_SPEED } }));
-api.post("/auth/logout", wrap((req, res) => { run("DELETE FROM sessions WHERE token = ?", (req.headers.authorization || "").replace(/^Bearer\s+/i, "")); res.json({ ok: true }); }));
+api.post("/auth/logout", wrap((req, res) => { const t = (req.headers.authorization || "").replace(/^Bearer\s+/i, ""); run("DELETE FROM sessions WHERE token = ?", hashToken(t)); disconnectToken(t); res.json({ ok: true }); }));
 
 /* ------------------------------------------------------------------ Family overview */
 
@@ -108,9 +124,9 @@ api.get("/card", wrap((req, res) => { const p = needFamily(req); res.json({ ...S
 api.patch("/patient", wrap((req, res) => {
   const p = needFamily(req); const b = req.body || {};
   const set = (col: string, v: unknown) => run(`UPDATE patients SET ${col} = ? WHERE id = ?`, v as any, p.id);
-  if (b.name) set("name", clean(b.name, 60)); if (b.nickname) set("nickname", clean(b.nickname, 20)); if (b.age) set("age", Number(b.age));
+  if (b.name) set("name", clean(b.name, 60)); if (b.nickname) set("nickname", clean(b.nickname, 20)); if (b.age) set("age", num(b.age, 1, 120) || 70);
   if (b.blood) set("blood", clean(b.blood, 4)); if (b.address) set("address", clean(b.address, 160)); if (b.doctor !== undefined) set("doctor", clean(b.doctor, 120));
-  if (Number.isFinite(+b.lat) && Number.isFinite(+b.lng) && b.lat !== undefined) { set("lat", +b.lat); set("lng", +b.lng); }
+  if (b.lat !== undefined && num(b.lat, -90, 90) !== null && num(b.lng, -180, 180) !== null) { set("lat", num(b.lat, -90, 90)); set("lng", num(b.lng, -180, 180)); }
   if (Array.isArray(b.conditions)) set("conditions", JSON.stringify(b.conditions.map((x: unknown) => clean(x, 80)).filter(Boolean)));
   if (Array.isArray(b.allergies)) set("allergies", JSON.stringify(b.allergies.map((x: unknown) => clean(x, 80)).filter(Boolean)));
   pushOverview(p.id, p.familyId); res.json(S.patientById(p.id));
@@ -119,7 +135,7 @@ api.patch("/patient", wrap((req, res) => {
 /* ------------------------------------------------------------------ Medicines */
 
 api.get("/meds", wrap((req, res) => { const p = needFamily(req); res.json(S.meds(p.id)); }));
-api.post("/meds/check", wrap(async (req, res) => { const p = needFamily(req); res.json(await AI.medicineCheck({ name: clean(req.body?.name, 80), generic: clean(req.body?.generic, 80) || null }, S.meds(p.id), p)); }));
+api.post("/meds/check", aiLimit, wrap(async (req, res) => { const p = needFamily(req); res.json(await AI.medicineCheck({ name: clean(req.body?.name, 80), generic: clean(req.body?.generic, 80) || null }, S.meds(p.id), p)); }));
 api.post("/meds", wrap(async (req, res) => {
   const p = needFamily(req); const b = req.body || {};
   const name = clean(b.name, 80) || fail(400, "Medicine name is required");
@@ -201,7 +217,7 @@ api.post("/visits", wrap((req, res) => {
   const p = needFamily(req); const b = req.body || {};
   const id = uid("vis_");
   run("INSERT INTO visits (id, patient_id, place, reason, kind, status, at, notes) VALUES (?,?,?,?,?,?,?,?)", id, p.id, clean(b.place, 120) || fail(400, "Where is the visit?"),
-    clean(b.reason, 120) || "Check-up", ["opd", "lab", "admission", "followup"].includes(b.kind) ? b.kind : "opd", "scheduled", new Date(b.at || Date.now()).toISOString(), clean(b.notes, 300) || null);
+    clean(b.reason, 120) || "Check-up", ["opd", "lab", "admission", "followup"].includes(b.kind) ? b.kind : "opd", "scheduled", (Number.isFinite(new Date(b.at || Date.now()).getTime()) ? new Date(b.at || Date.now()) : fail(400, "That date isn't valid")).toISOString(), clean(b.notes, 300) || null);
   toFamily(p.familyId, "feed", S.addFeed(p.familyId, "visit", "info", `Visit planned: ${clean(b.reason, 60) || "Check-up"}`, `${clean(b.place, 80)} · ${new Date(b.at || Date.now()).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}`));
   pushOverview(p.id, p.familyId); res.json({ id });
 }));
@@ -218,7 +234,7 @@ api.patch("/visits/:id", wrap((req, res) => {
 /* ------------------------------------------------------------------ Saathi companion */
 
 api.get("/chat", wrap((req, res) => { const p = needFamily(req); res.json(S.chats(p.id)); }));
-api.post("/chat", wrap(async (req, res) => {
+api.post("/chat", aiLimit, wrap(async (req, res) => {
   const p = needFamily(req);
   const text = clean(req.body?.text, 500) || fail(400, "Say something");
   const userTurn = S.addChat(p.id, "user", text!, null);
@@ -242,7 +258,7 @@ api.post("/chat", wrap(async (req, res) => {
 
 /* ------------------------------------------------------------------ Health Vault */
 
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 12 * 1024 * 1024, files: 10 } });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024, files: 6 } });
 const MIME_EXT: Record<string, string> = { "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif", "application/pdf": ".pdf" };
 
 async function processDocument(docId: string, buf: Buffer, mime: string, patientId: string, familyId: string) {
@@ -255,10 +271,15 @@ async function processDocument(docId: string, buf: Buffer, mime: string, patient
     run("UPDATE documents SET status = 'done', extraction = ?, error = NULL WHERE id = ?", JSON.stringify(extraction), docId);
     const p = S.patientById(patientId)!;
     const newAllergies = (extraction.allergies || []).filter((a: string) => !p.allergies.some((x) => x.toLowerCase().includes(a.toLowerCase().split(" ")[0])));
-    if (newAllergies.length) run("UPDATE patients SET allergies = ? WHERE id = ?", JSON.stringify([...p.allergies, ...newAllergies]), patientId);
+    if (newAllergies.length) {
+      run("UPDATE patients SET allergies = ? WHERE id = ?", JSON.stringify([...p.allergies, ...newAllergies].slice(0, 30)), patientId);
+      toFamily(familyId, "feed", S.addFeed(familyId, "doc", "warn", `Allergy added from a paper: ${newAllergies.join(", ")}`, "It now shows on her emergency card and ER brief. If it's wrong, remove it in her profile."));
+    }
     toFamily(familyId, "feed", S.addFeed(familyId, "doc", "info", `Saathi read: ${extraction.title}`, extraction.summary));
   } catch (e) {
-    run("UPDATE documents SET status = 'error', error = ? WHERE id = ?", (e as Error).message.slice(0, 300), docId);
+    const msg = (e as Error).message;
+    if (!msg.startsWith("Reading new papers needs")) console.warn("[vault] couldn't read a document:", msg);
+    run("UPDATE documents SET status = 'error', error = ? WHERE id = ?", msg.startsWith("Reading new papers needs") ? msg : "Saathi couldn't read this paper. Try a clearer photo, or a PDF.", docId);
   }
   toFamily(familyId, "vault", { docId });
 }
@@ -274,14 +295,17 @@ async function refreshInsights(patientId: string, familyId: string) {
 }
 
 api.get("/vault", wrap((req, res) => { const p = needFamily(req); res.json(S.healthRecord(p.id)); }));
-api.post("/vault/upload", upload.array("files", 10), wrap(async (req, res) => {
+api.post("/vault/upload", aiLimit, upload.array("files", 6), wrap(async (req, res) => {
   const p = needFamily(req);
   const files = (req.files as Express.Multer.File[]) || [];
   if (!files.length) fail(400, "Choose at least one photo or PDF");
   const ids: string[] = [];
   const jobs: Promise<void>[] = [];
   for (const f of files) {
-    const ext = MIME_EXT[f.mimetype] || fail(400, `${f.originalname}: only photos (JPG, PNG, WebP) and PDFs are supported`);
+    // Trust the file's own bytes, not the type the browser claims
+    const mime = sniffMime(f.buffer);
+    const ext = (mime && MIME_EXT[mime]) || fail(400, `${clean(f.originalname, 80)}: only photos (JPG, PNG, WebP) and PDFs are supported`);
+    f.mimetype = mime!;
     const id = uid("doc_"), stored = `${id}${crypto.randomBytes(6).toString("hex")}${ext}`;
     fs.writeFileSync(path.join(UPLOAD_DIR, stored), f.buffer);
     run("INSERT INTO documents (id, patient_id, filename, path, mime, status, uploaded_by, created_at) VALUES (?,?,?,?,?,?,?,?)", id, p.id, clean(f.originalname, 120), stored, f.mimetype, "processing", req.user.name, nowIso());
@@ -293,7 +317,7 @@ api.post("/vault/upload", upload.array("files", 10), wrap(async (req, res) => {
   await Promise.all(jobs);
   await refreshInsights(p.id, p.familyId);
 }));
-api.post("/vault/samples", wrap(async (req, res) => {
+api.post("/vault/samples", aiLimit, wrap(async (req, res) => {
   const p = needFamily(req);
   const ids: string[] = [];
   const jobs: Promise<void>[] = [];
@@ -309,7 +333,7 @@ api.post("/vault/samples", wrap(async (req, res) => {
   await Promise.all(jobs);
   await refreshInsights(p.id, p.familyId);
 }));
-api.post("/vault/analyse", wrap(async (req, res) => { const p = needFamily(req); await refreshInsights(p.id, p.familyId); res.json(S.insights(p.id)); }));
+api.post("/vault/analyse", aiLimit, wrap(async (req, res) => { const p = needFamily(req); await refreshInsights(p.id, p.familyId); res.json(S.insights(p.id)); }));
 api.delete("/vault/docs/:id", wrap(async (req, res) => {
   const p = needFamily(req);
   const d = get("SELECT * FROM documents WHERE id = ? AND patient_id = ?", req.params.id, p.id) || fail(404, "Document not found");
@@ -317,7 +341,7 @@ api.delete("/vault/docs/:id", wrap(async (req, res) => {
   toFamily(p.familyId, "vault", { removed: d!.id }); res.json({ ok: true });
   await refreshInsights(p.id, p.familyId);
 }));
-api.post("/vault/ask", wrap(async (req, res) => { const p = needFamily(req); res.json(await AI.askRecord(S.healthRecord(p.id), clean(req.body?.question, 400) || fail(400, "Ask a question"))); }));
+api.post("/vault/ask", aiLimit, wrap(async (req, res) => { const p = needFamily(req); res.json(await AI.askRecord(S.healthRecord(p.id), clean(req.body?.question, 400) || fail(400, "Ask a question"))); }));
 
 const breakGlassLog = new Set<string>();
 const shares = new Map<string, { patientId: string; expires: number }>();
@@ -361,15 +385,16 @@ publicApi.get("/help/:token/status", (req, res) => {
   if (!p) return res.status(404).json({ error: "This card isn't active. Call 108 for an ambulance." });
   res.json(helpStatus(p.id, p.familyId));
 });
-publicApi.post("/help/:token/alert", async (req, res) => {
+publicApi.use("/help", limit("help", 600, 60000));
+publicApi.post("/help/:token/alert", limit("help-alert", 10, 10 * 60000), async (req, res) => {
   try {
     const p = S.patientByCardToken(req.params.token);
     if (!p) return res.status(404).json({ error: "This card isn't active. Call 108 for an ambulance." });
     const last = helpAlerts.get(p.id) || 0;
-    if (Date.now() - last > 60000 || !E.activeForFamily(p.familyId)) {
+    if (Date.now() - last > 2 * 60000 && !E.activeForFamily(p.familyId)) {
       helpAlerts.set(p.id, Date.now());
-      const lat = Number(req.body?.lat), lng = Number(req.body?.lng);
-      const where = Number.isFinite(lat) && Number.isFinite(lng) && req.body?.lat != null ? ` They shared where she is: https://maps.google.com/?q=${lat.toFixed(5)},${lng.toFixed(5)}` : "";
+      const lat = num(req.body?.lat, -90, 90), lng = num(req.body?.lng, -180, 180);
+      const where = lat !== null && lng !== null && req.body?.lat != null ? ` They shared where she is: https://maps.google.com/?q=${lat.toFixed(5)},${lng.toFixed(5)}` : "";
       toFamily(p.familyId, "feed", S.addFeed(p.familyId, "sos", "sos", `A passer-by scanned ${p.nickname}'s card`, `Someone found ${p.nickname} and started an emergency from her Saathi card.${where}`));
       await E.startSOS(p.id, "bystander", "Found unwell in a public place by a passer-by who scanned her Saathi emergency card.", null, "A passer-by");
     }
@@ -382,7 +407,7 @@ publicApi.post("/help/:token/alert", async (req, res) => {
 
 /* ------------------------------------------------------------------ Emergencies */
 
-api.post("/sos", wrap(async (req, res) => {
+api.post("/sos", sosLimit, wrap(async (req, res) => {
   const p = needFamily(req); const b = req.body || {};
   const cond = (b.condition && b.condition in CONDITION_INFO ? b.condition : null) as Condition | null;
   res.json(await E.startSOS(p.id, clean(b.source, 40) || "app", clean(b.text, 300) || null, cond, req.user.name));
@@ -399,10 +424,12 @@ api.post("/sos/:id/respond", wrap((req, res) => { const p = needFamily(req); get
 /* ------------------------------------------------------------------ Hospital network */
 
 api.get("/hospitals", (_req, res) => res.json(S.hospitals()));
-api.get("/network", wrap((req, res) => { needHospital(req); res.json({ emergencies: E.networkEmergencies(), hospitals: S.hospitals(), relays: S.relays() }); }));
+api.get("/network", wrap((req, res) => { needHospital(req); res.json({ emergencies: E.networkEmergencies(req.user), hospitals: S.hospitals(), relays: S.relays() }); }));
 api.get("/network/patient/:id", wrap((req, res) => {
   needHospital(req);
-  const active = get("SELECT id, family_id FROM emergencies WHERE patient_id = ? AND status IN ('triage','dispatched','arrived','admitted') LIMIT 1", req.params.id) || fail(403, "Records open only during an active emergency (break-glass)");
+  // Break-glass: only the hospital the ambulance is bringing her to, and only while the emergency is active
+  const active = get("SELECT id, family_id FROM emergencies WHERE patient_id = ? AND hospital_id = ? AND status IN ('dispatched','arrived','admitted') LIMIT 1", req.params.id, req.user.hospitalId || "") || fail(403, "Records open only for a patient coming to your hospital (break-glass)");
+  if (!canSeeEmergency(req.user, { familyId: active!.family_id })) fail(403, "Records open only for a patient coming to your hospital (break-glass)");
   // Break-glass access is logged where the family can see it, once per staff member per emergency
   const key = `${active!.id}:${req.user.id}`;
   if (!breakGlassLog.has(key)) {
@@ -413,38 +440,47 @@ api.get("/network/patient/:id", wrap((req, res) => {
   }
   res.json({ record: S.healthRecord(req.params.id), meds: S.meds(req.params.id), emergencyId: active!.id });
 }));
-api.post("/emergencies/:id/:action(ready|admit|resolve)", wrap((req, res) => { needHospital(req); res.json(E.hospitalAction(req.params.id, req.params.action as "ready" | "admit" | "resolve")); }));
+api.post("/emergencies/:id/:action(ready|admit|resolve)", wrap((req, res) => {
+  needHospital(req);
+  const e = E.emergencyById(req.params.id) || fail(404, "Emergency not found");
+  if (e!.hospitalId !== req.user.hospitalId || !canSeeEmergency(req.user, e!)) fail(403, "Only the receiving hospital can update this case");
+  if (!["dispatched", "arrived", "admitted"].includes(e!.status)) fail(409, "This case is already closed");
+  res.json(E.hospitalAction(req.params.id, req.params.action as "ready" | "admit" | "resolve"));
+}));
+const needOwnHospital = (req: AuthedReq, id: string) => { needHospital(req); if (id !== req.user.hospitalId) fail(403, "You can only update your own hospital"); };
 api.patch("/hospitals/:id", wrap((req, res) => {
-  needHospital(req); const b = req.body || {};
+  needOwnHospital(req, req.params.id); const b = req.body || {};
   const h = S.hospitalById(req.params.id) || fail(404, "Unknown hospital");
-  if (b.icuBeds !== undefined) run("UPDATE hospitals SET icu_beds = ? WHERE id = ?", Math.max(0, Number(b.icuBeds) || 0), h!.id);
-  if (b.erBeds !== undefined) run("UPDATE hospitals SET er_beds = ? WHERE id = ?", Math.max(0, Number(b.erBeds) || 0), h!.id);
-  if (b.caps && typeof b.caps === "object") run("UPDATE hospitals SET caps = ? WHERE id = ?", JSON.stringify({ ...h!.caps, ...Object.fromEntries(Object.entries(b.caps).map(([k, v]) => [k, !!v])) }), h!.id);
+  if (b.icuBeds !== undefined) run("UPDATE hospitals SET icu_beds = ? WHERE id = ?", Math.round(num(b.icuBeds, 0, 999) ?? 0), h!.id);
+  if (b.erBeds !== undefined) run("UPDATE hospitals SET er_beds = ? WHERE id = ?", Math.round(num(b.erBeds, 0, 999) ?? 0), h!.id);
+  if (b.caps && typeof b.caps === "object") run("UPDATE hospitals SET caps = ? WHERE id = ?", JSON.stringify({ ...h!.caps, ...Object.fromEntries(Object.entries(b.caps).filter(([k]) => k in h!.caps).map(([k, v]) => [k, !!v])) }), h!.id);
   run("UPDATE hospitals SET updated_at = ? WHERE id = ?", nowIso(), h!.id);
   toNetwork("hospitals", S.hospitals()); res.json(S.hospitalById(h!.id));
 }));
 api.patch("/hospitals/:id/inventory/:item", wrap((req, res) => {
-  needHospital(req);
+  needOwnHospital(req, req.params.id);
   if (!(req.params.item in INVENTORY_LABEL)) fail(400, "Unknown item");
-  run("UPDATE inventory SET qty = ?, updated_at = ? WHERE hospital_id = ? AND item = ?", Math.max(0, Number(req.body?.qty) || 0), nowIso(), req.params.id, req.params.item);
+  run("UPDATE inventory SET qty = ?, updated_at = ? WHERE hospital_id = ? AND item = ?", Math.round(num(req.body?.qty, 0, 9999) ?? 0), nowIso(), req.params.id, req.params.item);
   toNetwork("hospitals", S.hospitals()); res.json(S.hospitalById(req.params.id));
 }));
 api.get("/relays", wrap((req, res) => { needHospital(req); res.json(S.relays()); }));
 api.post("/relays", wrap((req, res) => {
   needHospital(req);
   const item = clean(req.body?.item, 30); if (!(item in INVENTORY_LABEL)) fail(400, "Unknown item");
-  try { res.json(E.requestRelay(item, Math.max(1, Number(req.body?.qty) || 10), clean(req.body?.toId, 20))); }
+  if (clean(req.body?.toId, 20) !== req.user.hospitalId) fail(403, "Request stock for your own hospital");
+  try { res.json(E.requestRelay(item, Math.round(num(req.body?.qty, 1, 500) ?? 10), clean(req.body?.toId, 20))); }
   catch (e) { fail(409, (e as Error).message); }
 }));
 
 /* ------------------------------------------------------------------ Demo controls */
 
-api.post("/demo/reset", wrap((_req, res) => { seed(); toNetwork("hospitals", S.hospitals()); res.json({ ok: true }); }));
+// Resets only the demo family and the demo hospital network; other families are never touched.
+api.post("/demo/reset", limit("reset", 6, 60000), wrap((req, res) => { needDemo(req); seed({ demoOnly: true }); toNetwork("hospitals", S.hospitals()); res.json({ ok: true }); }));
 api.post("/demo/missed-dose", wrap(async (req, res) => {
-  const p = needFamily(req);
+  const p = needFamily(req); needDemo(req);
   const steps: [number, string, string, string][] = [
     [0, "warn", "Morning tablets not confirmed", `It's past 10 AM and ${p.nickname} hasn't confirmed her tablets.`],
-    [4000, "warn", "Saathi is calling her", "Voice call in Tamil · 1st try."],
+    [4000, "warn", "Saathi is calling her", "Voice call · 1st try."],
     [9000, "warn", "No answer · Meena alerted", "Neighbour Meena is going to check on her."],
     [15000, "info", "Karthik notified", "Escalated to the family because there's still no reply."],
   ];
@@ -477,6 +513,12 @@ api.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   const status = err instanceof HttpError ? err.status : (err as { status?: number })?.status && Number((err as { status?: number }).status) < 500 ? Number((err as { status?: number }).status) : 500;
   if (status >= 500) console.error(err);
   res.status(status).json({ error: status >= 500 ? "Something went wrong on the server" : (err as Error).message });
+});
+
+publicApi.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+  const status = Number((err as { status?: number })?.status) || 500;
+  if (status >= 500) console.error(err);
+  res.status(status >= 500 ? 500 : status).json({ error: status >= 500 ? "Something went wrong on the server" : "Bad request" });
 });
 
 /* ------------------------------------------------------------------ Background: missed-dose watcher */

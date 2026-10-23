@@ -220,7 +220,7 @@ function AddVisitSheet({ open, onClose }: { open: boolean; onClose: () => void }
         <Field label="Hospital or clinic"><Input value={f.place} onChange={set("place")} required placeholder="Saraswathi Multispeciality, OPD 3" /></Field>
         <Field label="When"><Input type="datetime-local" value={f.at} onChange={set("at")} required /></Field>
         <Field label="Notes (optional)"><Textarea value={f.notes} onChange={set("notes")} placeholder="Fasting needed, take last reports…" /></Field>
-        <p className="text-[12.5px] text-ink-2">Saathi reminds {data.patient.nickname} the day before, in Tamil.</p>
+        <p className="text-[12.5px] text-ink-2">Saathi reminds {data.patient.nickname} the day before, by voice.</p>
         <Button type="submit" variant="brand" size="lg" loading={busy}>Add visit</Button>
       </form>
     </BottomSheet>

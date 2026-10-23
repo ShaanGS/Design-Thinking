@@ -89,9 +89,9 @@ export default function Family() {
           <div className="hero-violet relative overflow-hidden rounded-[28px] p-5 text-white shadow-lift">
             <Art name="home" size={104} className="absolute -right-3 -top-2" float />
             <div className="relative max-w-[64%] text-[13px] leading-snug text-white/85">They open Saathi, choose "Join a family" and type this code.</div>
-            <button onClick={() => copy(code, "Code copied")} aria-label="Copy family code" className="relative mt-4 flex gap-1.5">
+            <button onClick={() => copy(code, "Code copied")} aria-label="Copy family code" className="relative mt-4 flex w-full gap-1.5">
               {code.split("").map((c, i) => (
-                <span key={i} className="glass grid h-12 w-10 place-items-center rounded-2xl font-display text-[24px] font-extrabold tnum">{c}</span>
+                <span key={i} className="glass grid h-12 min-w-0 max-w-10 flex-1 place-items-center rounded-2xl font-display text-[22px] font-extrabold tnum">{c}</span>
               ))}
             </button>
             <div className="relative mt-4 flex gap-2">

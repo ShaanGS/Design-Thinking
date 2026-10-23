@@ -14,7 +14,10 @@
     "build": "vite build",
     "start": "tsx server/index.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "seed": "tsx server/seed.ts --reset"
+    "seed": "tsx server/seed.ts --reset",
+    "test": "node tests/e2e.mjs ${BASE_URL:-http://localhost:3000}",
+    "test:security": "node tests/sec-test.mjs ${BASE_URL:-http://localhost:3000}",
+    "test:classroom": "node tests/classroom.mjs ${BASE_URL:-http://localhost:3000}"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.132.0",

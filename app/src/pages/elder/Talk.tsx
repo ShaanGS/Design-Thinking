@@ -91,7 +91,7 @@ export default function Talk() {
                   mine ? "rounded-br-md bg-violet text-white" : c.redFlag ? "rounded-bl-md bg-sos-50 text-ink ring-2 ring-sos/40" : "rounded-bl-md bg-white text-ink shadow-card")}>
                   {c.redFlag && <p className="mb-1 text-[15px] font-bold text-sos-600">{t("அவசரம்: உதவி அழைக்கப்படுகிறது", "Emergency: calling for help")}</p>}
                   <span className={isTamil(c.text) ? "font-tamil" : undefined}>{c.text}</span>
-                  {c.english && !mine && <span className="mt-1.5 block text-[15px] leading-snug text-ink-2">{c.english}</span>}
+                  {c.english && !mine && c.english !== c.text && <span className="mt-1.5 block text-[15px] leading-snug text-ink-2">{c.english}</span>}
                 </div>
                 <div className="flex items-center gap-1 px-1 text-[13px] text-ink-3">
                   <span className="py-1">{mine ? name : "Saathi"} · {fmtTime(c.at)}</span>

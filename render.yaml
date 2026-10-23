@@ -1,18 +1,22 @@
-# One-click deploy on Render: https://render.com/deploy?repo=https://github.com/ShaanGS/Design-Thinking
+# Saathi on Render: one always-on server, so every phone in the demo shares the same live state.
+# Deploy: Render dashboard → New → Blueprint → pick this repo (and this branch) → Apply.
 services:
   - type: web
     name: saathi
     runtime: node
     rootDir: app
-    plan: free
-    buildCommand: npm ci && npm run build
+    plan: free            # sleeps after 15 min idle; open the link a minute before presenting (or use "starter" to keep it awake)
+    buildCommand: npm ci --include=dev && npm run build
     startCommand: npm start
+    healthCheckPath: /api/info
     envVars:
       - key: NODE_VERSION
         value: "24"   # node:sqlite needs 22.13+ (unflagged)
+      - key: NODE_ENV
+        value: production
       - key: ANTHROPIC_API_KEY
-        sync: false
-      - key: SAATHI_MODEL
-        value: claude-opus-5-5
+        sync: false   # optional: without it Saathi runs in demo mode
       - key: DEMO_SPEED
         value: "20"
+      - key: HOSPITAL_STAFF_CODE
+        sync: false   # optional: lets real hospital staff sign in; leave empty for demo-only

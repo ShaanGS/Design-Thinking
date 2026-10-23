@@ -70,7 +70,7 @@ export function SubScreen({ ta, en, art, right, children, sheetClass }: { ta: st
   );
 }
 
-/** Big bento tile for the elder home: Tamil title, English under it, 3D art in the corner. */
+/** Big bento tile for the elder home: the title and 3D art in the corner. */
 export function ElderTile({ tone, art, ta, en, onClick, badge }: { tone: Tone; art: ArtName; ta: string; en: string; onClick: () => void; badge?: ReactNode }) {
   return (
     <motion.button type="button" whileTap={{ scale: 0.96 }} onClick={onClick}

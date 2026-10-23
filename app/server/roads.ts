@@ -12,6 +12,7 @@ async function getJSON(url: string, ms = 4500): Promise<any | null> {
     if (!res.ok) return null;
     const data = await res.json();
     if (data?.code !== "Ok") return null;
+    if (cache.size > 500) cache.delete(cache.keys().next().value!); // keep memory bounded
     cache.set(url, data);
     return data;
   } catch { return null; }

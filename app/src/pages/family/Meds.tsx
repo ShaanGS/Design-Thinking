@@ -86,7 +86,7 @@ export default function Meds() {
                         <li key={d.med.id + slot} className="flex items-center gap-3 rounded-2xl bg-canvas px-3 py-2.5">
                           <Capsule color={d.med.color} size={30} />
                           <div className="min-w-0 flex-1 leading-tight">
-                            <div className="truncate text-[14px] font-bold">{d.med.name}</div>
+                            <div className="break-words text-[14px] font-bold">{d.med.name}</div>
                             <div className="truncate text-[12px] text-ink-2">{d.med.dose}</div>
                           </div>
                           {d.status === "taken" ? (
@@ -96,7 +96,7 @@ export default function Meds() {
                               {d.status === "missed" && <Badge tone="warn">Missed</Badge>}
                               {d.status === "due" && (
                                 <button aria-label={`${d.med.name} missed`} disabled={!!busy} onClick={() => dose(d.med.id, slot, "missed")}
-                                  className="h-9 rounded-full px-2.5 text-[12.5px] font-semibold text-ink-2 disabled:opacity-50">Missed</button>
+                                  className="h-9 rounded-full px-1.5 text-[12.5px] font-semibold text-ink-2 disabled:opacity-50">Missed</button>
                               )}
                               <Button size="sm" variant={d.status === "due" || d.status === "missed" ? "brand" : "outline"} className="h-9 px-3"
                                 loading={busy === d.med.id + slot + "taken"} onClick={() => dose(d.med.id, slot, "taken")}>Taken</Button>
@@ -155,7 +155,7 @@ function MedCard({ med, onChanged, onReorder }: { med: Medication; onChanged: ()
       <div className="flex items-start gap-3">
         <span className={cx("grid h-14 w-14 shrink-0 place-items-center rounded-2xl", low ? "bg-butter" : "bg-lilac")}><Capsule color={med.color} size={38} /></span>
         <div className="min-w-0 flex-1">
-          <div className="flex items-baseline gap-1.5"><span className="truncate text-[16px] font-bold">{med.name}</span><span className="shrink-0 text-[13px] text-ink-2">{med.dose}</span></div>
+          <div className="flex flex-wrap items-baseline gap-x-1.5"><span className="break-words text-[16px] font-bold">{med.name}</span><span className="text-[13px] text-ink-2">{med.dose}</span></div>
           <div className="truncate text-[12.5px] text-ink-2">{sub || "Purpose not added"}</div>
           {med.prescribedBy && <div className="truncate text-[12px] text-ink-3">{med.prescribedBy}</div>}
         </div>

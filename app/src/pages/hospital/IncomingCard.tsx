@@ -91,7 +91,7 @@ export function IncomingHero({ e, file, hospitals }: { e: Emergency; file: Patie
               <Art name="ambulance" size={40} />
             </motion.div>
           </div>
-          <div className="relative mt-1.5 h-4 text-[11px] font-semibold text-white/70"><span className="absolute left-0">108 base</span><span className="absolute -translate-x-1/2 whitespace-nowrap" style={{ left: `${Math.min(70, Math.max(30, pickup * 100))}%` }}>Her home</span><span className="absolute right-0">You</span></div>
+          <div className="mt-1.5 grid grid-cols-3 text-[11px] font-semibold text-white/70"><span>108 base</span><span className="text-center">Her home</span><span className="text-right">You</span></div>
         </div>
       ) : (
         <p className="mt-3 rounded-2xl bg-mint px-3 py-2.5 text-[13.5px] font-semibold text-mint-ink">Received {timeAgo(e.arrivedAt || e.startedAt)}. Close the case when {pronoun(p?.sex).sub} is stable.</p>

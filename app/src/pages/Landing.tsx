@@ -174,12 +174,14 @@ function HospitalModal({ open, onClose, onSubmit, busy }: { open: boolean; onClo
   const [list, setList] = useState<Hospital[]>([]);
   const [id, setId] = useState("h3");
   const [name, setName] = useState("");
+  const [staffCode, setStaffCode] = useState("");
   useEffect(() => { if (open && !list.length) fetch("/api/public/hospitals").then((r) => (r.ok ? r.json() : [])).then(setList).catch(() => {}); }, [open, list.length]);
   return (
     <Modal open={open} onClose={onClose} title="Hospital staff sign-in">
-      <form className="flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); onSubmit(api.post<AuthRes>("/api/auth/hospital", { hospitalId: id, name })); }}>
+      <form className="flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); onSubmit(api.post<AuthRes>("/api/auth/hospital", { hospitalId: id, name, staffCode })); }}>
         <Field label="Hospital"><Select value={id} onChange={(e) => setId(e.target.value)}>{(list.length ? list : [{ id: "h3", name: "Saraswathi Multispeciality Hospital" } as Hospital]).map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}</Select></Field>
         <Field label="Your name and role"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Dr. Priya, ER" required /></Field>
+        <Field label="Staff code" hint="Issued to each hospital by the Saathi network. To look around, use the demo ER instead."><Input type="password" autoComplete="off" value={staffCode} onChange={(e) => setStaffCode(e.target.value)} required /></Field>
         <Button type="submit" variant="brand" size="lg" loading={busy === "hospital-login"}>Open the console</Button>
       </form>
     </Modal>

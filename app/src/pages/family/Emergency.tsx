@@ -146,10 +146,10 @@ function Live({ e, onCpr }: { e: Emergency; onCpr: () => void }) {
               <span className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-sos-600" style={{ left: `${pickupShare * 100}%` }} title="Pickup" />
               <img src="/art/ambulance.webp" alt="" className="absolute top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-[62%] object-contain drop-shadow transition-[left] duration-1000 ease-linear" style={{ left: `${Math.min(96, Math.max(4, e.progress * 100))}%` }} />
             </div>
-            <div className="relative mt-2 h-4 text-[11.5px] font-semibold text-white/80">
-              <span className="absolute left-0">108 base</span>
-              {pickupShare > 0.2 && pickupShare < 0.72 && <span className="absolute -translate-x-1/2" style={{ left: `${pickupShare * 100}%` }}>Home</span>}
-              <span className="absolute right-0">{chosen?.short ?? "Hospital"}</span>
+            <div className="mt-2 grid grid-cols-3 gap-1 text-[11.5px] font-semibold text-white/80">
+              <span>108 base</span>
+              <span className="text-center">Home</span>
+              <span className="truncate text-right">{chosen?.short ?? "Hospital"}</span>
             </div>
           </div>
         )}
