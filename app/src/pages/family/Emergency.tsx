@@ -108,7 +108,7 @@ function Live({ e, onCpr }: { e: Emergency; onCpr: () => void }) {
           <div className="min-w-0 flex-1">
             <div className="text-[13px] font-semibold text-white/80">{p.nickname} · {p.name.split(" ")[0]}, {p.age}</div>
             <div className="mt-0.5 font-display text-[22px] font-extrabold leading-[1.1]">{condition}</div>
-            {symptom && <div className="mt-1 truncate font-tamil text-[13px] text-white/85">{symptom}</div>}
+            {symptom && <div className="mt-1 truncate text-[13px] text-white/85">{symptom}</div>}
           </div>
         </div>
 

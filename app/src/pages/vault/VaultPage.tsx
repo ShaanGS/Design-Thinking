@@ -234,7 +234,7 @@ function AskCard({ docs, onOpen, pos, focus, empty }: { docs: MedDocument[]; onO
       <div className="relative max-w-[70%]">
         <div className="flex items-center gap-1.5"><span className="glass inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11.5px] font-bold"><Sparkles className="h-3 w-3" />AI</span></div>
         <div className="mt-1.5 font-display text-[21px] font-extrabold leading-tight">Ask Saathi</div>
-        <div className="mt-0.5 text-[12.5px] leading-snug text-white/80">{empty ? "Add papers first, then ask anything about them." : `About ${pos} history, in English or Tamil. Every answer names its paper.`}</div>
+        <div className="mt-0.5 text-[12.5px] leading-snug text-white/80">{empty ? "Add papers first, then ask anything about them." : `About ${pos} history, in plain words. Every answer names its paper.`}</div>
       </div>
 
       {list.length > 0 && (

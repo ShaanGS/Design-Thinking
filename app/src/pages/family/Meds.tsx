@@ -76,7 +76,7 @@ export default function Meds() {
                   <div key={slot} className="rounded-3xl bg-white p-4 shadow-card">
                     <div className="flex items-center justify-between gap-3">
                       <div className="leading-tight">
-                        <div className="font-bold">{SLOT_LABEL[slot].en} <span className="font-tamil text-[13px] font-medium text-ink-3">{SLOT_LABEL[slot].ta}</span></div>
+                        <div className="font-bold">{SLOT_LABEL[slot].en}</div>
                         <div className="text-[12px] text-ink-3">{slotTime(slot)}</div>
                       </div>
                       <Blister doses={toBlister(items)} size="sm" />
