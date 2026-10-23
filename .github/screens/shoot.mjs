@@ -16,15 +16,24 @@ await reset();
 
 const browser = await chromium.launch();
 async function phone(persona, path, name, { wait = 3500, after } = {}) {
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, timezoneId: "Asia/Kolkata", locale: "en-IN" });
-  if (persona) { const t = await login(persona); await ctx.addInitScript((tok) => localStorage.setItem("saathi-token", tok), t); }
-  const pg = await ctx.newPage();
-  await pg.goto(U + path, { waitUntil: "networkidle" }).catch(() => {});
-  await sleep(wait);
-  if (after) await after(pg);
-  await pg.screenshot({ path: `${OUT}/${name}.png` });
-  console.log("shot", name);
-  return { pg, ctx };
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, timezoneId: "Asia/Kolkata", locale: "en-IN" });
+    // Leave room for a real phone's status bar and camera cut-out in the mockups
+    await ctx.addInitScript(() => document.addEventListener("DOMContentLoaded", () => {
+      const st = document.createElement("style"); st.textContent = ".safe-top{padding-top:54px!important}"; document.head.appendChild(st);
+    }));
+    if (persona) { const t = await login(persona); await ctx.addInitScript((tok) => localStorage.setItem("saathi-token", tok), t); }
+    const pg = await ctx.newPage();
+    await pg.goto(U + path, { waitUntil: "networkidle" }).catch(() => {});
+    await sleep(wait);
+    // A lost session bounces back to the landing page: try again with a fresh sign-in
+    if (persona && new URL(pg.url()).pathname === "/") { console.log("retry", name); await ctx.close(); await sleep(2000); continue; }
+    if (after) await after(pg);
+    await pg.screenshot({ path: `${OUT}/${name}.png` });
+    console.log("shot", name);
+    return { pg, ctx };
+  }
+  throw new Error(`could not sign in for ${name}`);
 }
 const done = async (x) => x.ctx.close();
 
@@ -43,16 +52,16 @@ await done(await phone("guardian", "/family/emergency?cpr=1", "cpr", {
   after: async (pg) => { await pg.getByText("Start compressions").click().catch(() => {}); await sleep(2200); },
 }));
 
-// Live emergency: Paati's SOS, then every screen reacts
+// Live emergency: Paati's SOS, then every screen reacts (Paati first, while the ambulance is still coming)
 await post("/api/sos", { condition: "cardiac", source: "app" }, await login("elder"));
-await sleep(5000);
-const fam = await phone("guardian", "/family/emergency", "family-emergency", { wait: 6000 });
+await sleep(4000);
+await done(await phone("elder", "/elder", "elder-emergency", { wait: 2500 }));
+await done(await phone("hospital", "/hospital", "er-incoming", { wait: 2500 }));
+const fam = await phone("guardian", "/family/emergency", "family-emergency", { wait: 4000 });
 const map = fam.pg.locator(".leaflet-container").first();
 if (await map.count()) { await map.scrollIntoViewIfNeeded(); await sleep(2500); await map.screenshot({ path: `${OUT}/map.png` }); console.log("shot map"); }
 await fam.pg.screenshot({ path: `${OUT}/family-emergency-full.png`, fullPage: true });
 await done(fam);
-await done(await phone("hospital", "/hospital", "er-incoming"));
-await done(await phone("elder", "/elder", "elder-emergency"));
 await done(await phone("guardian", "/family", "family-alert"));
 
 // Stage view (three phones) during the emergency
