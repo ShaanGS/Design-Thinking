@@ -1,0 +1,9 @@
+dribbble-pitch https://dribbble.com/search/pitch-deck
+dribbble-presentation https://dribbble.com/search/presentation-design
+dribbble-app-pitch https://dribbble.com/search/app-pitch-deck
+dribbble-health-deck https://dribbble.com/search/healthcare-presentation
+behance-pitch https://www.behance.net/search/projects/pitch%20deck
+behance-presentation https://www.behance.net/search/projects/presentation%20design
+pitch-templates https://pitch.com/templates/pitch-decks
+canva-pitch https://www.canva.com/presentations/templates/pitch-deck/
+beautiful-ai https://www.beautiful.ai/templates/pitch-deck
