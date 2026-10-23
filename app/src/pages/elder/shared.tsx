@@ -1,5 +1,5 @@
 // Shared pieces of the elder app: language, live data context, bilingual text, and the soft-clay screen chrome
-// sized for a 72-year-old (big type, 56 px+ targets, Tamil first).
+// sized for a 72-year-old (big type, 56 px+ targets). The app speaks English.
 import { createContext, useContext, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -10,7 +10,7 @@ import type { Emergency, Overview } from "../../../shared/types";
 
 export type Lang = "ta" | "en";
 const LANG_KEY = "saathi-elder-lang";
-export const readLang = (fallback: Lang): Lang => { try { const v = localStorage.getItem(LANG_KEY); return v === "en" || v === "ta" ? v : fallback; } catch { return fallback; } };
+export const readLang = (_fallback?: Lang): Lang => "en";
 export const saveLang = (l: Lang) => { try { localStorage.setItem(LANG_KEY, l); } catch { /* private mode */ } };
 
 export interface ElderCtx {
@@ -26,50 +26,41 @@ export interface ElderCtx {
 export const Ctx = createContext<ElderCtx>(null as unknown as ElderCtx);
 export const useElder = () => useContext(Ctx);
 
-/** Bilingual text: the chosen language (Tamil by default) at full size, the other beneath, smaller and quieter. */
-export function Bi({ ta, en, className, sub, inline }: { ta: ReactNode; en: ReactNode; className?: string; sub?: string; inline?: boolean }) {
-  const { lang } = useElder();
-  const [a, b] = lang === "ta" ? [ta, en] : [en, ta];
-  if (inline) return <span className={cx(lang === "ta" && "font-tamil", className)}>{a}</span>;
-  return (
-    <span className={cx("flex flex-col", className)}>
-      <span className={lang === "ta" ? "font-tamil" : undefined}>{a}</span>
-      <span className={cx("mt-0.5 text-[0.66em] font-medium leading-snug opacity-75", lang === "en" && "font-tamil", sub)}>{b}</span>
-    </span>
-  );
+/** Elder-screen text. Takes a Tamil string too so a translation can come back later, but shows English only. */
+export function Bi({ en, className, inline }: { ta?: ReactNode; en: ReactNode; className?: string; sub?: string; inline?: boolean }) {
+  if (inline) return <span className={className}>{en}</span>;
+  return <span className={cx("flex flex-col", className)}><span>{en}</span></span>;
 }
 /** Pick the string for the current language. */
-export const useT = () => { const { lang } = useElder(); return (ta: string, en: string) => (lang === "ta" ? ta : en); };
+export const useT = () => (_ta: string, en: string) => en;
 
-/** Paati's name in Tamil when the family calls her Paati. */
-export const tamilName = (n: string) => (/^paati$/i.test(n) ? "பாட்டி" : n);
+/** Her name as shown on her own screens. */
+export const tamilName = (n: string) => n;
 
 /** The canvas sheet that rises over the violet header (no tab bar in the elder app, so less bottom room). */
 export function ElderSheet({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cx("relative -mt-7 flex flex-1 flex-col gap-4 rounded-t-[32px] bg-canvas px-4 pt-5", className ?? "pb-10")}>{children}</div>;
 }
 
-/** Sub-screen: violet header with a big "Home" button, the title in Tamil then English, and the 3D art. */
+/** Sub-screen: violet header with a big "Home" button, the title and the 3D art. */
 export function SubScreen({ ta, en, art, right, children, sheetClass }: { ta: string; en: string; art?: ArtName; right?: ReactNode; children: ReactNode; sheetClass?: string }) {
   const nav = useNavigate();
-  const { lang } = useElder();
-  const [title, other] = lang === "ta" ? [ta, en] : [en, ta];
+  const title = en;
   return (
     <div className="flex min-h-full flex-1 flex-col bg-canvas">
       <header className="hero-violet relative overflow-hidden px-5 pb-12 pt-4 text-white safe-top">
         <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/10" />
         <div className="relative flex items-center justify-between gap-3">
-          <motion.button whileTap={{ scale: 0.95 }} onClick={() => nav("/elder")} aria-label={lang === "ta" ? "முகப்புக்குச் செல்" : "Back to home"}
+          <motion.button whileTap={{ scale: 0.95 }} onClick={() => nav("/elder")} aria-label="Back to home"
             className="glass flex h-14 items-center gap-1 rounded-full pl-2.5 pr-5 text-[18px] font-bold">
             <ChevronLeft className="h-7 w-7" strokeWidth={2.4} />
-            <span className={lang === "ta" ? "font-tamil" : undefined}>{lang === "ta" ? "முகப்பு" : "Home"}</span>
+            <span>Home</span>
           </motion.button>
           {right}
         </div>
         <div className="relative mt-4 flex items-end justify-between gap-3">
           <div className="min-w-0">
-            <h1 className={cx("text-[32px] font-extrabold leading-[1.1]", lang === "ta" && "font-tamil")}>{title}</h1>
-            <p className={cx("mt-0.5 text-[17px] text-white/80", lang === "en" && "font-tamil")}>{other}</p>
+            <h1 className="text-[32px] font-extrabold leading-[1.1]">{title}</h1>
           </div>
           {art && <Art name={art} size={84} className="-mb-2 shrink-0" float />}
         </div>

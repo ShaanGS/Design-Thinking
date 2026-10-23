@@ -273,7 +273,7 @@ export async function companionReply(p: Patient, memory: string, history: ChatTu
   if (client) {
     try {
       const r = await callJSON<CompanionResult>(
-        `You are "Saathi", a warm AI companion who talks with ${p.nickname} (${p.age}, ${p.address}) every day, like a caring grandchild. Speak natural, simple spoken Tamil in Tamil script (Chennai style, respectful "நீங்க", call her "${p.nickname}"), unless she writes in English, then reply in simple English. At most 2 short sentences, under 30 words. Use the memory naturally.
+        `You are "Saathi", a warm AI companion who talks with ${p.nickname} (${p.age}, ${p.address}) every day, like a caring grandchild. Speak simple, warm Indian English and call her "${p.nickname}". Put the same reply in both "say" and "english". At most 2 short sentences, under 30 words. Use the memory naturally.
 Gently cover over the conversation: today's tablets, sleep and food, any pain. Never diagnose and never suggest a medicine.
 If she mentions chest pain or heaviness, sweating with discomfort, breathlessness, fainting, a fall, sudden weakness or numbness, slurred speech or confusion: red_flag true, action "emergency", calmly say you are calling her son and the ambulance now, ask her to sit down and unlock the door.
 If she asks for her son or family, action "connect_family". If she reports poor sleep several times or new symptoms that are not emergencies, action "suggest_doctor". If she confirms taking tablets, action "log_meds".`,
@@ -296,12 +296,12 @@ function demoCompanion(p: Patient, text: string): CompanionResult {
   const has = (...w: string[]) => w.some((k) => x.includes(k));
   const base = { signals: { meds: "unknown", mood: "unknown", sleep: "unknown", pain: null }, redFlag: false, reason: null, action: "none" } as CompanionResult;
   const n = p.nickname;
-  if (isRedFlag(text)) return { ...base, say: `${n}, பயப்படாதீங்க. நான் இப்போவே உங்க மகனையும் ஆம்புலன்ஸையும் கூப்பிடறேன். உட்கார்ந்துக்கோங்க, கதவைத் திறந்து வையுங்க.`, english: `${n}, don't be scared. I'm calling your son and the ambulance right now. Please sit down and unlock the door.`, redFlag: true, reason: "chest discomfort or another warning sign", action: "emergency", signals: { ...base.signals, pain: "warning symptoms" } };
-  if (has("கார்த்திக்", "karthik", "son", "மகன்")) return { ...base, say: "சரி, இப்போவே கார்த்திக்கை கூப்பிடச் சொல்றேன். அவன் சந்தோஷப்படுவான்.", english: "Okay, I'm asking Karthik to call you right now. He'll be happy.", action: "connect_family" };
-  if (has("தூக்கம்", "தூங்க", "sleep", "thookam")) return { ...base, say: "அச்சச்சோ. இந்த வாரம் இது மூணாவது தடவை. டாக்டர் கிட்ட ஒரு செக்கப் புக் பண்ணட்டுமா?", english: "Oh no. That's the third time this week. Shall I book a check-up with the doctor?", action: "suggest_doctor", signals: { ...base.signals, sleep: "poor" } };
-  if (has("மாத்திரை", "tablet", "medicine", "maathirai", "pill")) return { ...base, say: "சூப்பர்! மாத்திரை ஆச்சு, நான் குறிச்சுக்கிட்டேன். ராத்திரி தூக்கம் எப்படி இருந்துச்சு?", english: "Super! Tablets done, I've noted it. How did you sleep last night?", action: "log_meds", signals: { ...base.signals, meds: "taken" } };
-  if (has("நல்லா", "nalla", "fine", "good", "கோவில்", "temple", "ok")) return { ...base, say: "கேட்கவே சந்தோஷமா இருக்கு! காலை மாத்திரை சாப்பிட்டீங்களா?", english: "So happy to hear that! Did you take your morning tablets?", signals: { ...base.signals, mood: "good" } };
-  return { ...base, say: "சரி, புரிஞ்சுது. எங்கயாவது வலி இருக்கா? சாப்பாடு சாப்பிட்டீங்களா?", english: "Okay, I understand. Any pain anywhere? Have you eaten?" };
+  if (isRedFlag(text)) return { ...base, say: `${n}, don't be scared. I'm calling your son and the ambulance right now. Please sit down and unlock the door.`, english: `${n}, don't be scared. I'm calling your son and the ambulance right now. Please sit down and unlock the door.`, redFlag: true, reason: "chest discomfort or another warning sign", action: "emergency", signals: { ...base.signals, pain: "warning symptoms" } };
+  if (has("கார்த்திக்", "karthik", "son", "மகன்")) return { ...base, say: "Okay, I'm asking Karthik to call you right now. He'll be happy.", english: "Okay, I'm asking Karthik to call you right now. He'll be happy.", action: "connect_family" };
+  if (has("தூக்கம்", "தூங்க", "sleep", "thookam")) return { ...base, say: "Oh no. That's the third time this week. Shall I book a check-up with the doctor?", english: "Oh no. That's the third time this week. Shall I book a check-up with the doctor?", action: "suggest_doctor", signals: { ...base.signals, sleep: "poor" } };
+  if (has("மாத்திரை", "tablet", "medicine", "maathirai", "pill")) return { ...base, say: "Super! Tablets done, I've noted it. How did you sleep last night?", english: "Super! Tablets done, I've noted it. How did you sleep last night?", action: "log_meds", signals: { ...base.signals, meds: "taken" } };
+  if (has("நல்லா", "nalla", "fine", "good", "கோவில்", "temple", "ok")) return { ...base, say: "So happy to hear that! Did you take your morning tablets?", english: "So happy to hear that! Did you take your morning tablets?", signals: { ...base.signals, mood: "good" } };
+  return { ...base, say: "Okay, I understand. Any pain anywhere? Have you eaten?", english: "Okay, I understand. Any pain anywhere? Have you eaten?" };
 }
 
 /* ---------------------------------------------------------------- Medicine safety check */

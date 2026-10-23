@@ -1,12 +1,11 @@
-// Browser text-to-speech and speech-to-text (Tamil first, English fallback).
+// Browser text-to-speech and speech-to-text, in Indian English.
 export function speak(textTa: string, textEn?: string) {
   try {
     const synth = window.speechSynthesis; if (!synth) return false;
     const voices = synth.getVoices();
-    const ta = voices.find((v) => /^ta/i.test(v.lang));
     const en = voices.find((v) => /en-IN/i.test(v.lang)) || voices.find((v) => /^en/i.test(v.lang));
-    const u = new SpeechSynthesisUtterance(ta || !textEn ? textTa : textEn);
-    u.voice = ta || en || null; u.lang = ta ? ta.lang : "en-IN"; u.rate = 0.95;
+    const u = new SpeechSynthesisUtterance(textEn || textTa);
+    u.voice = en || null; u.lang = en ? en.lang : "en-IN"; u.rate = 0.95;
     synth.cancel(); synth.speak(u);
     return true;
   } catch { return false; }

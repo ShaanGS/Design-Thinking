@@ -12,7 +12,7 @@ import type { Hospital, User } from "../../shared/types";
 type AuthRes = { token: string; user: User; code?: string };
 
 const PERSONAS: { key: "elder" | "guardian" | "hospital"; who: Who; title: string; person: string; desc: string; tone: string }[] = [
-  { key: "elder", who: "paati", title: "Paati's phone", person: "Kamala, 72 · Tambaram", desc: "Big Tamil help button, tablets, talk to Saathi", tone: "bg-peach" },
+  { key: "elder", who: "paati", title: "Paati's phone", person: "Kamala, 72 · Tambaram", desc: "One big help button, tablets, talk to Saathi", tone: "bg-peach" },
   { key: "guardian", who: "karthik", title: "Family app", person: "Karthik, her son · Bengaluru", desc: "Her day, records, live emergency tracking", tone: "bg-sky" },
   { key: "hospital", who: "priya", title: "Hospital ER", person: "Dr. Priya · Saraswathi", desc: "Patients on the way, with records first", tone: "bg-lilac" },
 ];
@@ -82,7 +82,7 @@ export default function Landing() {
             <motion.img src="/art/hero.webp" alt="" initial={{ y: 12, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.6 }} className="relative h-full w-full object-contain" />
           </div>
           <h1 className="mt-1 text-[30px] font-extrabold leading-[1.08]">When Paati needs help, everyone moves at once.</h1>
-          <p className="mt-2 text-[14.5px] leading-relaxed text-white/80">Daily care in her own language, all her medical papers in one place, and a golden-hour emergency network.</p>
+          <p className="mt-2 text-[14.5px] leading-relaxed text-white/80">Simple daily care, all her medical papers in one place, and a golden-hour emergency network.</p>
         </div>
 
         <div className="relative -mt-8 rounded-t-[32px] bg-canvas px-4 pb-10 pt-5">

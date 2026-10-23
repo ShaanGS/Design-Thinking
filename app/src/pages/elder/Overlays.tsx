@@ -17,7 +17,7 @@ export function EscalationCall() {
     if (e.stage === "calling") {
       setOpen(true);
       try { navigator.vibrate?.([400, 200, 400, 200, 400]); } catch { /* not supported */ }
-      speak("பாட்டி, நான் சாத்தி. காலை மாத்திரை சாப்பிட்டீங்களா? நீங்க நலமா?", "Paati, this is Saathi. Did you take your morning tablets? Are you well?");
+      speak("Paati, this is Saathi. Did you take your morning tablets? Are you well?");
     }
     if (e.stage === "resolved") { setOpen(false); stopSpeaking(); }
   });

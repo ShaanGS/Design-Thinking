@@ -89,7 +89,6 @@ export default function Bystander() {
             <Person who="paati" size={92} className="shrink-0 ring-4 ring-white/40" />
             <div className="min-w-0">
               <h1 className="text-[27px] font-extrabold leading-[1.1]">{card ? `${name}, ${card.age} may need help` : error ? "Someone may need help" : "Loading…"}</h1>
-              <p className="mt-1 font-tamil text-[16px] font-semibold leading-snug text-white/90">இவருக்கு உதவி தேவைப்படலாம்</p>
             </div>
           </div>
           <p className="relative mt-3 text-[14.5px] leading-snug text-white/85">You scanned the card she carries. Stay with her. Thank you for stopping.</p>
@@ -102,7 +101,7 @@ export default function Bystander() {
             <span className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-white/20"><Art name="ambulance" size={58} /></span>
             <div className="min-w-0 flex-1 leading-tight">
               <div className="font-display text-[25px] font-extrabold">Call 108</div>
-              <div className="text-[13.5px] text-white/85">Free ambulance · <span className="font-tamil">ஆம்புலன்ஸ்</span></div>
+              <div className="text-[13.5px] text-white/85">Free ambulance, any phone</div>
             </div>
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white text-sos-600"><Phone className="h-6 w-6" strokeWidth={2.4} /></span>
           </motion.a>

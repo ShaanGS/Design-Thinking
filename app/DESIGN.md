@@ -12,7 +12,7 @@ Reference look: modern health apps with a violet gradient header, a white sheet 
 4. Use 3D art instead of icon boxes: `<Art name="heart" size={56} />`. Use lucide icons only for small UI glyphs (back, close, phone, plus).
 5. People are shown with their 3D portrait: `<Person who="paati" | "karthik" | "priya" />`. `Avatar` from `ui.tsx` does this automatically for those names.
 6. Copy is plain and warm. No uppercase eyebrows except the CPR and emergency labels. No lorem. Use real data from the API.
-7. Everything tappable is at least 44 px. Elder screens use at least 56 px and 18 px or larger text, Tamil first and English second (`Bi` in `pages/elder/shared.tsx`).
+7. Everything tappable is at least 44 px. Elder screens use at least 56 px and 18 px or larger text, in plain English (`Bi` in `pages/elder/shared.tsx`).
 
 ## Tokens (tailwind.config.js)
 

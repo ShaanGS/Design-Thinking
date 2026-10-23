@@ -141,7 +141,7 @@ export function EmergencyScreen({ emergency }: { emergency: Emergency }) {
       <div className="relative flex min-h-full flex-col px-4 pb-8 pt-4 safe-top">
         <div className="flex items-center justify-between px-1">
           <span className="glass inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[13px] font-extrabold uppercase tracking-wider">
-            <span className="h-2 w-2 animate-blink rounded-full bg-white" />Emergency · <span className="font-tamil normal-case tracking-normal">அவசரம்</span>
+            <span className="h-2 w-2 animate-blink rounded-full bg-white" />Emergency
           </span>
           <span className="font-display text-[15px] font-bold text-white/85 tnum">{started}</span>
         </div>

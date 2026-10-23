@@ -20,7 +20,7 @@ export default function ElderApp() {
   const { user } = useAuth();
   const toast = useToast();
   const { data, error, reload } = useOverview();
-  const [lang, setLangState] = useState<Lang>(() => readLang(user?.lang === "en" ? "en" : "ta"));
+  const [lang, setLangState] = useState<Lang>(() => readLang());
   const [fallOn, setFallOn] = useState(false);
   const [local, setLocal] = useState<{ e: Emergency; at: number } | null>(null);
 

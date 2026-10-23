@@ -53,10 +53,10 @@ export function PrintableCard({ card }: { card: CardInfo }) {
   );
 }
 
-function InfoBlock({ tone, label, ta, children, big }: { tone: string; label: string; ta: string; children: ReactNode; big?: boolean }) {
+function InfoBlock({ tone, label, children, big }: { tone: string; label: string; children: ReactNode; big?: boolean }) {
   return (
     <div className={cx("rounded-2xl px-4 py-3", tone)}>
-      <div className={cx("font-bold opacity-90", big ? "text-[14px]" : "text-[12px]")}>{label} · <span className="font-tamil">{ta}</span></div>
+      <div className={cx("font-bold opacity-90", big ? "text-[14px]" : "text-[12px]")}>{label}</div>
       <div className={cx("mt-0.5 font-bold leading-snug text-ink", big ? "text-[19px]" : "text-[16px]")}>{children}</div>
     </div>
   );
@@ -73,27 +73,25 @@ export function EmergencyCardView({ card, big, qr = true, meds = true }: { card:
         <div className="pointer-events-none absolute -right-10 -top-12 h-40 w-40 rounded-full bg-white/10" />
         <div className="relative flex items-center justify-between gap-3">
           <span className={cx("font-extrabold uppercase tracking-wider text-white/85", t("text-[11.5px]", "text-[13px]"))}>Emergency card</span>
-          <span className={cx("font-tamil font-semibold text-white/85", t("text-[13px]", "text-[15px]"))}>அவசர அட்டை</span>
         </div>
         <div className="relative mt-3 flex items-center gap-4">
           <Person who="paati" size={big ? 92 : 80} className="ring-4 ring-white/35" />
           <div className="min-w-0">
             <div className={cx("font-display font-extrabold leading-tight", t("text-[22px]", "text-[26px]"))}>{card.name}</div>
             <div className={cx("text-white/80", t("text-[13.5px]", "text-[17px]"))}>{card.sex === "F" ? "Female" : "Male"} · {card.age} years</div>
-            <div className={cx("font-tamil text-white/80", t("text-[13px]", "text-[16px]"))}>{card.sex === "F" ? "பெண்" : "ஆண்"} · {card.age} வயது</div>
           </div>
         </div>
         <div className="relative mt-4 flex gap-2">
           <div className="flex shrink-0 items-center gap-2 rounded-2xl bg-white py-2 pl-2 pr-4 text-ink shadow-card">
             <Art name="blood" size={big ? 44 : 38} />
             <div className="leading-none">
-              <div className={cx("text-ink-2", t("text-[11px]", "text-[13px]"))}>Blood · <span className="font-tamil">இரத்தம்</span></div>
+              <div className={cx("text-ink-2", t("text-[11px]", "text-[13px]"))}>Blood</div>
               <div className={cx("mt-1 font-display font-extrabold tnum", t("text-[24px]", "text-[30px]"))}>{card.blood}</div>
             </div>
           </div>
           {card.doctor && (
             <div className="glass min-w-0 flex-1 rounded-2xl px-3 py-2">
-              <div className={cx("text-white/75", t("text-[11px]", "text-[13px]"))}>Doctor · <span className="font-tamil">மருத்துவர்</span></div>
+              <div className={cx("text-white/75", t("text-[11px]", "text-[13px]"))}>Doctor</div>
               <div className={cx("mt-0.5 line-clamp-2 font-semibold leading-snug", t("text-[12.5px]", "text-[15px]"))}>{card.doctor}</div>
             </div>
           )}
@@ -102,14 +100,14 @@ export function EmergencyCardView({ card, big, qr = true, meds = true }: { card:
 
       {/* Critical facts */}
       <div className="flex flex-col gap-2.5 px-4 py-4">
-        <InfoBlock big={big} tone="bg-rose text-rose-ink" label="Allergy" ta="ஒவ்வாமை">{card.allergies.join(", ") || "None known"}</InfoBlock>
+        <InfoBlock big={big} tone="bg-rose text-rose-ink" label="Allergy">{card.allergies.join(", ") || "None known"}</InfoBlock>
         {card.thinners.length > 0 && (
-          <InfoBlock big={big} tone="bg-butter text-butter-ink" label="Blood thinner, may bleed more" ta="இரத்தம் மெலிதாக்கும் மருந்து">
+          <InfoBlock big={big} tone="bg-butter text-butter-ink" label="Blood thinner, may bleed more">
             {card.thinners.map((m) => `${m.name} ${m.dose}`).join(", ")}
           </InfoBlock>
         )}
         <div className="px-1 pt-1">
-          <div className={cx("font-bold text-ink-2", t("text-[12px]", "text-[14px]"))}>Conditions · <span className="font-tamil">நோய்கள்</span></div>
+          <div className={cx("font-bold text-ink-2", t("text-[12px]", "text-[14px]"))}>Conditions</div>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             {card.conditions.map((c) => <span key={c} className={cx("rounded-full bg-lilac px-3 py-1 font-semibold leading-snug text-ink", t("text-[12.5px]", "text-[15px]"))}>{c}</span>)}
             {!card.conditions.length && <span className="text-ink-3">None recorded</span>}
@@ -117,7 +115,7 @@ export function EmergencyCardView({ card, big, qr = true, meds = true }: { card:
         </div>
         {meds && card.meds.length > 0 && (
           <div className="px-1 pt-1">
-            <div className={cx("font-bold text-ink-2", t("text-[12px]", "text-[14px]"))}>Medicines · <span className="font-tamil">மாத்திரைகள்</span></div>
+            <div className={cx("font-bold text-ink-2", t("text-[12px]", "text-[14px]"))}>Medicines</div>
             <ul className={cx("mt-1.5 grid gap-x-3 gap-y-1", t("grid-cols-2 text-[13px]", "grid-cols-1 text-[17px]"))}>
               {card.meds.map((m) => (
                 <li key={m.name} className="flex min-w-0 items-center gap-2">
@@ -130,7 +128,7 @@ export function EmergencyCardView({ card, big, qr = true, meds = true }: { card:
         )}
         {card.contacts.length > 0 && (
           <div className="px-1 pt-1">
-            <div className={cx("font-bold text-ink-2", t("text-[12px]", "text-[14px]"))}>Call family · <span className="font-tamil">குடும்பத்தை அழைக்க</span></div>
+            <div className={cx("font-bold text-ink-2", t("text-[12px]", "text-[14px]"))}>Call family</div>
             <ul className="mt-1 flex flex-col">
               {card.contacts.slice(0, 3).map((c) => (
                 <li key={c.phone} className="flex items-center gap-3 border-b border-line py-2 last:border-b-0">
@@ -152,7 +150,6 @@ export function EmergencyCardView({ card, big, qr = true, meds = true }: { card:
           <div className="shrink-0 rounded-2xl bg-white p-1.5 shadow-card"><QR text={helpUrl(card.cardToken)} size={big ? 124 : 108} /></div>
           <div className="min-w-0">
             <div className={cx("font-display font-extrabold leading-tight", t("text-[17px]", "text-[21px]"))}>Scan to help {name}</div>
-            <div className={cx("font-tamil font-semibold leading-snug text-ink-2", t("text-[14px]", "text-[17px]"))}>உதவ ஸ்கேன் செய்யுங்கள்</div>
             <div className={cx("mt-1 leading-snug text-ink-3", t("text-[11.5px]", "text-[13px]"))}>Any phone camera. Shows this card and can alert her family and call an ambulance.</div>
           </div>
         </div>

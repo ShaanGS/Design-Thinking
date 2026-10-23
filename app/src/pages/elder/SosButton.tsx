@@ -80,8 +80,8 @@ export default function SosButton({ onTrigger }: { onTrigger: () => void }) {
         <span className={cx("mt-1 text-[32px] font-extrabold leading-none", ta ? "font-tamil" : "font-display")}>
           {holding ? (ta ? "பிடியுங்கள்" : "Hold on") : ta ? "உதவி" : "Help"}
         </span>
-        <span className={cx("mt-1 text-[15px] font-bold text-white/85", !ta && "font-tamil")}>
-          {holding ? (ta ? "Keep holding" : "தொடர்ந்து") : ta ? "Help" : "உதவி"}
+        <span className="mt-1 text-[15px] font-bold text-white/85">
+          {holding ? "Keep holding" : "Hold 2 seconds"}
         </span>
       </motion.button>
     </div>

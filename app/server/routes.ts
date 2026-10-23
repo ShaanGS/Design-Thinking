@@ -71,7 +71,7 @@ api.post("/auth/create-family", wrap((req, res) => {
   let code = ""; do { code = elderName.replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 4) + Math.floor(100 + Math.random() * 900); } while (get("SELECT id FROM families WHERE code = ?", code));
   const fam = uid("fam_"), elder = uid("u_"), guardian = uid("u_"), pid = uid("pat_"), at = nowIso();
   run("INSERT INTO families (id, code, name, created_at) VALUES (?,?,?,?)", fam, code, `${elderName.split(" ").slice(-1)[0]} family`, at);
-  run("INSERT INTO users (id, family_id, name, role, relation, lang, created_at) VALUES (?,?,?,?,?,?,?)", elder, fam, elderName, "elder", clean(b.nickname, 20) || "Elder", b.lang === "en" ? "en" : "ta", at);
+  run("INSERT INTO users (id, family_id, name, role, relation, lang, created_at) VALUES (?,?,?,?,?,?,?)", elder, fam, elderName, "elder", clean(b.nickname, 20) || "Elder", b.lang === "ta" ? "ta" : "en", at);
   run("INSERT INTO users (id, family_id, name, role, relation, phone, lang, created_at) VALUES (?,?,?,?,?,?,?,?)", guardian, fam, guardianName, "guardian", clean(b.relation, 30) || "Family", clean(b.phone, 20) || null, "en", at);
   run(`INSERT INTO patients (id, family_id, user_id, name, nickname, age, sex, blood, address, lat, lng, conditions, allergies, abha, doctor, memory) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     pid, fam, elder, elderName, clean(b.nickname, 20) || elderName.split(" ")[0], Number(b.age) || 70, b.sex === "M" ? "M" : "F", clean(b.blood, 4) || "Unknown",

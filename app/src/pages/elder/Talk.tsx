@@ -55,7 +55,7 @@ export default function Talk() {
     if (listening) { stopRef.current(); return; }
     stopSpeaking();
     setListening(true);
-    stopRef.current = listen(lang === "ta" ? "ta-IN" : "en-IN", (heard) => void send(heard), (err) => { setListening(false); if (err) toast(err, "warn"); });
+    stopRef.current = listen("en-IN", (heard) => void send(heard), (err) => { setListening(false); if (err) toast(err, "warn"); });
   }
 
   const name = data?.patient.nickname || "Paati";
@@ -76,7 +76,7 @@ export default function Talk() {
           <div className="flex items-center gap-3 rounded-3xl bg-white p-4 shadow-card">
             <Art name="chat" size={64} className="shrink-0" />
             <div>
-              <p className="font-tamil text-[22px] font-bold leading-snug">வணக்கம் {tamilName(name)}! எப்படி இருக்கீங்க?</p>
+              <p className="text-[22px] font-bold leading-snug">Hello {name}! How are you feeling today?</p>
               <p className="text-[16px] text-ink-2">Hello {name}! How are you today?</p>
             </div>
           </div>
@@ -116,10 +116,9 @@ export default function Talk() {
       <div className="sticky bottom-0 z-10 -mx-4 mt-2 flex flex-col gap-3 rounded-t-[28px] bg-white px-4 pb-4 pt-3 shadow-[0_-12px_30px_-14px_rgba(73,54,196,.3)]">
         <div className="-mx-4 flex gap-2 overflow-x-auto px-4 scrollbar-none">
           {QUICK.map((q) => (
-            <motion.button key={q.ta} whileTap={{ scale: 0.96 }} disabled={sending} onClick={() => void send(ta ? q.ta : q.en)}
+            <motion.button key={q.ta} whileTap={{ scale: 0.96 }} disabled={sending} onClick={() => void send(q.en)}
               className="min-h-[56px] shrink-0 rounded-[20px] bg-lilac px-4 py-2 text-left disabled:opacity-45">
-              <span className={cx("block max-w-[230px] text-[17px] font-bold leading-tight", ta && "font-tamil")}>{ta ? q.ta : q.en}</span>
-              <span className={cx("block max-w-[230px] text-[13px] text-ink-2", !ta && "font-tamil")}>{ta ? q.en : q.ta}</span>
+              <span className="block max-w-[230px] text-[17px] font-bold leading-tight">{q.en}</span>
             </motion.button>
           ))}
         </div>

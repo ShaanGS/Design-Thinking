@@ -10,7 +10,7 @@ export const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString("en-IN"
 export const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 export const fmtDateTime = (iso: string) => new Date(iso).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 export const isTamil = (s: string) => /[஀-௿]/.test(s);
-export function greeting(lang: "ta" | "en" = "ta") {
+export function greeting(lang: "ta" | "en" = "en") {
   const h = new Date().getHours();
   if (lang === "en") return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
   return h < 12 ? "காலை வணக்கம்" : h < 17 ? "மதிய வணக்கம்" : "மாலை வணக்கம்";

@@ -34,7 +34,7 @@ function pickSlot(today: TodayDose[]): { slot: Slot | null; doses: TodayDose[]; 
 const hour12 = (h: number) => (h > 12 ? h - 12 : h);
 
 export default function Home() {
-  const { data, raiseSOS, lang, setLang, fallOn, setFallOn, reload } = useElder();
+  const { data, raiseSOS, lang, fallOn, setFallOn, reload } = useElder();
   const { user, signOut } = useAuth();
   const nav = useNavigate();
   const toast = useToast();
@@ -76,7 +76,7 @@ export default function Home() {
     if (!next.slot) return;
     const pending = next.doses.filter((d) => d.status !== "taken");
     const ok = speak(
-      `${tamilName(name)}, ${SLOT_LABEL[next.slot].ta} மாத்திரை நேரம். ${pending.map((d) => d.med.name).join(", ")}. சாப்பிட்டதும் சாப்பிட்டேன் பொத்தானை அழுத்துங்கள்.`,
+      `${name}, it is time for your ${SLOT_LABEL[next.slot].en.toLowerCase()} tablets: ${pending.map((d) => d.med.name).join(", ")}. Press "I took them" when you are done.`,
       `${name}, it's time for your ${SLOT_LABEL[next.slot].en.toLowerCase()} tablets: ${pending.map((d) => `${d.med.name} ${d.med.dose}`).join(", ")}. Press "I took them" after you take them.`,
     );
     if (!ok) toast(t("இந்த போனில் குரல் இல்லை", "Voice isn't available on this phone"));
@@ -248,17 +248,6 @@ export default function Home() {
       {/* Settings */}
       <BottomSheet open={sheet === "menu"} onClose={() => setSheet(null)} title={<Bi inline ta="அமைப்புகள்" en="Settings" />}>
         <div className="flex flex-col gap-5">
-          <div>
-            <p className="mb-2 text-[18px] font-bold"><Bi inline ta="மொழி" en="Language" /></p>
-            <div className="grid grid-cols-2 gap-2">
-              {(["ta", "en"] as const).map((l) => (
-                <button key={l} onClick={() => setLang(l)}
-                  className={cx("h-16 rounded-[22px] text-[20px] font-bold transition-colors", lang === l ? "bg-violet text-white" : "bg-canvas text-ink", l === "ta" && "font-tamil")}>
-                  {l === "ta" ? "தமிழ்" : "English"}
-                </button>
-              ))}
-            </div>
-          </div>
           <div className="flex items-center gap-3 rounded-3xl bg-canvas p-3">
             <Person who="paati" size={56} />
             <div className="min-w-0 leading-tight">

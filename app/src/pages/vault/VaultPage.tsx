@@ -207,7 +207,7 @@ export default function VaultPage() {
 type QA = { id: number; q: string; a?: string; sources?: string[]; err?: string };
 
 function AskCard({ docs, onOpen, pos, focus, empty }: { docs: MedDocument[]; onOpen: (d: MedDocument) => void; pos: string; focus: number; empty: boolean }) {
-  const presets = [`When was ${pos} stent put in?`, `Is ${pos} sugar getting better?`, "பாட்டிக்கு என்ன அலர்ஜி?", "What should we ask the doctor?", `Has ${pos} kidney function changed?`];
+  const presets = [`When was ${pos} stent put in?`, `Is ${pos} sugar getting better?`, `What is ${pos} allergy?`, "What should we ask the doctor?", `Has ${pos} kidney function changed?`];
   const [list, setList] = useState<QA[]>([]);
   const [text, setText] = useState("");
   const n = useRef(0);

@@ -4,19 +4,19 @@ A full-stack, installable web app (PWA) for elders, their families and hospitals
 
 | Who | What they get | URL |
 |---|---|---|
-| **Elder** (Kamala Paati) | Tamil-first giant buttons: hold-to-SOS, "I took my tablets", talk to Saathi (voice), Face Pulse heart-rate check, offline emergency QR card, fall detection | `/elder` |
+| **Elder** (Kamala Paati) | Giant buttons: hold-to-SOS, "I took my tablets", talk to Saathi (voice), Face Pulse heart-rate check, offline emergency QR card, fall detection | `/elder` |
 | **Family** (Karthik, son) | Live status and activity feed, medicines with safety checks, adherence and vitals charts, **Health Vault**, live emergency tracking on a map, visits, family circle | `/family` |
 | **Hospital** (Dr. Priya, ER) | Incoming patients with an AI pre-arrival brief and red flags, "why this hospital" routing, break-glass record access, network beds, medicine stock and relays | `/hospital` |
 | **Doctor** (no login) | Read-only lifetime record from a 24-hour share link or QR | `/share/:token` |
 
 ## Design
 
-The interface follows [`DESIGN.md`](DESIGN.md): a "signage-grade" system built for a 72-year-old reading Tamil first (blue-black ink, turmeric yellow, red only for emergencies), Indian-foundry fonts bundled offline (Anek, Hind Madurai), and doses shown as medicine blister strips.
+The interface follows [`DESIGN.md`](DESIGN.md): a "signage-grade" system built for a 72-year-old (blue-black ink, turmeric yellow, red only for emergencies), Indian-foundry fonts bundled offline (Anek, Hind Madurai), and doses shown as medicine blister strips.
 
 ## What's inside
 
-- **Health Vault.** Photograph or upload prescriptions, lab reports, discharge summaries and scans (images or PDF). Claude reads each paper (handwriting too), builds a dated timeline and lab trends, and **cross-checks every paper together**: falling kidney function versus the metformin dose, interactions between prescriptions from different doctors, duplicate brands, rising cholesterol. Ask questions in English or Tamil with source citations. Generate a doctor brief and share link.
-- **Daily companion.** Saathi chats with the elder in Tamil, remembers context, logs tablets from the conversation, and escalates red-flag phrases ("my chest feels heavy") through **fixed safety rules that override the AI**.
+- **Health Vault.** Photograph or upload prescriptions, lab reports, discharge summaries and scans (images or PDF). Claude reads each paper (handwriting too), builds a dated timeline and lab trends, and **cross-checks every paper together**: falling kidney function versus the metformin dose, interactions between prescriptions from different doctors, duplicate brands, rising cholesterol. Ask questions with source citations. Generate a doctor brief and share link.
+- **Daily companion.** Saathi chats with the elder in simple English, remembers context, logs tablets from the conversation, and escalates red-flag phrases ("my chest feels heavy") through **fixed safety rules that override the AI**.
 - **Golden-hour emergency.** SOS from the button, the AI chat, a check-in reply or the fall sensor. Then: triage → **need-matched routing** (the nearest hospital *that can treat this patient*, ranked by time to definitive care and explained) → AI pre-arrival brief to the ER → a live ambulance on the map → ER "team ready" / "received" → family notified at every step.
 - **Medicines.** Schedules by time of day, one-tap confirmation, stock and refill warnings, 14-day adherence, and a safety check on every new medicine (duplicates, allergy conflicts like penicillin, interactions).
 - **Hospital network.** Live ICU and ER beds, capabilities (cath lab, CT, neuro, ventilator), critical-drug stock (anti-snake venom, tenecteplase, rabies IG, blood, oxygen) and **medicine relays** between hospitals.
