@@ -149,7 +149,7 @@ export default function Home() {
         </section>
 
         {/* Call Saathi: the voice companion */}
-        <motion.button type="button" whileTap={{ scale: 0.97 }} onClick={() => nav("/elder/call")}
+        <motion.button type="button" whileTap={{ scale: 0.97 }} onClick={() => nav("/phone")}
           className="hero-violet relative flex min-h-[124px] items-center gap-4 overflow-hidden rounded-[28px] px-5 py-4 text-left text-white shadow-[0_18px_34px_-16px_rgba(91,71,230,.9)]">
           <span className="pointer-events-none absolute -right-10 -top-12 h-40 w-40 rounded-full bg-white/10" />
           <span className="relative grid h-[76px] w-[76px] shrink-0 place-items-center rounded-full bg-white">

@@ -44,7 +44,7 @@ export default function Stage() {
         <Logo size={36} sub="Live demo · three phones, one emergency" />
         <p className="ml-6 hidden max-w-md text-[13.5px] text-ink-2 xl:block">{paati === "phone" ? "Tap “Ring Paati” in Karthik's app, answer on Paati's phone and ask Saathi for something. Watch it happen in Karthik's app." : "Hold the red button on Paati's phone. Watch Karthik's app and the ER react in the same second."}</p>
         <div className="ml-auto flex rounded-full bg-white p-1 text-[13px] font-bold shadow-card" role="radiogroup" aria-label="Paati's side">
-          {([["phone", "Ordinary phone"], ["app", "Saathi app"]] as const).map(([v, t]) => (
+          {([["phone", "Phone call"], ["app", "Saathi app"]] as const).map(([v, t]) => (
             <button key={v} role="radio" aria-checked={paati === v} onClick={() => setPaati(v)} className={paati === v ? "rounded-full bg-violet px-3.5 py-2 text-white" : "rounded-full px-3.5 py-2 text-ink-2"}>{t}</button>
           ))}
         </div>
@@ -57,7 +57,7 @@ export default function Stage() {
           <div key={p.name} className="flex flex-col items-center">
             <div className="mb-3 flex items-center gap-2.5">
               <Person who={p.who} size={40} />
-              <div className="leading-tight"><div className="text-[15px] font-extrabold">{p.name === "elder" && paati === "phone" ? "Paati's ordinary phone" : p.title}</div><div className="text-[12px] text-ink-2">{p.sub}</div></div>
+              <div className="leading-tight"><div className="text-[15px] font-extrabold">{p.name === "elder" && paati === "phone" ? "Paati's phone call" : p.title}</div><div className="text-[12px] text-ink-2">{p.sub}</div></div>
             </div>
             <div style={{ width: (W + 22) * scale, height: (H + 22) * scale }}>
               <div className="origin-top-left rounded-[54px] bg-ink p-[11px] shadow-[0_40px_80px_-30px_rgba(23,20,46,.55)]" style={{ width: W + 22, height: H + 22, transform: `scale(${scale})` }}>

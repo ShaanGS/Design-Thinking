@@ -11,7 +11,6 @@ import type { Emergency } from "../../../shared/types";
 import { Ctx, readLang, saveLang, ACTIVE, type ElderCtx, type Lang } from "./shared";
 import Home from "./Home";
 import Talk from "./Talk";
-import Call from "./Call";
 import Errands from "./Errands";
 import Card from "./Card";
 import { SymptomPicker, EmergencyScreen } from "./EmergencyView";
@@ -72,7 +71,7 @@ export default function ElderApp() {
         <div className="relative flex min-h-full flex-col bg-canvas">
           <Routes>
             <Route index element={<Home />} />
-            <Route path="call" element={<Call />} />
+            <Route path="call" element={<Navigate to="/phone" replace />} />
             <Route path="errands" element={<Errands />} />
             <Route path="talk" element={<Talk />} />
             <Route path="card" element={<Card />} />
