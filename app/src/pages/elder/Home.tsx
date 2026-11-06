@@ -148,6 +148,21 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Call Saathi: the voice companion */}
+        <motion.button type="button" whileTap={{ scale: 0.97 }} onClick={() => nav("/phone")}
+          className="hero-violet relative flex min-h-[124px] items-center gap-4 overflow-hidden rounded-[28px] px-5 py-4 text-left text-white shadow-[0_18px_34px_-16px_rgba(91,71,230,.9)]">
+          <span className="pointer-events-none absolute -right-10 -top-12 h-40 w-40 rounded-full bg-white/10" />
+          <span className="relative grid h-[76px] w-[76px] shrink-0 place-items-center rounded-full bg-white">
+            <span className="absolute inset-0 rounded-full bg-white/40 animate-breathe" />
+            <Art name="chat" size={60} className="relative" />
+          </span>
+          <span className="relative min-w-0 flex-1 leading-tight">
+            <span className="block text-[26px] font-extrabold">Call Saathi</span>
+            <span className="mt-1 block text-[16px] font-semibold text-white/85">Talk in Tamil or English</span>
+          </span>
+          <span className="relative grid h-14 w-14 shrink-0 place-items-center rounded-full bg-white text-violet-700"><Phone className="h-7 w-7" strokeWidth={2.2} fill="currentColor" /></span>
+        </motion.button>
+
         {/* Tablets now */}
         <section className="rounded-[28px] bg-white p-4 shadow-card">
           {next.slot ? (
@@ -207,8 +222,8 @@ export default function Home() {
 
         {/* Big tiles */}
         <div className="grid grid-cols-2 gap-3">
-          <ElderTile tone="lilac" art="chat" ta="சாத்தியிடம் பேசு" en="Talk to Saathi" onClick={() => nav("/elder/talk")} />
-          <ElderTile tone="rose" art="heart" ta="நாடித்துடிப்பு" en="Check my pulse" onClick={() => nav("/elder/pulse")} />
+          <ElderTile tone="lilac" art="chat" ta="சாத்தியிடம் எழுது" en="Type to Saathi" onClick={() => nav("/elder/talk")} />
+          <ElderTile tone="rose" art="calendar" ta="என் வேலைகள்" en="My errands" onClick={() => nav("/elder/errands")} />
           <ElderTile tone="sky" art="shield" ta="என் அட்டை" en="My card" onClick={() => nav("/elder/card")} />
           <ElderTile tone="mint" art="home" ta="குடும்பத்தை அழை" en="Call family" onClick={() => setSheet("call")} />
         </div>

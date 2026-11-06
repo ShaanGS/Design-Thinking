@@ -47,7 +47,7 @@ export function securityHeaders(_req: Request, res: Response, next: NextFunction
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("Strict-Transport-Security", "max-age=15552000");
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
-  // Camera (Face Pulse), microphone (talk to Saathi) and location (bystander, home) are used by this site only.
+  // Camera (photographing papers), microphone (talk to Saathi) and location (bystander, home) are used by this site only.
   res.setHeader("Permissions-Policy", "camera=(self), microphone=(self), geolocation=(self), payment=(), usb=()");
   next();
 }

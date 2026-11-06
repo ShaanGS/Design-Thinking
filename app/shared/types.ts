@@ -368,3 +368,32 @@ export const NEED_LABEL: Record<string, string> = {
   vent: "ventilator",
   asv: "enough anti-venom",
 };
+
+/** An errand Saathi does for the elder on the real web: Claude searches and operates real websites in a sandboxed
+ * browser, and stops before anything that needs a login, captcha, OTP or payment, which a family member finishes. */
+export type ErrandKind = "find_doctor" | "order_medicines" | "electricity_bill" | "web_lookup";
+export type ErrandStatus = "running" | "needs_choice" | "ready_for_family" | "done" | "failed" | "cancelled";
+export interface Errand {
+  id: string;
+  patientId: string;
+  kind: ErrandKind;
+  title: string;
+  request: string;
+  status: ErrandStatus;
+  /** A choice only the elder can make (which doctor, which time). */
+  question: { prompt: string; options: string[] } | null;
+  /** The last step, on the real site, that a family member finishes (log in, captcha, confirm, pay). */
+  handoff: { site: string; url: string; what: string } | null;
+  result: string | null;
+  steps: { at: string; text: string }[];
+  site: string | null;
+  startedBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+export const ERRAND_TITLE: Record<ErrandKind, string> = {
+  find_doctor: "Find and book a doctor",
+  order_medicines: "Reorder medicines",
+  electricity_bill: "Electricity bill",
+  web_lookup: "Find something out",
+};

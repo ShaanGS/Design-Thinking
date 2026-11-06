@@ -129,14 +129,14 @@ function clearDemo() {
   for (const d of all("SELECT path FROM documents WHERE patient_id = ?", pid)) fs.rmSync(path.join(UPLOAD_DIR, String(d.path)), { force: true });
   run("DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE family_id = ? OR id IN ('u_priya','u_raghu'))", fam);
   run("DELETE FROM users WHERE family_id = ? OR id IN ('u_priya','u_raghu')", fam);
-  for (const t of ["medications", "dose_logs", "vitals", "documents", "insights", "visits", "chats", "checkins"]) run(`DELETE FROM ${t} WHERE patient_id = ?`, pid);
+  for (const t of ["medications", "dose_logs", "vitals", "documents", "insights", "visits", "chats", "checkins", "voice_calls", "lesson_progress", "errands"]) run(`DELETE FROM ${t} WHERE patient_id = ?`, pid);
   for (const t of ["feed", "emergencies", "patients"]) run(`DELETE FROM ${t} WHERE family_id = ?`, fam);
   run("DELETE FROM families WHERE id = ?", fam);
   for (const t of ["hospitals", "inventory", "relays"]) db.exec(`DELETE FROM ${t}`);
 }
 
 export function seed(opts: { demoOnly?: boolean } = {}) {
-  const tables = ["families", "users", "sessions", "patients", "medications", "dose_logs", "vitals", "feed", "documents", "insights", "hospitals", "inventory", "emergencies", "relays", "visits", "chats", "checkins"];
+  const tables = ["families", "users", "sessions", "patients", "medications", "dose_logs", "vitals", "feed", "documents", "insights", "hospitals", "inventory", "emergencies", "relays", "visits", "chats", "checkins", "voice_calls", "lesson_progress", "errands"];
   // Keep the emergency card token across demo resets so a printed card's QR keeps working.
   const cardToken = String(get("SELECT card_token FROM patients WHERE id = 'pat_kamala'")?.card_token || "") || newCardToken();
   tx(() => {
@@ -196,10 +196,10 @@ export function seed(opts: { demoOnly?: boolean } = {}) {
         }
       }
     }
-    // Vitals: 14 days of face-pulse readings drifting up, a few BP and sugar readings
+    // Vitals: 14 days of pulse readings from the BP machine drifting up, a few BP and sugar readings
     for (let d = 14; d >= 1; d--) {
       const at = new Date(Date.now() - d * 86400000 + 9 * 3600000).toISOString();
-      run("INSERT INTO vitals (id, patient_id, type, value, value2, at, source) VALUES (?,?,?,?,?,?,?)", uid("v_"), pid, "hr", Math.round(72 + (14 - d) * 0.8 + (Math.random() * 4 - 2)), null, at, "Face Pulse");
+      run("INSERT INTO vitals (id, patient_id, type, value, value2, at, source) VALUES (?,?,?,?,?,?,?)", uid("v_"), pid, "hr", Math.round(72 + (14 - d) * 0.8 + (Math.random() * 4 - 2)), null, at, "Home BP monitor");
       if (d % 3 === 0) run("INSERT INTO vitals (id, patient_id, type, value, value2, at, source) VALUES (?,?,?,?,?,?,?)", uid("v_"), pid, "bp", 138 + Math.round(Math.random() * 14), 82 + Math.round(Math.random() * 8), at, "Home BP monitor");
       if (d % 4 === 0) run("INSERT INTO vitals (id, patient_id, type, value, value2, at, source) VALUES (?,?,?,?,?,?,?)", uid("v_"), pid, "sugar", 150 + Math.round(Math.random() * 30), null, at, "Glucometer (fasting)");
     }
@@ -215,7 +215,7 @@ export function seed(opts: { demoOnly?: boolean } = {}) {
     const f = (kind: string, level: string, title: string, body: string, minsAgo: number) => run("INSERT INTO feed (id, family_id, kind, level, title, body, at) VALUES (?,?,?,?,?,?,?)", uid("f_"), fam, kind, level, title, body, new Date(Date.now() - minsAgo * 60000).toISOString());
     f("insight", "warn", "Saathi found 3 urgent questions for the doctor", "Reading all 6 papers together: kidney function vs metformin, rising cholesterol, omeprazole with clopidogrel.", 60 * 20);
     f("dose", "warn", "Night tablets missed", "Glycomet and atorvastatin were not confirmed last night.", 60 * 13);
-    f("vital", "info", "Pulse 82 bpm", "Face Pulse check during the morning call. A little higher than her usual 74.", 60 * 24);
+    f("vital", "info", "Pulse 82 bpm", "From her BP machine this morning. A little higher than her usual 74.", 60 * 24);
   });
 }
 

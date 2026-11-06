@@ -45,7 +45,7 @@ export default function Landing() {
 
   async function go(p: Promise<AuthRes>, key: string) {
     setBusy(key);
-    try { const r = await p; signIn(r.token, r.user); if (r.code) toast(`Family created. Share code ${r.code} with relatives.`, "ok"); nav(homeFor(r.user)); }
+    try { const r = await p; signIn(r.token, r.user); if (r.code) toast(`Family created. Share code ${r.code} with relatives.`, "ok"); nav(r.user.role === "elder" && params.get("to") === "phone" ? "/phone" : homeFor(r.user)); }
     catch (e) { toast((e as Error).message, "warn"); }
     finally { setBusy(null); }
   }
@@ -58,7 +58,7 @@ export default function Landing() {
     void go(api.post<AuthRes>("/api/auth/demo", { persona: as }), as);
   }, [loading, user, as]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!loading && user) return <Navigate to={homeFor(user)} replace />;
+  if (!loading && user) return <Navigate to={user.role === "elder" && params.get("to") === "phone" ? "/phone" : homeFor(user)} replace />;
 
   const side = (
     <div>

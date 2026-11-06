@@ -138,7 +138,7 @@ export function EmergencyScreen({ emergency }: { emergency: Emergency }) {
   return (
     <div className="hero-sos fixed inset-0 z-[850] overflow-y-auto text-white">
       <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-white/10" />
-      <div className="relative flex min-h-full flex-col px-4 pb-8 pt-4 safe-top">
+      <div className="relative flex min-h-full flex-col px-4 pb-[calc(2rem+var(--call-chip,0px))] pt-4 safe-top">
         <div className="flex items-center justify-between px-1">
           <span className="glass inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[13px] font-extrabold uppercase tracking-wider">
             <span className="h-2 w-2 animate-blink rounded-full bg-white" />Emergency

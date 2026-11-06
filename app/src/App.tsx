@@ -11,6 +11,7 @@ const HospitalApp = lazy(() => import("./pages/hospital/HospitalApp"));
 const DoctorShare = lazy(() => import("./pages/vault/DoctorShare"));
 const Stage = lazy(() => import("./pages/Stage"));
 const Bystander = lazy(() => import("./pages/Bystander"));
+const PhonePage = lazy(() => import("./pages/Phone"));
 
 const Loading = () => <div className="grid h-full place-items-center"><Spinner className="h-8 w-8 text-violet" /></div>;
 
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="/hospital/*" element={<Guard roles={["hospital"]}><HospitalApp /></Guard>} />
         <Route path="/share/:token" element={<DoctorShare />} />
         <Route path="/stage" element={<Stage />} />
+        <Route path="/phone" element={<Guard roles={["elder"]}><PhonePage /></Guard>} />
         <Route path="/help/:code" element={<Bystander />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

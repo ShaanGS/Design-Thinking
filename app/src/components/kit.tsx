@@ -134,19 +134,20 @@ export interface TabItem { to: string; label: string; icon: LucideIcon; end?: bo
 export function TabBar({ items, center }: { items: TabItem[]; center?: ReactNode }) {
   const half = Math.ceil(items.length / 2);
   const render = (t: TabItem) => (
-    <NavLink key={t.to} to={t.to} end={t.end} aria-label={t.label} className="relative">
+    <NavLink key={t.to} to={t.to} end={t.end} aria-label={t.label} className="relative min-w-0 flex-1">
       {({ isActive }) => (
-        <span className={cx("relative flex h-12 items-center justify-center gap-2 rounded-full transition-colors", isActive ? "bg-violet-100 px-4 text-violet-700" : "w-12 text-ink-3")}>
-          <t.icon className="h-[21px] w-[21px]" strokeWidth={isActive ? 2.3 : 1.9} />
-          {isActive && <span className="text-[13px] font-bold">{t.label}</span>}
-          {t.dot && <span className="absolute right-2 top-2.5 h-2 w-2 rounded-full bg-sos ring-2 ring-white" />}
+        // Every tab keeps the same size; only the colour shows which one is active (no jumping on tap).
+        <span className={cx("relative flex h-[52px] w-full flex-col items-center justify-center gap-0.5 rounded-full transition-colors", isActive ? "bg-violet-100 text-violet-700" : "text-ink-3")}>
+          <t.icon className="h-[21px] w-[21px]" strokeWidth={2} />
+          <span className="max-w-full truncate px-1 text-[10.5px] font-bold leading-none">{t.label}</span>
+          {t.dot && <span className="absolute right-[22%] top-2 h-2 w-2 rounded-full bg-sos ring-2 ring-white" />}
         </span>
       )}
     </NavLink>
   );
   return (
     <nav className="fixed inset-x-0 bottom-0 z-[600] px-4 pb-4 safe-bottom pointer-events-none">
-      <div className="pointer-events-auto mx-auto flex max-w-md items-center justify-between rounded-full bg-white/95 p-1.5 shadow-pill backdrop-blur-xl">
+      <div className="pointer-events-auto mx-auto flex max-w-md items-center gap-1 rounded-full bg-white/95 p-1.5 shadow-pill backdrop-blur-xl">
         {items.slice(0, half).map(render)}
         {center}
         {items.slice(half).map(render)}

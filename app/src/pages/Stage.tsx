@@ -1,7 +1,7 @@
 // Stage view for presenting: Paati's phone, the family app and the ER, side by side and live.
 // Each phone is an iframe with its own window name, so each keeps its own signed-in session.
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { RotateCcw, ArrowLeft } from "lucide-react";
 import { api } from "../lib/api";
 import { Logo, useToast } from "../components/ui";
@@ -19,6 +19,9 @@ export default function Stage() {
   const [gen, setGen] = useState(0);
   const [scale, setScale] = useState(1);
   const [busy, setBusy] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const paati = params.get("paati") === "app" ? "app" : "phone"; // Paati's side: her ordinary phone (default) or the Saathi app
+  const setPaati = (v: "app" | "phone") => setParams(v === "phone" ? {} : { paati: v }, { replace: true });
   useEffect(() => {
     const fit = () => setScale(Math.min(1, (window.innerHeight - 150) / (H + 22), (window.innerWidth - 120) / (3 * (W + 22))));
     fit(); window.addEventListener("resize", fit); return () => window.removeEventListener("resize", fit);
@@ -39,8 +42,13 @@ export default function Stage() {
       <header className="flex items-center gap-4 px-8 pt-5">
         <Link to="/" aria-label="Back" className="grid h-10 w-10 place-items-center rounded-full bg-white shadow-card"><ArrowLeft className="h-5 w-5" /></Link>
         <Logo size={36} sub="Live demo · three phones, one emergency" />
-        <p className="ml-6 hidden max-w-md text-[13.5px] text-ink-2 xl:block">Hold the red button on Paati's phone. Watch Karthik's app and the ER react in the same second.</p>
-        <button onClick={reset} disabled={busy} className="ml-auto inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-[13.5px] font-bold shadow-card disabled:opacity-60">
+        <p className="ml-6 hidden max-w-md text-[13.5px] text-ink-2 xl:block">{paati === "phone" ? "Tap “Ring Paati” in Karthik's app, answer on Paati's phone and ask Saathi for something. Watch it happen in Karthik's app." : "Hold the red button on Paati's phone. Watch Karthik's app and the ER react in the same second."}</p>
+        <div className="ml-auto flex rounded-full bg-white p-1 text-[13px] font-bold shadow-card" role="radiogroup" aria-label="Paati's side">
+          {([["phone", "Phone call"], ["app", "Saathi app"]] as const).map(([v, t]) => (
+            <button key={v} role="radio" aria-checked={paati === v} onClick={() => setPaati(v)} className={paati === v ? "rounded-full bg-violet px-3.5 py-2 text-white" : "rounded-full px-3.5 py-2 text-ink-2"}>{t}</button>
+          ))}
+        </div>
+        <button onClick={reset} disabled={busy} className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-[13.5px] font-bold shadow-card disabled:opacity-60">
           <RotateCcw className={busy ? "h-4 w-4 animate-spin" : "h-4 w-4"} />Reset demo
         </button>
       </header>
@@ -49,11 +57,11 @@ export default function Stage() {
           <div key={p.name} className="flex flex-col items-center">
             <div className="mb-3 flex items-center gap-2.5">
               <Person who={p.who} size={40} />
-              <div className="leading-tight"><div className="text-[15px] font-extrabold">{p.title}</div><div className="text-[12px] text-ink-2">{p.sub}</div></div>
+              <div className="leading-tight"><div className="text-[15px] font-extrabold">{p.name === "elder" && paati === "phone" ? "Paati's phone call" : p.title}</div><div className="text-[12px] text-ink-2">{p.sub}</div></div>
             </div>
             <div style={{ width: (W + 22) * scale, height: (H + 22) * scale }}>
               <div className="origin-top-left rounded-[54px] bg-ink p-[11px] shadow-[0_40px_80px_-30px_rgba(23,20,46,.55)]" style={{ width: W + 22, height: H + 22, transform: `scale(${scale})` }}>
-                <iframe key={`${p.name}-${gen}`} name={p.name} title={p.title} src={`/?as=${p.name}&g=${gen}`} allow="camera; microphone; geolocation"
+                <iframe key={`${p.name}-${gen}-${p.name === "elder" ? paati : ""}`} name={p.name} title={p.title} src={`/?as=${p.name}&g=${gen}${p.name === "elder" && paati === "phone" ? "&to=phone" : ""}`} allow="camera; microphone; geolocation"
                   className="h-full w-full rounded-[44px] bg-canvas" style={{ width: W, height: H }} />
               </div>
             </div>

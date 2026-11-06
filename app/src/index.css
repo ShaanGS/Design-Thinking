@@ -1,4 +1,5 @@
 @import "@fontsource-variable/plus-jakarta-sans/index.css";
+@import "@fontsource-variable/geist/index.css";
 @import "@fontsource-variable/anek-tamil/standard.css";
 @import "@fontsource/ibm-plex-mono/500.css";
 @import "leaflet/dist/leaflet.css";
@@ -26,3 +27,33 @@ h1, h2, h3, h4 { @apply font-display; text-wrap: balance; letter-spacing: -0.02e
 .art-shadow { filter: drop-shadow(0 10px 14px rgba(73,54,196,.22)); }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* Voice call surfaces, ported from Callvi. The orb is still until the voice SDK supplies audio levels. */
+.voice-orb {
+  --voice-level: 0;
+  position: relative; width: clamp(180px, 25vw, 256px); aspect-ratio: 1; overflow: hidden; border-radius: 50%;
+  background: radial-gradient(ellipse at 28% 8%, #3f70ed 0%, transparent 50%), radial-gradient(ellipse at 90% 90%, #c7d9ff 0%, transparent 60%), linear-gradient(145deg, #4778f5 5%, #7897ed 50%, #c5d5fa 100%);
+  transform: scale(calc(1 + var(--voice-level) * 0.14)); transition: transform 100ms linear; box-shadow: inset 0 0 36px rgb(255 255 255 / 0.14);
+}
+.voice-orb-light {
+  position: absolute; inset: -15%; border-radius: 50%;
+  background: radial-gradient(ellipse 75% 18% at 48% 54%, #f9fbff 0%, rgb(244 248 255 / 0.9) 20%, rgb(233 242 255 / 0.15) 65%, transparent 100%);
+  transform: rotate(calc(-35deg + var(--voice-level) * 38deg)) translateY(calc(var(--voice-level) * -12px)); filter: blur(8px); transition: transform 120ms linear;
+}
+.call-root { font-family: "Geist Variable", "Anek Tamil Variable", ui-sans-serif, system-ui, sans-serif; font-feature-settings: "ss01"; }
+.call-surface { background: #292929; }
+.call-surface :focus-visible { outline-color: #fff; outline-offset: 3px; }
+.voice-live-surface { background: #fdfdfd; color: #17181c; }
+.voice-live-surface :focus-visible { outline-color: #4269df; }
+.voice-control { display: inline-flex; align-items: center; justify-content: center; width: 58px; height: 58px; border-radius: 50%; background: #f1f2f5; color: #24262c; transition: background 150ms; }
+.voice-control:hover { background: #e7e9ee; }
+.voice-control:disabled { opacity: 0.4; }
+.voice-control-dark { background: #202124; color: white; }
+.voice-control-dark:hover { background: #34363b; }
+.voice-dial-control { display: inline-flex; align-items: center; justify-content: center; width: 76px; height: 76px; border-radius: 50%; background: #444; color: white; border: 1px solid #727272; }
+.voice-dial-control:hover { background: #505050; }
+.voice-dial-control:disabled { opacity: 0.4; }
+.voice-dial-end { background: #f12731; border-color: #f12731; }
+.voice-dial-end:hover { background: #d71f29; }
+.voice-dial-accept { background: #2fb45a; border-color: #2fb45a; }
+.voice-dial-accept:hover { background: #279c4d; }

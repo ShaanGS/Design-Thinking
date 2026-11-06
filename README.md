@@ -7,7 +7,7 @@ Shaan (RA2511004010247) · Shrinavin (RA2511004010230) · Kishore (RA25110040102
 
 ## ⭐ The app
 
-**[`app/`](app/) is the real product**: a full-stack, installable app with three live sides (the elder's phone, the family app with the Health Vault, and the hospital console), Claude-powered AI, live sync across phones, and a one-click deploy. Start with [`app/README.md`](app/README.md):
+**[`app/`](app/) is the real product**: a full-stack, installable app with three live sides (the elder's phone, the family app with the Health Vault, and the hospital console), Claude-powered AI, live sync across phones, and a one-click deploy. And Paati needs no app at all: she **talks to Saathi on an ordinary phone call** in Tamil or English, and Saathi gets things done for her on the real web (finding doctors, her medicines on Apollo Pharmacy, her electricity bill, lookups), with the family finishing any login or payment. Built on the call engine from our Callvi project. Start with [`app/README.md`](app/README.md):
 
 ```bash
 cd app && npm install && npm run dev     # then open http://localhost:5173
@@ -26,7 +26,6 @@ The HTML files in `prototype/` were the earlier design-thinking prototypes.
 | [`docs/05-features-and-wow-demo.md`](docs/05-features-and-wow-demo.md) | **Full feature set** (5 pillars, what is built vs planned) and the **10-minute wow demo run-of-show**: timings, equipment checklist, hosting steps, fallbacks |
 | [`prototype/vault.html`](prototype/vault.html) | **Health Vault:** a bag of prescriptions and reports becomes a lifetime medical record (timeline, trends, cross-doctor warnings, doctor brief with QR, ask in Tamil). Live: https://claude.ai/artifact/4drWh7efxTYg65Yypryn9Y |
 | [`prototype/live.html`](prototype/live.html) | **Live room:** the audience scans a QR, becomes Paati's family, and every phone flashes and rings on SOS. Open `live.html?host` on the projector. Needs https hosting (see doc 05) |
-| [`prototype/vitals.html`](prototype/vitals.html) | **Face Pulse:** heart rate from a 20-second selfie (camera rPPG, `rppg.js`). Needs https or localhost and camera permission |
 | [`prototype/companion.html`](prototype/companion.html) | **AI companion demo:** daily Tamil check-in call, prescription scanning, 14-day drift. Live: https://claude.ai/artifact/WLgT3L2tz5EkeaB6ny45VP |
 | [`prototype/index.html`](prototype/index.html) | The working prototype: three live screens (Paati's phone, Karthik's phone, hospital network console) |
 
