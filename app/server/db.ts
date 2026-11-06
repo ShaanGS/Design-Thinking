@@ -58,6 +58,10 @@ CREATE TABLE IF NOT EXISTS checkins (id TEXT PRIMARY KEY, patient_id TEXT NOT NU
 CREATE TABLE IF NOT EXISTS voice_calls (
   id TEXT PRIMARY KEY, patient_id TEXT NOT NULL, user_id TEXT NOT NULL, lang TEXT NOT NULL, provider TEXT NOT NULL,
   started_at TEXT NOT NULL, ended_at TEXT, summary TEXT, follow_up TEXT, lines INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS errands (
+  id TEXT PRIMARY KEY, patient_id TEXT NOT NULL, kind TEXT NOT NULL, request TEXT NOT NULL, status TEXT NOT NULL,
+  question TEXT, approval TEXT, result TEXT, steps TEXT NOT NULL DEFAULT '[]', site TEXT, driver TEXT NOT NULL,
+  call_id TEXT, started_by TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS lesson_progress (
   id TEXT PRIMARY KEY, patient_id TEXT NOT NULL, topic TEXT NOT NULL, result TEXT NOT NULL, answer TEXT, at TEXT NOT NULL);
 `);

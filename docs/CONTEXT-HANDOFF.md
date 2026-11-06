@@ -13,11 +13,11 @@
 - **Problem statement given:** "Emergency care is critically delayed by fragmented communication between patients, guardians, and healthcare providers. Vulnerable patients lack easy emergency alerts and centralized health records, guardians miss real-time updates on medication adherence and hospital visits, and hospitals face treatment delays due to uncoordinated, network-wide medicine inventory tracking."
 - **Our reframe:** the three problems fail in the same hour. The alert fails (in panic she can't unlock a phone), the records fail (her history is a bag of papers), and the routing fails (the nearest hospital may not be able to treat her). **How might we** turn the golden hour from a chain of broken hand-offs into one coordinated relay?
 - **Product:** **Saathi** ("companion"). A working web app (installable on phones) with four sides:
-  1. **Paati's phone (elder):** one big Help button you hold for 2 seconds; "What happened?" picker (chest pain, can't breathe, I fell down, slurred speech, snake bite, not sure); calm emergency screen (minutes to arrival, hospital, family who know, "I'm OK, cancel" with countdown); tablets with "I took them"; talk to Saathi (chat/voice); Face Pulse heart-rate check; her emergency card; fall detection toggle. **English only** (Tamil was removed at the team's request).
+  1. **Paati's phone (elder):** one big Help button you hold for 2 seconds; "What happened?" picker (chest pain, can't breathe, I fell down, slurred speech, snake bite, not sure); calm emergency screen (minutes to arrival, hospital, family who know, "I'm OK, cancel" with countdown); tablets with "I took them"; talk to Saathi (chat/voice); her emergency card; fall detection toggle. **English only** (Tamil was removed at the team's request).
   2. **Family app (Karthik, son, 350 km away in Bengaluru):** calm home ("Paati is doing well"), live emergency view with the ambulance on a real map and minutes left, "I'm going" / Call, CPR coach, Health Vault (photograph papers → AI reads them, timeline, lab trends, "Ask Saathi" answers that name the source paper, 6 doctor questions found across papers), medicines (doses taken/missed, stock warnings, reorder), visits, family members and invite code, printable emergency card with QR, silent check-in.
   3. **Hospital ER console (Dr Priya, Saraswathi Hospital):** incoming patient card (suspected cause, blood group, allergy, blood thinner, why Saathi chose this hospital, ETA), break-glass record access (logged to the family), "Page cath lab team" → "Patient received" → "Close the case", bed/capability board, network stock and **medicine relay** between hospitals (e.g. anti-venom).
   4. **Bystander page:** anyone scans the QR on her card with any phone camera (no app, no login) → Call 108, alert her family and start an emergency, CPR coach, key facts for the ambulance crew. Never shows address, family code or full records.
-  5. **Call Saathi (voice, added 6 Nov 2026):** Paati taps "Call Saathi", picks தமிழ் or English, and talks to a live voice agent (Callvi's call engine: ElevenLabs agent "Saathi Elder Companion", `agent_3301m6qe86rjf4h87b0qkxnh15kz`, running Claude Sonnet 5.5 with the Janani Tamil–English voice). It logs tablets when she confirms, passes how she feels and messages to the family, answers from her papers, asks before remembering, teaches three short safety lessons with spoken practice, writes a call summary for Karthik, and starts the emergency on red-flag words (the agent plus fixed server rules on every line). Falls back to the phone's own voice if ElevenLabs can't be reached. The agent is public but only accepts calls from saathi-app-eta.vercel.app and localhost. Code: `app/server/voice.ts`, `app/src/pages/elder/Call.tsx`. Callvi's own repo and agent were not changed.
+  5. **Saathi on the phone (added 6 Nov 2026; the pitch now leads with this):** Paati needs no app. On an ordinary phone call (`/phone` stands in for her phone; Karthik's "Ring Paati" makes it ring) she talks to Saathi in தமிழ் or English: a live ElevenLabs voice agent built on Callvi's call engine ("Saathi Elder Companion", `agent_3301m6qe86rjf4h87b0qkxnh15kz`, model `gpt-6-sol`, Janani voice). Saathi is positioned as an **assistant for senior citizens, not a clinical agent**: it does errands in a sandboxed browser (book a doctor, reorder medicines, book gas, check/pay the electricity bill, look things up on the web), takes family messages, logs tablets she confirms, teaches two safety lessons, and summarises the call for Karthik. Errands pause for her choices, and every payment waits for Karthik's approval in the family app, which shows the browser live. Claude operates the browser when `ANTHROPIC_API_KEY` is set; otherwise scripted steps run the four fictional partner sites (`/sites/clinic|pharmacy|gas|power`). Red-flag words still start the emergency (agent + fixed rules). Code: `app/server/voice.ts`, `errands.ts`, `sites.ts`, `app/src/pages/Phone.tsx`, `family/Errands.tsx`. Face Pulse (camera heart rate) was removed. Callvi's repo and agent were not changed.
 - **Need-matched routing (the core idea):** hospitals are ranked by **time to the right treatment**, not distance. Drive times come from OSRM on real OpenStreetMap roads. Demo example (suspected heart attack, Tambaram): nearest = Anbu Nagar PHC, 7 min drive but no cath lab → +45 min transfer (our assumption) = 52 min; Saathi picks Saraswathi Multispeciality, about 9 min, cath lab ready → **43 minutes sooner**. Other hospitals in the demo network: Cauvery Heart & Trauma, Kovil St GH, Lotus General. (In-app wording on some screens may show slightly different minute values because road times vary per run.)
 - **AI:** Claude reads uploaded papers, triages free text, writes the ER brief, powers "Ask Saathi" and the daily companion chat. Fixed safety rules override the AI for red-flag words. Runs in **demo mode** (scripted answers, sample papers) unless an API key is set. AI is decision support only; doctors decide.
 
@@ -1062,7 +1062,7 @@ A full-stack, installable web app (PWA) for elders, their families and hospitals
 
 | Who | What they get | URL |
 |---|---|---|
-| **Elder** (Kamala Paati) | Giant buttons: hold-to-SOS, "I took my tablets", talk to Saathi (voice), Face Pulse heart-rate check, offline emergency QR card, fall detection | `/elder` |
+| **Elder** (Kamala Paati) | Giant buttons: hold-to-SOS, "I took my tablets", talk to Saathi (voice), offline emergency QR card, fall detection | `/elder` |
 | **Family** (Karthik, son) | Live status and activity feed, medicines with safety checks, adherence and vitals charts, **Health Vault**, live emergency tracking on a map, visits, family circle | `/family` |
 | **Hospital** (Dr. Priya, ER) | Incoming patients with an AI pre-arrival brief and red flags, "why this hospital" routing, break-glass record access, network beds, medicine stock and relays | `/hospital` |
 | **Doctor** (no login) | Read-only lifetime record from a 24-hour share link or QR | `/share/:token` |
@@ -1079,7 +1079,6 @@ The interface follows [`DESIGN.md`](DESIGN.md): a "signage-grade" system built f
 - **Medicines.** Schedules by time of day, one-tap confirmation, stock and refill warnings, 14-day adherence, and a safety check on every new medicine (duplicates, allergy conflicts like penicillin, interactions).
 - **Hospital network.** Live ICU and ER beds, capabilities (cath lab, CT, neuro, ventilator), critical-drug stock (anti-snake venom, tenecteplase, rabies IG, blood, oxygen) and **medicine relays** between hospitals.
 - **Missed-dose escalation.** Morning dose not confirmed → Saathi calls her → neighbour → family (simulated in the demo with one button).
-- **Face Pulse.** Heart rate from a 20-second selfie (camera rPPG, POS method), saved to vitals. Runs entirely on the phone.
 
 ## Run it
 
@@ -1117,7 +1116,7 @@ npm start                     # http://localhost:3000
 - **Render (free, always the same link):** open https://render.com/deploy?repo=https://github.com/ShaanGS/Design-Thinking, sign in with GitHub and click *Apply* (it reads `render.yaml` at the repo root). Paste `ANTHROPIC_API_KEY` when asked, or leave it blank for demo mode. The free tier sleeps when idle, so open it 1 minute before the demo.
 - Ambulance routes come from OSRM over OpenStreetMap roads (`OSRM_URL` overrides the public server). If the host can't reach it, routing falls back to straight-line estimates.
 - **Docker:** `docker build -t saathi . && docker run -p 3000:3000 -e ANTHROPIC_API_KEY=... saathi`.
-- Camera (Face Pulse), microphone (voice) and motion sensors (fall detection) need **https** (or localhost).
+- Camera (photographing papers), microphone (voice) and motion sensors (fall detection) need **https** (or localhost).
 - Install on a phone: open the link → browser menu → *Add to Home screen*. It opens full-screen like a native app.
 
 ## Demo script (5 minutes, 3 devices)
@@ -1127,7 +1126,6 @@ npm start                     # http://localhost:3000
 3. **Health Vault → Caught:** six papers, four doctors, and Saathi found the kidney/metformin, statin and omeprazole/clopidogrel problems. Ask *"பாட்டிக்கு என்ன அலர்ஜி?"* ("what is Paati allergic to?"). Make a **doctor link** and scan the QR with a judge's phone.
 4. Paati **holds SOS** and picks *chest pain*. In seconds: the family gets an alert with the map, the ambulance is routed past the PHC to the cath-lab hospital ("~N min saved"), and the ER console shows the patient with the AI brief, the penicillin allergy and the blood-thinner flag. The ER taps **Team ready**; Karthik taps **I'm on my way**; the ambulance arrives; the ER taps **Patient received**.
 5. **Hospital console:** Saraswathi is out of anti-snake venom. **Request relay** and the network finds the nearest donor.
-6. Bonus: **Face Pulse** on a judge, next to a pulse oximeter.
 
 ## Architecture
 
@@ -1148,7 +1146,7 @@ web (React 18 + Vite + Tailwind, PWA)  ── REST /api ──►  Express serve
 | `server/seed.ts` | Demo family, five fictional hospitals, 13 days of history, six sample papers |
 | `shared/types.ts` | Types shared by client and server |
 | `src/pages/*` | Elder, family, vault, hospital and doctor-share screens |
-| `src/components/` | UI kit, live map, QR, Face Pulse |
+| `src/components/` | UI kit, live map, QR |
 
 All people, hospitals and medical documents are fictional sample data. Saathi gives information to discuss with a doctor; it never diagnoses or changes medicines.
 

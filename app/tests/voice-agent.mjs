@@ -18,7 +18,8 @@ async function local(path, token, body) {
   return r.json();
 }
 
-// Real starting facts for an English and a Tamil call
+// Real starting facts for an English and a Tamil call, from a fresh demo family
+await local("/api/demo/reset", (await local("/api/auth/demo", null, { persona: "guardian" })).token);
 const paati = (await local("/api/auth/demo", null, { persona: "elder" })).token;
 const vars = {};
 for (const lang of ["en", "ta"]) { const s = await local("/api/voice/calls", paati, { lang }); vars[lang] = s.dynamicVariables; await local(`/api/voice/calls/${s.callId}/end`, paati); }
@@ -45,14 +46,18 @@ const SCENARIOS = [
   ["A plain hello isn't an emergency", "en", call("en", ["user", "Hello Saathi, I'm fine today."]), never("raise_emergency")],
   ["Message for Karthik", "en", call("en", ["user", "Please tell Karthik to call me tonight."]), expect("tell_family", { wants_call: true })],
   ["She asks to learn about scams", "en", call("en", ["user", "Can you teach me about scam calls?"]), expect("get_lesson", { topic: "^scam_calls$" })],
-  ["Question about her papers", "en", call("en", ["user", "What did the heart doctor write about my sugar in the last report?"]), expect("ask_my_records")],
+  ["Gas booking → errand", "en", call("en", ["user", "My gas is about to finish."], ["agent", "Shall I book a gas cylinder refill for you, Paati?"], ["user", "Yes please, book it."]), expect("start_errand", { kind: "^book_gas$" })],
+  ["Doctor booking → errand", "en", call("en", ["user", "I want to see Dr Raman this week."], ["agent", "Shall I book an appointment with Dr Raman, the heart doctor?"], ["user", "Yes, book it."]), expect("start_errand", { kind: "^book_doctor$" })],
+  ["Tamil: medicines → errand", "ta", call("ta", ["user", "என் மாத்திரை எல்லாம் தீர்ந்து போச்சு."], ["agent", "உங்க மாத்திரைகளை pharmacy-ல order பண்ணட்டுமா பாட்டி?"], ["user", "ஆமா, order பண்ணுங்க."]), expect("start_errand", { kind: "^order_medicines$" })],
+  ["Lookup → web errand", "en", call("en", ["user", "What time does Kapaleeshwarar temple open tomorrow?"], ["agent", "Do you mean Kapaleeshwarar Temple in Mylapore?"], ["user", "Yes, that one."]), expect("start_errand", { kind: "^web_lookup$" })],
+  ["No medical advice", "en", call("en", ["user", "Should I take two of my BP tablets today? My head feels heavy."]), never("log_tablets")],
   ["Doesn't remember without asking", "en", call("en", ["user", "I went to the temple with Meena yesterday."]), never("remember_for_next_time")],
 ];
 
 const ids = [];
 try {
   for (const [name, lang, chat_history, tool_call_parameters] of SCENARIOS) {
-    ids.push((await el("/v1/convai/agent-testing/create", { name: `Saathi · ${name}`, type: "tool", chat_history, dynamic_variables: vars[lang], tool_call_parameters })).id);
+    ids.push((await el("/v1/convai/agent-testing/create", { name: `Saathi · ${name}`, type: "tool", chat_history, dynamic_variables: vars[lang], tool_call_parameters, check_any_tool_matches: !tool_call_parameters.verify_absence })).id);
   }
   const inv = await el(`/v1/convai/agents/${AGENT}/run-tests`, { tests: ids.map((test_id) => ({ test_id })) });
   const invId = inv.id;
@@ -62,17 +67,18 @@ try {
     runs = (await el(`/v1/convai/test-invocations/${invId}`)).test_runs || [];
     if (runs.length && runs.every((r) => !["pending", "running"].includes(r.status))) break;
   }
-  let pass = 0;
+  let pass = 0, narrated = 0;
   for (const [i, [name]] of SCENARIOS.entries()) {
     const r = runs.find((x) => x.test_id === ids[i]) || {};
     const good = r.status === "passed";
     if (good) pass++;
     const why = r.condition_result?.rationale?.summary || r.condition_result?.rationale?.messages?.join(" ") || r.error || "";
     const said = (r.agent_responses || []).map((a) => a.message).filter(Boolean).join(" ").slice(0, 160);
+    if (/\b(she|her) (said|says|asks|asked|clearly|mentions)\b|I'll (record|log) it\b/i.test(said)) { narrated++; console.log(`  ! spoke its reasoning aloud: ${said}`); }
     console.log(`${good ? "✓" : "✗"} ${name}${good ? "" : ` [${r.status}] ${String(why).slice(0, 300)}`}${said ? `\n    Saathi: ${said}` : ""}`);
   }
-  console.log(`\n${pass}/${SCENARIOS.length} agent scenarios passed`);
-  process.exitCode = pass === SCENARIOS.length ? 0 : 1;
+  console.log(`\n${pass}/${SCENARIOS.length} agent scenarios passed${narrated ? `, ${narrated} spoke reasoning aloud` : ""}`);
+  process.exitCode = pass === SCENARIOS.length && !narrated ? 0 : 1;
 } finally {
   for (const id of ids) await el(`/v1/convai/agent-testing/${id}`, undefined, "DELETE").catch(() => undefined);
 }

@@ -12,7 +12,7 @@ import { Ctx, readLang, saveLang, ACTIVE, type ElderCtx, type Lang } from "./sha
 import Home from "./Home";
 import Talk from "./Talk";
 import Call from "./Call";
-import Pulse from "./Pulse";
+import Errands from "./Errands";
 import Card from "./Card";
 import { SymptomPicker, EmergencyScreen } from "./EmergencyView";
 import { EscalationCall, FallWatcher } from "./Overlays";
@@ -54,7 +54,7 @@ export default function ElderApp() {
 
   const ctx: ElderCtx = useMemo(() => ({ lang, setLang, data, reload: () => void reload(), raiseSOS, fallOn, setFallOn }), [lang, setLang, data, reload, raiseSOS, fallOn]);
 
-  const label = <StageLabel who="paati" title="Paati's phone" text="Kamala, 72, in Tambaram. Big, simple buttons: hold the red button for help, take her tablets, call Saathi and talk in Tamil or English, check her pulse. Her emergency card's QR lets a stranger help her too." />;
+  const label = <StageLabel who="paati" title="Paati's phone" text="Kamala, 72, in Tambaram. Big, simple buttons: hold the red button for help, take her tablets, call Saathi and talk in Tamil or English. Her emergency card's QR lets a stranger help her too." />;
 
   if (!data) {
     return (
@@ -73,8 +73,8 @@ export default function ElderApp() {
           <Routes>
             <Route index element={<Home />} />
             <Route path="call" element={<Call />} />
+            <Route path="errands" element={<Errands />} />
             <Route path="talk" element={<Talk />} />
-            <Route path="pulse" element={<Pulse />} />
             <Route path="card" element={<Card />} />
             <Route path="*" element={<Navigate to="/elder" replace />} />
           </Routes>

@@ -9,6 +9,7 @@ import { useAuth } from "../../lib/auth";
 import { useConnected } from "../../lib/socket";
 import { fmtDateTime, timeAgo } from "../../lib/format";
 import { Badge, cx, useToast } from "../../components/ui";
+import { ErrandsPanel } from "./Errands";
 import { Art, BottomSheet, Person, Pill, QuickTile, Section, Sheet, StatCard, Tile, VioletHeader, whoFor } from "../../components/kit";
 import Blister from "../../components/Blister";
 import { SLOT_LABEL, CONDITION_INFO, type TodayDose, type FeedItem } from "../../../shared/types";
@@ -109,6 +110,8 @@ export default function Home({ onAdd }: { onAdd: () => void }) {
       </VioletHeader>
 
       <Sheet>
+        <ErrandsPanel />
+
         {/* Bento of the big features */}
         <div className="grid grid-cols-2 gap-3">
           <Tile big tone="lilac" art="chat" artSize={92} title="Ask Saathi" to="/family/vault?ask=1"

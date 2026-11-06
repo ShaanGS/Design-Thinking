@@ -223,7 +223,7 @@ export default function Home() {
         {/* Big tiles */}
         <div className="grid grid-cols-2 gap-3">
           <ElderTile tone="lilac" art="chat" ta="சாத்தியிடம் எழுது" en="Type to Saathi" onClick={() => nav("/elder/talk")} />
-          <ElderTile tone="rose" art="heart" ta="நாடித்துடிப்பு" en="Check my pulse" onClick={() => nav("/elder/pulse")} />
+          <ElderTile tone="rose" art="calendar" ta="என் வேலைகள்" en="My errands" onClick={() => nav("/elder/errands")} />
           <ElderTile tone="sky" art="shield" ta="என் அட்டை" en="My card" onClick={() => nav("/elder/card")} />
           <ElderTile tone="mint" art="home" ta="குடும்பத்தை அழை" en="Call family" onClick={() => setSheet("call")} />
         </div>

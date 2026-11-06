@@ -16,11 +16,12 @@ import { ACTIVE, SubScreen, useElder } from "./shared";
 const LANG_KEY = "saathi-call-lang";
 const readCallLang = (): CallLang => { try { return localStorage.getItem(LANG_KEY) === "ta" ? "ta" : "en"; } catch { return "en"; } };
 const SAY = [
-  "I took my morning tablets",
-  "I didn't sleep well",
+  "Book me with Dr Raman this week",
+  "Order my tablets, they're running out",
+  "Book a gas cylinder",
+  "How much is my electricity bill?",
+  "What time does Kapaleeshwarar temple open?",
   "Tell Karthik to call me",
-  "What did the heart doctor say?",
-  "Teach me about scam calls",
 ];
 
 interface VoiceInfo { mode: "elevenlabs" | "device"; lastCall: { summary: string; started_at: string } | null }
@@ -57,7 +58,7 @@ export default function Call() {
           </span>
           <div className="min-w-0 leading-tight">
             <p className="text-[24px] font-extrabold">Talk to Saathi</p>
-            <p className="mt-1 text-[17px] leading-snug text-ink-2">Like a phone call. Tell Saathi how you are, ask about your tablets, or leave a message for Karthik.</p>
+            <p className="mt-1 text-[17px] leading-snug text-ink-2">Like a phone call. Ask Saathi to book the doctor, order tablets, book gas, pay a bill or find something out.</p>
           </div>
         </div>
       </section>

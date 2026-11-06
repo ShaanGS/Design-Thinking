@@ -4,7 +4,7 @@ A full-stack, installable web app (PWA) for elders, their families and hospitals
 
 | Who | What they get | URL |
 |---|---|---|
-| **Elder** (Kamala Paati) | Giant buttons: hold-to-SOS, "I took my tablets", talk to Saathi (voice), Face Pulse heart-rate check, offline emergency QR card, fall detection | `/elder` |
+| **Elder** (Kamala Paati) | Giant buttons: hold-to-SOS, "I took my tablets", talk to Saathi (voice), errands done for her, offline emergency QR card, fall detection | `/elder` |
 | **Family** (Karthik, son) | Live status and activity feed, medicines with safety checks, adherence and vitals charts, **Health Vault**, live emergency tracking on a map, visits, family circle | `/family` |
 | **Hospital** (Dr. Priya, ER) | Incoming patients with an AI pre-arrival brief and red flags, "why this hospital" routing, break-glass record access, network beds, medicine stock and relays | `/hospital` |
 | **Doctor** (no login) | Read-only lifetime record from a 24-hour share link or QR | `/share/:token` |
@@ -16,13 +16,13 @@ The interface follows [`DESIGN.md`](DESIGN.md): a "signage-grade" system built f
 ## What's inside
 
 - **Health Vault.** Photograph or upload prescriptions, lab reports, discharge summaries and scans (images or PDF). Claude reads each paper (handwriting too), builds a dated timeline and lab trends, and **cross-checks every paper together**: falling kidney function versus the metformin dose, interactions between prescriptions from different doctors, duplicate brands, rising cholesterol. Ask questions with source citations. Generate a doctor brief and share link.
-- **Call Saathi (voice).** Paati taps one button and talks to Saathi like a phone call, in **Tamil or English**. Built on the call engine from our Callvi project: an ElevenLabs voice agent (Claude Sonnet 5.5, a natural Tamil–English voice) whose tools act on Saathi's own data through her session. The elder chooses the purpose of each call; Saathi logs tablets only when she confirms, passes on how she feels and messages to the family, answers from her papers, asks before remembering anything, teaches three short safety lessons (scam calls, the Help button, waiting for the ambulance) with spoken practice and feedback, and writes a call summary for Karthik. Red-flag words start the emergency at once, through the agent and through fixed safety rules on every line she says. If the voice service can't be reached, the call carries on with the phone's own voice.
+- **Saathi on the phone (no app needed).** The elder just talks on an ordinary phone call, in **Tamil or English**, and Saathi gets things done for her. Built on the call engine from our Callvi project: an ElevenLabs voice agent ("Saathi Elder Companion", `gpt-6-sol`, Janani's natural Tamil–English voice) whose tools act on Saathi's own data through her session. She chooses what each call is for. Saathi can **book a doctor's appointment, reorder her medicines, book a gas cylinder, check or pay the electricity bill, and look things up on the web**; take messages for the family; remember small things only after she agrees; teach two short safety lessons (scam calls, waiting for the ambulance); and write a call summary for Karthik. It is an assistant, not a clinical tool: it gives no medical advice. Red-flag words start the emergency at once, through the agent and through fixed safety rules on every line she says. If the voice service can't be reached, the call carries on with the phone's own voice. `/phone` shows her ordinary phone: Karthik taps **Ring Paati**, her phone rings, she answers.
+- **Errands in a sandboxed browser.** Each errand runs in a fresh, isolated Chromium on the server. With `ANTHROPIC_API_KEY` set, **Claude operates the browser** (reads the page, clicks, types) for any errand, including real web lookups; without it, fixed Playwright steps operate the partner sites so the demo still works. Errands stop for anything that is hers to decide (which time slot, whether to pay) and **every payment waits for a family member to approve it in the app**. The family app shows each step and a live picture of the browser. The partner websites (`/sites/clinic`, `/sites/pharmacy`, `/sites/gas`, `/sites/power`) are fictional businesses with real forms, so nothing real is booked or paid.
 - **Daily companion.** Saathi chats with the elder in simple English, remembers context, logs tablets from the conversation, and escalates red-flag phrases ("my chest feels heavy") through **fixed safety rules that override the AI**.
 - **Golden-hour emergency.** SOS from the button, the AI chat, a check-in reply or the fall sensor. Then: triage → **need-matched routing** (the nearest hospital *that can treat this patient*, ranked by time to definitive care and explained) → AI pre-arrival brief to the ER → a live ambulance on the map → ER "team ready" / "received" → family notified at every step.
 - **Medicines.** Schedules by time of day, one-tap confirmation, stock and refill warnings, 14-day adherence, and a safety check on every new medicine (duplicates, allergy conflicts like penicillin, interactions).
 - **Hospital network.** Live ICU and ER beds, capabilities (cath lab, CT, neuro, ventilator), critical-drug stock (anti-snake venom, tenecteplase, rabies IG, blood, oxygen) and **medicine relays** between hospitals.
 - **Missed-dose escalation.** Morning dose not confirmed → Saathi calls her → neighbour → family (simulated in the demo with one button).
-- **Face Pulse.** Heart rate from a 20-second selfie (camera rPPG, POS method), saved to vitals. Runs entirely on the phone.
 
 ## Run it
 
@@ -47,7 +47,8 @@ npm start                     # http://localhost:3000
 - **Without `ANTHROPIC_API_KEY`**, Saathi runs in **demo mode**: a rules engine answers chat, triage and questions, and the six sample papers have prepared readings. Uploading *new* papers needs the key.
 - **With the key**, all AI runs on Claude (`SAATHI_MODEL`, default `claude-opus-5-5`). Server-side fallback is enabled, so a safety-classifier refusal is retried on Anthropic's recommended fallback model.
 - **Voice calls** work out of the box: the Saathi ElevenLabs agent (`agent_3301m6qe86rjf4h87b0qkxnh15kz`) is public but only accepts calls from `saathi-app-eta.vercel.app` and `localhost`. To call from another address, add it to `ALLOWED_HOSTS` in `server/voice-setup.ts` and run `ELEVENLABS_API_KEY=... npm run voice:setup`. Microphone access needs https (or localhost).
-- `npm run test:voice` checks the call API (37 checks); `ELEVENLABS_API_KEY=... npm run test:voice-agent` runs 12 scenarios against the real agent (English and Tamil).
+- `npm run test:voice` checks the call API (42 checks); `npm run test:errands` runs every errand in the real browser (22 checks); `ELEVENLABS_API_KEY=... npm run test:voice-agent` runs 16 scenarios against the real agent (English and Tamil) and fails if the agent speaks its reasoning aloud.
+- Errands need Chromium: `npx playwright-core install --with-deps chromium` (the Dockerfiles do this). `ERRAND_DRIVER=scripted` forces the scripted steps even with a Claude key.
 - `DEMO_SPEED=20` makes the ambulance simulation run 20× faster, so a 15-minute trip takes about 45 seconds on stage.
 - `npm run seed` resets the demo family, hospitals and history.
 
@@ -62,7 +63,7 @@ npm start                     # http://localhost:3000
 - **Render (free, always the same link):** open https://render.com/deploy?repo=https://github.com/ShaanGS/Design-Thinking, sign in with GitHub and click *Apply* (it reads `render.yaml` at the repo root). Paste `ANTHROPIC_API_KEY` when asked, or leave it blank for demo mode. The free tier sleeps when idle, so open it 1 minute before the demo.
 - Ambulance routes come from OSRM over OpenStreetMap roads (`OSRM_URL` overrides the public server). If the host can't reach it, routing falls back to straight-line estimates.
 - **Docker:** `docker build -t saathi . && docker run -p 3000:3000 -e ANTHROPIC_API_KEY=... saathi`.
-- Camera (Face Pulse), microphone (voice) and motion sensors (fall detection) need **https** (or localhost).
+- Camera (photographing papers), microphone (voice) and motion sensors (fall detection) need **https** (or localhost).
 - Install on a phone: open the link → browser menu → *Add to Home screen*. It opens full-screen like a native app.
 
 ## Demo script (5 minutes, 3 devices)
@@ -72,7 +73,6 @@ npm start                     # http://localhost:3000
 3. **Health Vault → Caught:** six papers, four doctors, and Saathi found the kidney/metformin, statin and omeprazole/clopidogrel problems. Ask *"பாட்டிக்கு என்ன அலர்ஜி?"* ("what is Paati allergic to?"). Make a **doctor link** and scan the QR with a judge's phone.
 4. Paati **holds SOS** and picks *chest pain*. In seconds: the family gets an alert with the map, the ambulance is routed past the PHC to the cath-lab hospital ("~N min saved"), and the ER console shows the patient with the AI brief, the penicillin allergy and the blood-thinner flag. The ER taps **Team ready**; Karthik taps **I'm on my way**; the ambulance arrives; the ER taps **Patient received**.
 5. **Hospital console:** Saraswathi is out of anti-snake venom. **Request relay** and the network finds the nearest donor.
-6. Bonus: **Face Pulse** on a judge, next to a pulse oximeter.
 
 ## Architecture
 
@@ -87,15 +87,18 @@ web (React 18 + Vite + Tailwind, PWA)  ── REST /api ──►  Express serve
 | Path | What |
 |---|---|
 | `server/ai.ts` | Every AI feature: document reading (vision + PDF), cross-document insights, record Q&A, triage, ER brief, the companion, medicine checks, with deterministic fallbacks |
-| `server/voice.ts` | The voice call: agent instructions, 11 client tools and their server side, safety rule on every line, lessons |
+| `server/voice.ts` | The voice call: agent instructions, 14 client tools and their server side, safety rule on every line, lessons, ringing her phone |
+| `server/errands.ts` | Errands: sandboxed Chromium, the Claude browser driver and the scripted driver, her choices, family payment approval, live frames |
+| `server/sites.ts` | The four fictional partner websites the errand browser operates |
 | `server/voice-setup.ts` | `npm run voice:setup`: creates or updates the Saathi ElevenLabs agent (never touches other agents) |
-| `src/pages/elder/Call.tsx`, `src/lib/voice/` | Call screen, call state machine and the ElevenLabs / phone-voice hook |
+| `src/pages/Phone.tsx`, `src/pages/elder/Call.tsx`, `src/lib/voice/` | Her ordinary phone (`/phone`), the in-app call screen, the call state machine and the ElevenLabs / phone-voice hook |
+| `src/pages/family/Errands.tsx` | Saathi on the phone in the family app: live errands, approvals, Ring Paati |
 | `server/routing.ts` | Need-matched routing and the transfer-penalty scoring |
 | `server/emergency.ts` | SOS lifecycle, ambulance simulation, ER actions, medicine relays |
 | `server/routes.ts` | REST API |
 | `server/seed.ts` | Demo family, five fictional hospitals, 13 days of history, six sample papers |
 | `shared/types.ts` | Types shared by client and server |
 | `src/pages/*` | Elder, family, vault, hospital and doctor-share screens |
-| `src/components/` | UI kit, live map, QR, Face Pulse |
+| `src/components/` | UI kit, live map, QR |
 
 All people, hospitals and medical documents are fictional sample data. Saathi gives information to discuss with a doctor; it never diagnoses or changes medicines.

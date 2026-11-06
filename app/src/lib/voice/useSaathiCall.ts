@@ -8,6 +8,8 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import type { Conversation } from "@elevenlabs/client";
 import { api } from "../api";
+import { connectSocket } from "../socket";
+import type { Errand } from "../../../shared/types";
 import { canListen, listen, stopSpeaking } from "../speech";
 import { classifyVoiceError, initialVoiceState, isActivePhase, voiceReducer, type VoiceErrorKind } from "./voice-state";
 
@@ -46,6 +48,9 @@ export function useSaathiCall(opts: { onEmergency: () => void; onLogged: () => v
   const stopListening = useRef<() => void>(() => {});
   const resumeDevice = useRef<() => void>(() => {});
   const greetingRef = useRef("");
+  const told = useRef(new Set<string>()); // errand updates the agent already knows ("id:status")
+  const pendingNews = useRef<string[]>([]);
+  const speaking = useRef(false);
   const cb = useRef(opts); cb.current = opts;
 
   /** Relay a line to the server (family chat + safety rules). */
@@ -166,6 +171,7 @@ export function useSaathiCall(opts: { onEmergency: () => void; onLogged: () => v
           try {
             const r = await api.post<ToolResult>(`/api/voice/calls/${callId.current}/tools/${name}`, (params && typeof params === "object") ? params : {});
             if (r.ok && name === "raise_emergency") cb.current.onEmergency();
+            for (const d of ([] as { errand_id?: string; status?: string }[]).concat((r.data as never) ?? [])) if (d?.errand_id) told.current.add(`${d.errand_id}:${d.status}`);
             if (r.ok && r.saved && name === "log_tablets") cb.current.onLogged();
             return JSON.stringify(r);
           } catch { return JSON.stringify({ ok: false, saved: false, error: "This action failed. Do not say it was done." }); }
@@ -177,9 +183,14 @@ export function useSaathiCall(opts: { onEmergency: () => void; onLogged: () => v
         overrides: { agent: { language: lang }, ...(o.textOnly ? { conversation: { textOnly: true } } : {}) },
         clientTools,
         onConnect: () => { if (attempt === gen.current) { connected.current = true; dispatch({ type: "sdk_state", state: "listening", at: Date.now() }); } },
-        onModeChange: ({ mode: m }: { mode: string }) => { if (attempt === gen.current) dispatch({ type: "sdk_state", state: m === "speaking" ? "speaking" : "listening", at: Date.now() }); },
-        onMessage: (m: { message: string; role?: string; source?: string }) => {
+        onModeChange: ({ mode: m }: { mode: string }) => {
           if (attempt !== gen.current) return;
+          speaking.current = m === "speaking";
+          dispatch({ type: "sdk_state", state: m === "speaking" ? "speaking" : "listening", at: Date.now() });
+          if (!speaking.current) flushNews();
+        },
+        onMessage: (m: { message: string; role?: string; source?: string }) => {
+          if (attempt !== gen.current || m.message.startsWith("[Saathi update]")) return;
           const role = (m.role ?? m.source) === "user" ? "elder" : "saathi";
           dispatch({ type: "transcript", role, text: m.message });
           void relay(role, m.message);
@@ -206,6 +217,29 @@ export function useSaathiCall(opts: { onEmergency: () => void; onLogged: () => v
       fail(kind);
     }
   }, [deviceLoop, fail, finish, relay]);
+
+  /** Errand news reaches the agent as a clearly marked message, sent when Saathi isn't mid-sentence. */
+  const flushNews = useCallback(() => {
+    const c = convo.current; if (!c || speaking.current) return;
+    const next = pendingNews.current.shift(); if (next) c.sendUserMessage(next);
+  }, []);
+  useEffect(() => {
+    const s = connectSocket();
+    const onErrand = (e: Errand) => {
+      if (!live.current || !convo.current) return;
+      if (!["needs_choice", "awaiting_approval", "done", "declined", "failed"].includes(e.status)) return;
+      const key = `${e.id}:${e.status}`;
+      if (told.current.has(key)) return;
+      told.current.add(key);
+      const detail = e.status === "needs_choice" ? `It needs her choice: ${e.question?.prompt} Options: ${e.question?.options.join("; ")}. errand_id ${e.id}.`
+        : e.status === "awaiting_approval" ? `Waiting for Karthik to approve ₹${e.approval?.amount} on his phone.`
+        : `${e.status === "done" ? "Done" : e.status === "declined" ? "The family declined it" : "It couldn't be done"}: ${e.result ?? ""}`;
+      pendingNews.current.push(`[Saathi update] ${e.title}. ${detail}`);
+      flushNews();
+    };
+    s.on("errand", onErrand);
+    return () => { s.off("errand", onErrand); };
+  }, [flushNews]);
 
   const stop = useCallback(async () => {
     ++gen.current;

@@ -11,6 +11,9 @@ import * as AI from "./ai.ts";
 import { toFamily, toNetwork, userForToken, isOnline, disconnectToken, canSeeEmergency } from "./realtime.ts";
 import { limit, byUser, hashToken, newFamilyCode, safeEqual, sniffMime, isDemoUser } from "./security.ts";
 import { mountVoice, voiceMode } from "./voice.ts";
+import { resetSites } from "./sites.ts";
+import * as ER from "./errands.ts";
+import { ERRAND_TITLE, type ErrandKind } from "../shared/types.ts";
 import { seed, SAMPLE_BY_HASH, SAMPLE_DOCS, SEED_DOC_DIR, INVENTORY_LABEL } from "./seed.ts";
 import type { Condition, HelpStatus, Overview, Slot, User, Vital } from "../shared/types.ts";
 import { CONDITION_INFO, SLOT_LABEL } from "../shared/types.ts";
@@ -261,6 +264,40 @@ api.post("/chat", aiLimit, wrap(async (req, res) => {
 
 mountVoice(api, { wrap, needFamily, fail, clean, announceDoses, pushOverview });
 
+/* ------------------------------------------------------------------ Errands (sandboxed browser) */
+
+const errandLimit = limit("errand", 20, 60000, (req) => `${byUser(req)}:${req.ip}`);
+const ownErrand = (req: AuthedReq) => { const p = needFamily(req); const e = ER.errandById(clean(req.params.id, 40)); if (!e || e.patientId !== p.id) fail(404, "Errand not found"); return { p, e: e! }; };
+api.get("/errands", wrap((req, res) => { const p = needFamily(req); res.json({ driver: ER.errandDriver(), errands: ER.errandsFor(p.id) }); }));
+api.post("/errands", errandLimit, wrap((req, res) => {
+  const p = needFamily(req);
+  const kind = clean(req.body?.kind, 30) as ErrandKind;
+  if (!(kind in ERRAND_TITLE)) fail(400, "Unknown errand");
+  const request = clean(req.body?.request, 400) || fail(400, "Say what Saathi should do");
+  res.json(ER.startErrand(p, kind, request!, req.user.name));
+}));
+api.get("/errands/:id/frame", wrap((req, res) => {
+  const { e } = ownErrand(req); const jpeg = ER.frameOf(e.id);
+  if (!jpeg) fail(404, "No picture yet");
+  res.setHeader("Cache-Control", "no-store"); res.type("jpeg").send(Buffer.from(jpeg!, "base64"));
+}));
+api.post("/errands/:id/answer", errandLimit, wrap((req, res) => {
+  const { e } = ownErrand(req);
+  if (!ER.answerErrand(e.id, clean(req.body?.answer, 200) || fail(400, "Choose an option"))) fail(409, "This errand isn't waiting for an answer");
+  res.json({ ok: true });
+}));
+api.post("/errands/:id/approve", errandLimit, wrap((req, res) => {
+  const { e } = ownErrand(req);
+  if (req.user.role !== "guardian") fail(403, "Only a family member can approve payments");
+  if (!ER.approveErrand(e.id, req.body?.approve === true, req.user.name)) fail(409, "This errand isn't waiting for approval");
+  res.json({ ok: true });
+}));
+api.post("/errands/:id/cancel", errandLimit, wrap((req, res) => {
+  const { e } = ownErrand(req);
+  if (!ER.cancelErrand(e.id)) fail(409, "This errand has already finished");
+  res.json({ ok: true });
+}));
+
 /* ------------------------------------------------------------------ Health Vault */
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024, files: 6 } });
@@ -480,7 +517,7 @@ api.post("/relays", wrap((req, res) => {
 /* ------------------------------------------------------------------ Demo controls */
 
 // Resets only the demo family and the demo hospital network; other families are never touched.
-api.post("/demo/reset", limit("reset", 6, 60000), wrap((req, res) => { needDemo(req); seed({ demoOnly: true }); toNetwork("hospitals", S.hospitals()); res.json({ ok: true }); }));
+api.post("/demo/reset", limit("reset", 6, 60000), wrap((req, res) => { needDemo(req); seed({ demoOnly: true }); resetSites(); toNetwork("hospitals", S.hospitals()); res.json({ ok: true }); }));
 api.post("/demo/missed-dose", wrap(async (req, res) => {
   const p = needFamily(req); needDemo(req);
   const steps: [number, string, string, string][] = [

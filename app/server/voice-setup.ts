@@ -9,7 +9,7 @@ import { VOICE_TOOLS, voiceInstructions } from "./voice.ts";
 const AGENT_NAME = "Saathi Elder Companion";
 const ALLOWED_HOSTS = ["saathi-app-eta.vercel.app", "localhost", "127.0.0.1"];
 const KEY = process.env.ELEVENLABS_API_KEY;
-const LLM = process.env.SAATHI_VOICE_LLM || "claude-sonnet-5-5";
+const LLM = process.env.SAATHI_VOICE_LLM || "gpt-6-sol"; // chosen by scenario tests: decisive, natural Tamil, never speaks its reasoning
 const VOICE_ID = process.env.SAATHI_VOICE_ID || "wLIQpmGi7jT7aiEmDsE3"; // Janani: natural Tamil and English
 
 if (!KEY) { console.error("Set ELEVENLABS_API_KEY first."); process.exit(1); }
@@ -54,7 +54,7 @@ const definition = {
   conversation_config: {
     agent: {
       first_message: "{{greeting}}", language: "en",
-      dynamic_variables: { dynamic_variable_placeholders: { elder_name: "Paati", elder_language: "English", greeting: "Hello! I'm Saathi, your AI companion. How are you feeling today?", call_context: "{}" } },
+      dynamic_variables: { dynamic_variable_placeholders: { elder_name: "Paati", elder_language: "English", greeting: "Hello! I'm Saathi, your helper on the phone. How are you today?", call_context: "{}" } },
       prompt: {
         prompt: voiceInstructions(), llm: LLM, reasoning_effort: "none", temperature: 0.3, max_tokens: 350,
         enable_parallel_tool_calls: false, tool_ids: toolIds,
@@ -73,8 +73,12 @@ const definition = {
   },
 };
 
+// Tools this agent no longer uses (only ever ones that were attached to the Saathi agent)
+const stale = [...attachedByName].filter(([name]) => !VOICE_TOOLS.some((t) => t.name === name)).map(([, id]) => id);
+
 const res = existingId ? await api(`/v1/convai/agents/${existingId}`, definition, "PATCH") : await api("/v1/convai/agents/create", definition);
 const agentId: string = res.agent_id ?? existingId;
+for (const id of stale) await api(`/v1/convai/tools/${id}`, undefined, "DELETE").catch((e) => console.warn("Couldn't delete an old tool:", (e as Error).message));
 const check = await api(`/v1/convai/agents/${agentId}`);
 const got = check.conversation_config?.agent?.prompt?.tool_ids?.length ?? 0;
 if (got !== VOICE_TOOLS.length) throw new Error(`Expected ${VOICE_TOOLS.length} tools on the agent, found ${got}`);
