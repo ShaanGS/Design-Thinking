@@ -1,4 +1,8 @@
-// End-to-end checks for errands (the sandboxed browser operating the partner sites): node tests/errands.mjs http://localhost:3000
+// Errand checks: node tests/errands.mjs http://localhost:3000
+// Errands are real-web only (Claude operating real sites). Without ANTHROPIC_API_KEY on the server they must say so
+// and refuse, never fake a result. With the key, a real lookup runs end to end. The browser check opens the real
+// sites Saathi uses, to catch blocked hosts or a missing Chromium before a demo.
+import { chromium } from "playwright-core";
 const BASE = process.argv[2] || "http://localhost:3000";
 let pass = 0, fail = 0;
 const ok = (cond, name, extra = "") => { if (cond) { pass++; console.log(`  ✓ ${name}`); } else { fail++; console.log(`  ✗ ${name} ${extra}`); } };
@@ -8,87 +12,46 @@ async function call(method, path, token, body) {
 }
 const signIn = async (persona) => (await call("POST", "/api/auth/demo", null, { persona })).body.token;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-async function until(token, id, statuses, ms = 60000) {
-  const t0 = Date.now();
-  while (Date.now() - t0 < ms) {
-    const e = (await call("GET", "/api/errands", token)).body.errands?.find((x) => x.id === id);
-    if (e && statuses.includes(e.status)) return e;
-    await sleep(500);
-  }
-  return (await call("GET", "/api/errands", token)).body.errands?.find((x) => x.id === id);
-}
 
 console.log(`Errand checks against ${BASE}`);
-await call("POST", "/api/demo/reset", await signIn("guardian"));
-const karthik = await signIn("guardian");
 const paati = await signIn("elder");
-const meena = await signIn("neighbour");
-
-let r = await call("GET", "/sites/clinic".replace("/sites", "/sites"), null).catch(() => null);
-const site = await fetch(BASE + "/sites/clinic"); ok(site.status === 200 && /Raman Heart/.test(await site.text()), "partner clinic site is served");
-
-r = await call("POST", "/api/errands", karthik, { kind: "nope", request: "x" });
-ok(r.status === 400, "unknown errand kinds are refused");
-r = await call("POST", "/api/errands", null, { kind: "book_gas", request: "x" });
+let r = await call("GET", "/api/errands", paati);
+ok(r.status === 200 && typeof r.body.available === "boolean", "errands report whether the agent is available");
+const available = r.body.available;
+r = await call("POST", "/api/errands", null, { kind: "web_lookup", request: "x" });
 ok(r.status === 401, "errands need a session");
+r = await call("POST", "/api/errands", paati, { kind: "book_gas", request: "x" });
+ok(r.status === 400, "made-up errand kinds are refused");
 
-// 1. Doctor: stops for her choice of time, then books
-r = await call("POST", "/api/errands", paati, { kind: "book_doctor", request: "Book me with the heart doctor this week" });
-ok(r.status === 200 && r.body.id, "start: book a doctor");
-let e = await until(paati, r.body.id, ["needs_choice", "failed", "done"]);
-ok(e?.status === "needs_choice" && e.question?.options?.length >= 1, "asks her which time suits", JSON.stringify(e?.result || e?.question));
-const frame = await fetch(`${BASE}/api/errands/${r.body.id}/frame`, { headers: { Authorization: `Bearer ${karthik}` } });
-ok(frame.status === 200 && frame.headers.get("content-type")?.includes("jpeg"), "live browser picture for the family");
-ok(e?.steps?.length >= 2, "steps are recorded", String(e?.steps?.length));
-r = await call("POST", `/api/errands/${e.id}/answer`, paati, { answer: "the second one" });
-ok(r.body.ok, "her answer is accepted");
-e = await until(paati, e.id, ["done", "failed"]);
-ok(e?.status === "done" && /RHC-/.test(e.result || ""), "appointment booked with a reference", e?.result);
+if (!available) {
+  r = await call("POST", "/api/errands", paati, { kind: "web_lookup", request: "Kapaleeshwarar temple timings" });
+  ok(r.status === 409 && /ANTHROPIC_API_KEY/.test(r.body.error || ""), "without the Claude key, errands refuse instead of faking", JSON.stringify(r.body));
+  const c = await call("POST", "/api/voice/calls", paati, { lang: "en" });
+  const t = await call("POST", `/api/voice/calls/${c.body.callId}/tools/start_errand`, paati, { kind: "web_lookup", details: "temple timings" });
+  ok(t.body.ok === false && /switched off/.test(t.body.error || ""), "on the call, Saathi says it can't rather than pretending");
+  await call("POST", `/api/voice/calls/${c.body.callId}/end`, paati);
+} else {
+  r = await call("POST", "/api/errands", paati, { kind: "web_lookup", request: "What time does Kapaleeshwarar Temple in Mylapore open in the morning?" });
+  ok(r.status === 200 && r.body.id, "a real lookup starts");
+  let e = null;
+  for (let i = 0; i < 120; i++) { await sleep(1500); e = (await call("GET", "/api/errands", paati)).body.errands.find((x) => x.id === r.body.id); if (e && e.status !== "running") break; }
+  ok(e?.status === "done" && (e.result || "").length > 20, "the lookup finishes with a real answer", `${e?.status}: ${e?.result}`);
+  console.log(`    → ${e?.result}`);
+}
 
-// 2. Medicines: waits for a family member to approve the payment
-r = await call("POST", "/api/errands", paati, { kind: "order_medicines", request: "Order my Clopidogrel and Amlodipine, 2 strips each" });
-e = await until(paati, r.body.id, ["awaiting_approval", "failed", "done"], 90000);
-ok(e?.status === "awaiting_approval" && e.approval?.amount > 0, "pharmacy order waits for approval", JSON.stringify(e?.approval || e?.result));
-r = await call("POST", `/api/errands/${e.id}/approve`, paati, { approve: true });
-ok(r.status === 403, "the elder's phone can't approve payments");
-r = await call("POST", `/api/errands/${e.id}/approve`, karthik, { approve: true });
-ok(r.body.ok, "Karthik approves");
-e = await until(paati, e.id, ["done", "failed"]);
-ok(e?.status === "done" && /CP[0-9A-F]+/.test(e.result || "") && /Clopidogrel/.test(e.result || ""), "order placed and paid", e?.result);
-
-// 3. Gas: no payment needed
-r = await call("POST", "/api/errands", paati, { kind: "book_gas", request: "Book a gas cylinder" });
-e = await until(paati, r.body.id, ["done", "failed"], 60000);
-ok(e?.status === "done" && /JGB/.test(e.result || ""), "gas refill booked", e?.result);
-r = await call("POST", "/api/errands", paati, { kind: "book_gas", request: "Book a gas cylinder" });
-e = await until(paati, r.body.id, ["done", "failed"], 60000);
-ok(e?.status === "done" && /already booked/.test(e.result || ""), "a second booking finds the first", e?.result);
-
-// 4. Electricity: asks her, then the family declines
-r = await call("POST", "/api/errands", paati, { kind: "electricity_bill", request: "How much is my current bill?" });
-e = await until(paati, r.body.id, ["needs_choice", "failed", "done"], 60000);
-ok(e?.status === "needs_choice" && /₹1240/.test(e.question?.prompt || ""), "reads the bill and asks whether to pay", e?.question?.prompt);
-await call("POST", `/api/errands/${e.id}/answer`, paati, { answer: "yes pay it" });
-e = await until(paati, e.id, ["awaiting_approval", "failed"], 30000);
-ok(e?.status === "awaiting_approval", "then waits for family approval");
-await call("POST", `/api/errands/${e.id}/approve`, karthik, { approve: false });
-e = await until(paati, e.id, ["declined", "done", "failed"], 30000);
-ok(e?.status === "declined" && /wasn't paid/.test(e.result || ""), "declined: nothing paid", e?.result);
-
-// 5. Cancel while waiting
-r = await call("POST", "/api/errands", paati, { kind: "book_doctor", request: "General physician please" });
-e = await until(paati, r.body.id, ["needs_choice", "failed"], 60000);
-r = await call("POST", `/api/errands/${e.id}/cancel`, karthik);
-ok(r.body.ok, "cancel a waiting errand");
-await sleep(800);
-e = (await call("GET", "/api/errands", paati)).body.errands.find((x) => x.id === e.id);
-ok(e?.status === "cancelled", "stays cancelled", e?.status);
-
-// Family can see it all
-const feed = (await call("GET", "/api/overview", karthik)).body.feed.map((f) => f.title).join(" | ");
-ok(/Approve ₹/.test(feed) && /approved/.test(feed), "family feed shows approvals", feed.slice(0, 200));
-r = await call("GET", "/api/errands", meena);
-ok(r.body.errands?.length >= 5, "the whole family sees the errands");
+// The real sites Saathi operates load in the server's browser
+const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROMIUM_PATH || undefined, proxy: process.env.HTTPS_PROXY ? { server: process.env.HTTPS_PROXY } : undefined });
+const ctx = await browser.newContext({ ignoreHTTPSErrors: !!process.env.HTTPS_PROXY, locale: "en-IN" });
+for (const [name, url, expect] of [
+  ["Apollo Pharmacy search", "https://www.apollopharmacy.in/search-medicines/clopidogrel", /clopi/i],
+  ["TNPDCL quick pay", "https://www.tnebnet.org/qwp/qpay", /Consumer Number/i],
+]) {
+  const page = await ctx.newPage();
+  try { await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 }); await page.getByText(expect).first().waitFor({ timeout: 25000 }); ok(true, `real site loads: ${name}`); }
+  catch (err) { ok(false, `real site loads: ${name}`, err.message.split("\n")[0]); }
+  await page.close();
+}
+await browser.close();
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

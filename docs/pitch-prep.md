@@ -41,14 +41,14 @@ Swap speakers freely; keep hand-offs on slide boundaries.
 3. Point at Karthik's phone / the stage view: the alert arrived in the same second, with the hospital and the ambulance on a real map.
 4. Point at the ER phone: "Suspected heart attack", her allergy and blood thinner, and **why Saathi chose this hospital** (cath lab, minutes saved). Tap **Page now**.
 5. Back on Paati's phone: "The doctors are getting ready", the countdown, her family's faces.
-6. **Saathi on the phone (about 90 s, the new opener for the demo):** open `/stage` (Paati's side shows her **ordinary phone**). In Karthik's app tap **Ring Paati**; Paati's phone rings; tap **Accept**. Saathi greets her in Tamil. Say: "என் gas தீர்ந்து போச்சு, book பண்ணுங்க" (or in English "Please book my gas cylinder"). Point at Karthik's app: Saathi's browser opens the gas agency site and books it live; Saathi tells her the booking number. Then: "Order my tablets, they're running out." The pharmacy cart fills; Karthik's app shows **Approve ₹…**; tap **Approve and pay**; Saathi tells her it's ordered. Use headphones or a quiet corner; speak after Saathi finishes. Say clearly: "Paati has no app. She just talks."
+6. **Saathi on the phone (about 90 s, the opener):** open `/stage`. In Karthik's app tap **Ring Paati**; on Paati's side tap **Accept** (the call screen is Callvi's). Saathi greets her in Tamil. Ask: "என் மாத்திரை தீர்ந்து போச்சு" ("my tablets are running out"). Point at Karthik's app: Claude opens the **real Apollo Pharmacy** site, finds her tablets with real prices and stock, and the errand turns **Ready for you** with the real link; Karthik would log in and pay there. Then: "I need a heart doctor near Tambaram": Claude searches the real web, Saathi offers her two or three real doctors, and Karthik gets the booking link. Say: "Everything you see is the real web. Saathi never pays or logs in: Karthik does the last tap." **Needs `ANTHROPIC_API_KEY` in Vercel.**
 7. Optional (30 s): open the CPR coach from Karthik's emergency screen and let it count a few pushes.
 8. Afterwards: reset the demo again so the next run starts clean.
 
 **If something fails**
 - *Internet drops:* move straight to slides 9 and 10 (real screenshots of the same moment) and narrate them.
 - *The app is slow to wake:* talk through slide 7 for another 30 seconds; it will load.
-- *The voice call can't connect* (venue Wi-Fi blocking it): the call switches to the phone's own voice by itself (the screen says "Phone's voice (backup)"). Errands still work from Karthik's app: **New errand** → Book a gas cylinder, and the live browser runs the same way.
+- *The voice call can't connect* (venue Wi-Fi blocking it): the call switches to the phone's own voice by itself (the screen says "Phone's voice (backup)"). Errands still work from Karthik's app: **New errand** → Reorder medicines, and the live browser runs the same way.
 - *Plan B on the laptop, no internet:* `cd app && npm ci && npm run build && npm start`, then open `http://localhost:3000/stage`.
 
 ## Before you present
@@ -62,8 +62,8 @@ Swap speakers freely; keep hand-offs on slide boundaries.
 
 ## What's real and what's simulated (say this if asked; never overclaim)
 
-- **Real:** the voice call with Saathi (live AI voice in Tamil or English; its actions really update the family app), the errand browser (a real Chromium operating real web pages, live in Karthik's app, with his approval before any payment), the three apps, live sync between phones, road routing on OpenStreetMap (OSRM), the ranking of hospitals by what they can treat, the records vault and its answers, the QR card, the bystander page, the CPR coach, the security checks.
-- **Simulated:** the phone line (her "ordinary phone" is a web page standing in for a real number), the four partner businesses (fictional clinic, pharmacy, gas agency and electricity board, with no real bookings or money), the ambulance's movement (sped up 20×), the hospital network (five demo hospitals around Tambaram with sample beds and stock), the 45-minute transfer estimate, the sample medical papers. AI runs in demo mode unless an API key is set.
+- **Real:** the voice call with Saathi (live AI voice in Tamil or English; its actions really update the family app), the errands (Claude on the real web: real doctors, real Apollo Pharmacy prices and stock, the real TNPDCL bill page, live in Karthik's app; he finishes any login or payment), the three apps, live sync between phones, road routing on OpenStreetMap (OSRM), the ranking of hospitals by what they can treat, the records vault and its answers, the QR card, the bystander page, the CPR coach, the security checks.
+- **Simulated:** the phone line (her "ordinary phone" is a web page standing in for a real number), the ambulance's movement (sped up 20×), the hospital network (five demo hospitals around Tambaram with sample beds and stock), the 45-minute transfer estimate, the sample medical papers. AI runs in demo mode unless an API key is set.
 - **Not built yet:** 108 integration, ABDM records, the pendant, the missed-call SOS, real hospital onboarding, a real phone number (Twilio) so any keypad phone works, and Saathi calling her on a schedule.
 
 ## Q&A bank
@@ -122,8 +122,8 @@ No. Saathi is an assistant for senior citizens on an ordinary phone call: it boo
 **18. Is the voice call real? What does it run on?**
 Yes, live. It is the call engine from our other project, Callvi: an ElevenLabs voice agent with a natural Tamil–English voice. We tested several language models on 16 scripted calls in English and Tamil and picked the one that was most decisive and never read its reasoning aloud. The errands themselves are done by Claude operating a real browser. The voice agent can't touch the database: it can only use fourteen narrow actions, each checked by our server with her sign-in. Audio isn't recorded.
 
-**19. How do the errands work? Isn't it risky to let an AI use a browser?**
-Each errand runs in a fresh, isolated browser on our server. It only fills in her saved details, never passwords or OTPs. It stops to ask her anything that is her choice, and **every payment waits for Karthik to approve the exact amount** on his phone. The family watches every step live. In the demo the shops are fictional partner sites, so nothing real is bought.
+**19. How do the errands work? Isn't it risky to let an AI use the web?**
+Claude works on the real web: web search for doctors and facts, and a fresh, isolated browser on our server for sites like Apollo Pharmacy. It asks her only the choices that are hers. It never logs in, types an OTP, pays, or gets past a captcha or bot check: that last step goes to Karthik with the real link, and he finishes it on his phone. The family watches every step live.
 
 **20. What if the AI misses an emergency on the call?**
 It doesn't have to catch it alone. Every line she says also goes through fixed safety rules on our server; words like chest pain, breathless or fell start the emergency even if the AI does nothing.

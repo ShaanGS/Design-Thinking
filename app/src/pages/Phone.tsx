@@ -70,7 +70,7 @@ export default function PhonePage() {
   useLive<Errand>("errand", (e) => {
     if (!active) return;
     const last = e.steps.at(-1)?.text;
-    setActivity(e.status === "running" ? `${e.title}: ${last ?? "starting"}` : e.status === "awaiting_approval" ? `${e.title}: waiting for Karthik to approve` : e.status === "needs_choice" ? `${e.title}: Saathi needs your answer` : `${e.title}: ${e.status === "done" ? "done" : e.status}`);
+    setActivity(e.status === "running" ? `${e.title}: ${last ?? "starting"}` : e.status === "ready_for_family" ? `${e.title}: ready for Karthik to finish` : e.status === "needs_choice" ? `${e.title}: Saathi needs your answer` : `${e.title}: ${e.status === "done" ? "done" : e.status}`);
   });
   useEffect(() => { if (state.phase === "ended") { setEnded(true); setMinimised(false); } }, [state.phase]);
 

@@ -227,13 +227,13 @@ export function useSaathiCall(opts: { onEmergency: () => void; onLogged: () => v
     const s = connectSocket();
     const onErrand = (e: Errand) => {
       if (!live.current || !convo.current) return;
-      if (!["needs_choice", "awaiting_approval", "done", "declined", "failed"].includes(e.status)) return;
+      if (!["needs_choice", "ready_for_family", "done", "failed"].includes(e.status)) return;
       const key = `${e.id}:${e.status}`;
       if (told.current.has(key)) return;
       told.current.add(key);
       const detail = e.status === "needs_choice" ? `It needs her choice: ${e.question?.prompt} Options: ${e.question?.options.join("; ")}. errand_id ${e.id}.`
-        : e.status === "awaiting_approval" ? `Waiting for Karthik to approve ₹${e.approval?.amount} on his phone.`
-        : `${e.status === "done" ? "Done" : e.status === "declined" ? "The family declined it" : "It couldn't be done"}: ${e.result ?? ""}`;
+        : e.status === "ready_for_family" ? `Ready for Karthik to finish on ${e.handoff?.site}: ${e.result ?? ""}`
+        : `${e.status === "done" ? "Done" : "It couldn't be done"}: ${e.result ?? ""}`;
       pendingNews.current.push(`[Saathi update] ${e.title}. ${detail}`);
       flushNews();
     };

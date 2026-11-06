@@ -9,8 +9,8 @@ import type { Errand } from "../../../shared/types";
 import { BigButton, SubScreen } from "./shared";
 
 const WORD: Record<string, string> = {
-  running: "Saathi is doing it now", needs_choice: "Saathi needs your answer", awaiting_approval: "Waiting for Karthik to approve",
-  done: "Done", declined: "Not paid. Karthik said no", failed: "Couldn't be done", cancelled: "Stopped",
+  running: "Saathi is doing it now", needs_choice: "Saathi needs your answer", ready_for_family: "Karthik will finish the last step",
+  done: "Done", failed: "Couldn't be done", cancelled: "Stopped",
 };
 
 export default function Errands() {
@@ -27,7 +27,7 @@ export default function Errands() {
 
   return (
     <SubScreen ta="என் வேலைகள்" en="My errands" art="calendar">
-      <p className="px-1 text-[18px] leading-snug text-ink-2">Ask Saathi on a call: “Book the doctor”, “Order my tablets”, “Book the gas”, “Pay the electricity bill”.</p>
+      <p className="px-1 text-[18px] leading-snug text-ink-2">Ask Saathi on a call: “Find me a heart doctor”, “Order my tablets”, “My electricity bill”, “When does the temple open?”.</p>
       {list === null && <div className="grid place-items-center py-10"><Spinner className="h-8 w-8 text-violet" /></div>}
       {list?.length === 0 && <p className="rounded-[24px] bg-white p-5 text-[20px] shadow-card">Nothing yet today.</p>}
       {list?.slice(0, 8).map((e) => (

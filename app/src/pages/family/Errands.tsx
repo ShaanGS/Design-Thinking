@@ -2,7 +2,7 @@
 // (a live picture and every step), choices that are waiting for her, and payments waiting for a family member.
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Check, Lock, PhoneCall, Plus, X } from "lucide-react";
+import { Check, ExternalLink, Lock, PhoneCall, Plus, X } from "lucide-react";
 import { api, getToken } from "../../lib/api";
 import { useLive } from "../../lib/socket";
 import { fmtTime } from "../../lib/format";
@@ -11,14 +11,13 @@ import { Art, BottomSheet, Pill, Section, type ArtName } from "../../components/
 import { ERRAND_TITLE, type Errand, type ErrandKind } from "../../../shared/types";
 import { useFamily } from "./ctx";
 
-const ART: Record<ErrandKind, ArtName> = { book_doctor: "stethoscope", order_medicines: "pills", book_gas: "home", electricity_bill: "folder", web_lookup: "chat" };
-const ACTIVE = ["running", "needs_choice", "awaiting_approval"];
+const ART: Record<ErrandKind, ArtName> = { find_doctor: "stethoscope", order_medicines: "pills", electricity_bill: "folder", web_lookup: "chat" };
+const ACTIVE = ["running", "needs_choice", "ready_for_family"];
 const STATUS: Record<string, { label: string; cls: string }> = {
   running: { label: "Working", cls: "bg-violet-50 text-violet-700" },
   needs_choice: { label: "Waiting for Paati", cls: "bg-butter text-butter-ink" },
-  awaiting_approval: { label: "Needs your approval", cls: "bg-peach text-peach-ink" },
+  ready_for_family: { label: "Ready for you", cls: "bg-peach text-peach-ink" },
   done: { label: "Done", cls: "bg-mint text-mint-ink" },
-  declined: { label: "Declined", cls: "bg-canvas text-ink-2" },
   failed: { label: "Couldn't finish", cls: "bg-peach text-peach-ink" },
   cancelled: { label: "Stopped", cls: "bg-canvas text-ink-2" },
 };
@@ -26,8 +25,9 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 /** All errands, kept live from the server. */
 function useErrands() {
   const [list, setList] = useState<Errand[] | null>(null);
+  const [available, setAvailable] = useState(true);
   const [frames, setFrames] = useState<Record<string, string>>({});
-  useEffect(() => { api.get<{ errands: Errand[] }>("/api/errands").then((r) => setList(r.errands)).catch(() => setList([])); }, []);
+  useEffect(() => { api.get<{ errands: Errand[]; available: boolean }>("/api/errands").then((r) => { setList(r.errands); setAvailable(r.available); }).catch(() => setList([])); }, []);
   useLive<Errand>("errand", (e) => setList((l) => [e, ...(l ?? []).filter((x) => x.id !== e.id)].sort((a, b) => b.createdAt.localeCompare(a.createdAt))));
   useLive<{ id: string; jpeg: string }>("errand_frame", (f) => setFrames((m) => ({ ...m, [f.id]: `data:image/jpeg;base64,${f.jpeg}` })));
   // Pictures taken before this page opened
@@ -38,13 +38,13 @@ function useErrands() {
         .then((r) => (r.ok ? r.blob() : null)).then((b) => { if (b) setFrames((m) => (m[e.id] ? m : { ...m, [e.id]: URL.createObjectURL(b) })); }).catch(() => undefined);
     }
   }, [list?.map((e) => e.id).join()]); // eslint-disable-line react-hooks/exhaustive-deps
-  return { list, frames };
+  return { list, frames, available };
 }
 
 export function ErrandsPanel() {
   const { data } = useFamily();
   const toast = useToast();
-  const { list, frames } = useErrands();
+  const { list, frames, available } = useErrands();
   const [adding, setAdding] = useState(false);
   const [ringing, setRinging] = useState(false);
   const shown = useMemo(() => {
@@ -68,10 +68,11 @@ export function ErrandsPanel() {
         <Art name="chat" size={56} className="shrink-0" />
         <div className="min-w-0 flex-1 leading-tight">
           <p className="text-[15px] font-bold">{nick} just talks. Saathi does the rest.</p>
-          <p className="mt-0.5 text-[12.5px] text-lilac-ink">On a normal phone call: bookings, medicines, gas, bills. Payments wait for you.</p>
+          <p className="mt-0.5 text-[12.5px] text-lilac-ink">Real doctors, real pharmacy prices, her real bill. You finish anything that needs a login or payment.</p>
         </div>
         <Pill variant="violet" size="sm" icon={PhoneCall} disabled={ringing} onClick={() => void ring()}>{ringing ? "Ringing" : `Ring ${nick}`}</Pill>
       </div>
+      {!available && <p className="mt-3 rounded-2xl bg-peach p-3 text-[13px] leading-snug text-peach-ink">Errands are switched off: the server needs the Claude API key (<code>ANTHROPIC_API_KEY</code>). Calls still work; Saathi tells {nick} it can't do errands today.</p>}
       <div className="mt-3 flex flex-col gap-3">
         {list === null && <div className="grid place-items-center py-6"><Spinner className="h-6 w-6 text-violet" /></div>}
         {list && shown.length === 0 && <p className="px-1 text-[13.5px] text-ink-2">No errands today. When {nick} asks Saathi on a call, it shows up here live.</p>}
@@ -137,39 +138,40 @@ function ErrandCard({ e, frame, nick, elderName }: { e: Errand; frame?: string; 
             <p className="mt-1.5 text-[11.5px] text-butter-ink">She'll usually answer on the call. You can answer for her.</p>
           </div>
         )}
-        {e.status === "awaiting_approval" && e.approval && (
+        {e.status === "ready_for_family" && e.handoff && (
           <div className="rounded-2xl bg-peach p-3">
-            <p className="text-[13.5px] font-bold text-peach-ink">Approve ₹{e.approval.amount.toLocaleString("en-IN")}?</p>
-            <p className="mt-0.5 text-[12.5px] text-peach-ink">{e.approval.what}</p>
+            {e.result && <p className="text-[13.5px] leading-snug text-peach-ink">{e.result}</p>}
+            <p className="mt-1.5 text-[13.5px] font-bold text-peach-ink">Your turn: {e.handoff.what}</p>
             <div className="mt-2.5 flex gap-2">
-              <Button variant="brand" size="sm" className="flex-1" loading={busy === "yes"} disabled={!!busy} onClick={() => void act("yes", "approve", { approve: true }, "Approved. Saathi is paying now.")}>Approve and pay</Button>
-              <Button variant="outline" size="sm" disabled={!!busy} onClick={() => void act("no", "approve", { approve: false }, "Declined. Nothing was paid.")}>Decline</Button>
+              <a href={e.handoff.url} target="_blank" rel="noopener noreferrer" className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full bg-violet px-4 py-2.5 text-[13.5px] font-bold text-white">
+                Open {e.handoff.site}<ExternalLink className="h-3.5 w-3.5" />
+              </a>
+              <Button variant="outline" size="sm" disabled={!!busy} onClick={() => void act("done", "finished", {}, "Marked as done")}>Done</Button>
             </div>
           </div>
         )}
-        {e.result && !active && <p className={cx("rounded-2xl p-3 text-[13.5px] leading-snug", e.status === "done" ? "bg-mint text-mint-ink" : "bg-canvas text-ink-2")}>{e.result}</p>}
-        {active && (
-          <button disabled={!!busy} onClick={() => void act("cancel", "cancel", {}, "Stopped. Nothing was paid.")} className="mt-2 flex items-center gap-1 text-[12.5px] font-semibold text-ink-3">
+        {e.result && !active && e.status !== "ready_for_family" && <p className={cx("rounded-2xl p-3 text-[13.5px] leading-snug", e.status === "done" ? "bg-mint text-mint-ink" : "bg-canvas text-ink-2")}>{e.result}</p>}
+        {(e.status === "running" || e.status === "needs_choice") && (
+          <button disabled={!!busy} onClick={() => void act("cancel", "cancel", {}, "Stopped. Nothing was booked or paid.")} className="mt-2 flex items-center gap-1 text-[12.5px] font-semibold text-ink-3">
             <X className="h-3.5 w-3.5" />Stop this errand
           </button>
         )}
-        <p className="mt-2 text-[11px] text-ink-3">{e.driver === "claude" ? "Claude is operating the browser" : "Saathi's standard steps for this site"} · started by {e.startedBy === elderName ? `${nick} on her call` : e.startedBy}</p>
+        <p className="mt-2 text-[11px] text-ink-3">Claude on the real web, in a sandboxed browser · started by {e.startedBy === elderName ? `${nick} on her call` : e.startedBy}</p>
       </div>
     </motion.article>
   );
 }
 
 const KINDS: { kind: ErrandKind; hint: string }[] = [
-  { kind: "book_doctor", hint: "Dr Raman, the heart doctor, this week" },
+  { kind: "find_doctor", hint: "A heart doctor near Tambaram this week" },
   { kind: "order_medicines", hint: "Her tablets that are running out" },
-  { kind: "book_gas", hint: "A gas cylinder refill" },
-  { kind: "electricity_bill", hint: "Check this month's bill" },
+  { kind: "electricity_bill", hint: "This month's bill (service number if you have it)" },
   { kind: "web_lookup", hint: "Kapaleeshwarar temple timings tomorrow" },
 ];
 
 function NewErrandSheet({ open, onClose, nick }: { open: boolean; onClose: () => void; nick: string }) {
   const toast = useToast();
-  const [kind, setKind] = useState<ErrandKind>("book_gas");
+  const [kind, setKind] = useState<ErrandKind>("order_medicines");
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const hint = KINDS.find((k) => k.kind === kind)!.hint;
@@ -189,7 +191,7 @@ function NewErrandSheet({ open, onClose, nick }: { open: boolean; onClose: () =>
         ))}
       </div>
       <div className="mt-4"><Field label="What exactly?"><Input value={text} onChange={(e) => setText(e.target.value)} placeholder={hint} /></Field></div>
-      <p className="mt-2 text-[12.5px] text-ink-2">Saathi asks {nick} on her call if there's a choice to make. Anything that costs money waits for your approval.</p>
+      <p className="mt-2 text-[12.5px] text-ink-2">Saathi works on the real websites and asks {nick} on her call if there's a choice to make. Logins, OTPs and payments are left for you.</p>
       <Button variant="brand" size="lg" className="mt-4 w-full" loading={busy} onClick={() => void start()}>Start</Button>
     </BottomSheet>
   );

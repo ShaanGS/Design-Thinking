@@ -7,7 +7,7 @@ Shaan (RA2511004010247) · Shrinavin (RA2511004010230) · Kishore (RA25110040102
 
 ## ⭐ The app
 
-**[`app/`](app/) is the real product**: a full-stack, installable app with three live sides (the elder's phone, the family app with the Health Vault, and the hospital console), Claude-powered AI, live sync across phones, and a one-click deploy. And Paati needs no app at all: she **talks to Saathi on an ordinary phone call** in Tamil or English, and Saathi gets things done for her (doctor bookings, medicine refills, gas, bills, lookups) in a sandboxed browser, with the family approving anything that costs money. Built on the call engine from our Callvi project. Start with [`app/README.md`](app/README.md):
+**[`app/`](app/) is the real product**: a full-stack, installable app with three live sides (the elder's phone, the family app with the Health Vault, and the hospital console), Claude-powered AI, live sync across phones, and a one-click deploy. And Paati needs no app at all: she **talks to Saathi on an ordinary phone call** in Tamil or English, and Saathi gets things done for her on the real web (finding doctors, her medicines on Apollo Pharmacy, her electricity bill, lookups), with the family finishing any login or payment. Built on the call engine from our Callvi project. Start with [`app/README.md`](app/README.md):
 
 ```bash
 cd app && npm install && npm run dev     # then open http://localhost:5173

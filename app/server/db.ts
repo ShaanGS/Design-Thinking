@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS voice_calls (
   started_at TEXT NOT NULL, ended_at TEXT, summary TEXT, follow_up TEXT, lines INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE IF NOT EXISTS errands (
   id TEXT PRIMARY KEY, patient_id TEXT NOT NULL, kind TEXT NOT NULL, request TEXT NOT NULL, status TEXT NOT NULL,
-  question TEXT, approval TEXT, result TEXT, steps TEXT NOT NULL DEFAULT '[]', site TEXT, driver TEXT NOT NULL,
+  question TEXT, approval TEXT, handoff TEXT, result TEXT, steps TEXT NOT NULL DEFAULT '[]', site TEXT, driver TEXT NOT NULL,
   call_id TEXT, started_by TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS lesson_progress (
   id TEXT PRIMARY KEY, patient_id TEXT NOT NULL, topic TEXT NOT NULL, result TEXT NOT NULL, answer TEXT, at TEXT NOT NULL);
@@ -69,6 +69,8 @@ CREATE TABLE IF NOT EXISTS lesson_progress (
 /** Random, unguessable token printed (as a QR) on the elder's emergency card. Separate from the family code. */
 export const newCardToken = () => crypto.randomBytes(9).toString("base64url");
 
+// Migration: errands created before the real-web hand-off have no handoff column.
+if (!(db.prepare("PRAGMA table_info(errands)").all() as { name: string }[]).some((c) => c.name === "handoff")) db.exec("ALTER TABLE errands ADD COLUMN handoff TEXT");
 // Migration: databases created before the emergency card QR have no card_token column.
 if (!(db.prepare("PRAGMA table_info(patients)").all() as { name: string }[]).some((c) => c.name === "card_token")) {
   db.exec("ALTER TABLE patients ADD COLUMN card_token TEXT");

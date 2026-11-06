@@ -11,7 +11,6 @@ import { startClock, DEMO_SPEED } from "./emergency.ts";
 import { seed, isEmpty } from "./seed.ts";
 import { aiMode, MODEL } from "./ai.ts";
 import { securityHeaders, limit } from "./security.ts";
-import { sites } from "./sites.ts";
 
 if (isEmpty()) { seed(); console.log("First run: seeded the demo family and hospital network."); }
 
@@ -21,7 +20,6 @@ app.set("trust proxy", 1); // one hosting proxy in front: req.ip is the visitor
 app.use(securityHeaders);
 app.use("/api", limit("api", 3000, 60000)); // per IP: a classroom on one Wi-Fi shares an address
 app.use(express.json({ limit: "1mb" }));
-app.use("/sites", limit("sites", 3000, 60000), sites); // partner websites the browser agent operates
 app.use("/api/public", publicApi);
 app.use("/api", api);
 // Uploaded documents use unguessable file names.
@@ -30,7 +28,7 @@ app.use("/uploads", express.static(UPLOAD_DIR, { fallthrough: false, setHeaders:
 const dist = path.resolve("dist");
 if (fs.existsSync(dist)) {
   app.use(express.static(dist, { index: false, maxAge: "1h" }));
-  app.get(/^(?!\/api|\/uploads|\/socket\.io|\/sites).*/, (_req, res) => res.sendFile(path.join(dist, "index.html")));
+  app.get(/^(?!\/api|\/uploads|\/socket\.io).*/, (_req, res) => res.sendFile(path.join(dist, "index.html")));
 }
 
 // Bad JSON, missing files and anything else: a short JSON error, never a stack trace

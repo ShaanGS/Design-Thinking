@@ -53,15 +53,10 @@ r = await tool("remember_for_next_time", { fact: "Her favourite song is from Thi
 ok(r.body.ok === false, "remember needs her agreement");
 r = await tool("remember_for_next_time", { fact: "Her favourite song is from Thiruvilaiyadal.", elder_agreed: true });
 ok(r.body.ok && r.body.saved, "remember_for_next_time with her agreement");
-r = await tool("start_errand", { kind: "book_gas", details: "Book a gas cylinder refill" });
-ok(r.body.ok && r.body.data?.errand_id && ["done", "running"].includes(r.body.data.status), "start_errand books the gas from the call", JSON.stringify(r.body.data).slice(0, 160));
-r = await tool("start_errand", { kind: "book_doctor", details: "Dr Raman, the heart doctor" });
-ok(r.body.ok && r.body.data?.status === "needs_choice" && r.body.data.question_for_her?.options?.length, "start_errand returns her choice of times", JSON.stringify(r.body.data).slice(0, 200));
-const docId = r.body.data?.errand_id;
-r = await tool("answer_errand", { errand_id: docId, answer: "the first one" });
-ok(r.body.ok && r.body.data?.status === "done" && /RHC-/.test(r.body.data.result || ""), "answer_errand books the slot she chose", JSON.stringify(r.body.data).slice(0, 200));
+r = await tool("start_errand", { kind: "web_lookup", details: "Kapaleeshwarar temple timings" });
+ok(r.body.ok === true || /switched off/.test(r.body.error || ""), "start_errand runs for real, or says honestly it can't", JSON.stringify(r.body).slice(0, 160));
 r = await tool("check_errands", {});
-ok(r.body.ok && r.body.data?.length >= 2, "check_errands lists today's errands");
+ok(r.body.ok, "check_errands answers");
 r = await tool("start_errand", { kind: "teleport", details: "x" });
 ok(r.body.ok === false, "unknown errands are refused on the call");
 r = await tool("get_lesson", { topic: "scam_calls", request: "start" });
