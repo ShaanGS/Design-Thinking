@@ -129,14 +129,14 @@ function clearDemo() {
   for (const d of all("SELECT path FROM documents WHERE patient_id = ?", pid)) fs.rmSync(path.join(UPLOAD_DIR, String(d.path)), { force: true });
   run("DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE family_id = ? OR id IN ('u_priya','u_raghu'))", fam);
   run("DELETE FROM users WHERE family_id = ? OR id IN ('u_priya','u_raghu')", fam);
-  for (const t of ["medications", "dose_logs", "vitals", "documents", "insights", "visits", "chats", "checkins"]) run(`DELETE FROM ${t} WHERE patient_id = ?`, pid);
+  for (const t of ["medications", "dose_logs", "vitals", "documents", "insights", "visits", "chats", "checkins", "voice_calls", "lesson_progress"]) run(`DELETE FROM ${t} WHERE patient_id = ?`, pid);
   for (const t of ["feed", "emergencies", "patients"]) run(`DELETE FROM ${t} WHERE family_id = ?`, fam);
   run("DELETE FROM families WHERE id = ?", fam);
   for (const t of ["hospitals", "inventory", "relays"]) db.exec(`DELETE FROM ${t}`);
 }
 
 export function seed(opts: { demoOnly?: boolean } = {}) {
-  const tables = ["families", "users", "sessions", "patients", "medications", "dose_logs", "vitals", "feed", "documents", "insights", "hospitals", "inventory", "emergencies", "relays", "visits", "chats", "checkins"];
+  const tables = ["families", "users", "sessions", "patients", "medications", "dose_logs", "vitals", "feed", "documents", "insights", "hospitals", "inventory", "emergencies", "relays", "visits", "chats", "checkins", "voice_calls", "lesson_progress"];
   // Keep the emergency card token across demo resets so a printed card's QR keeps working.
   const cardToken = String(get("SELECT card_token FROM patients WHERE id = 'pat_kamala'")?.card_token || "") || newCardToken();
   tx(() => {

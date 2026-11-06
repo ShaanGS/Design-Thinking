@@ -16,6 +16,7 @@ The interface follows [`DESIGN.md`](DESIGN.md): a "signage-grade" system built f
 ## What's inside
 
 - **Health Vault.** Photograph or upload prescriptions, lab reports, discharge summaries and scans (images or PDF). Claude reads each paper (handwriting too), builds a dated timeline and lab trends, and **cross-checks every paper together**: falling kidney function versus the metformin dose, interactions between prescriptions from different doctors, duplicate brands, rising cholesterol. Ask questions with source citations. Generate a doctor brief and share link.
+- **Call Saathi (voice).** Paati taps one button and talks to Saathi like a phone call, in **Tamil or English**. Built on the call engine from our Callvi project: an ElevenLabs voice agent (Claude Sonnet 5.5, a natural Tamil–English voice) whose tools act on Saathi's own data through her session. The elder chooses the purpose of each call; Saathi logs tablets only when she confirms, passes on how she feels and messages to the family, answers from her papers, asks before remembering anything, teaches three short safety lessons (scam calls, the Help button, waiting for the ambulance) with spoken practice and feedback, and writes a call summary for Karthik. Red-flag words start the emergency at once, through the agent and through fixed safety rules on every line she says. If the voice service can't be reached, the call carries on with the phone's own voice.
 - **Daily companion.** Saathi chats with the elder in simple English, remembers context, logs tablets from the conversation, and escalates red-flag phrases ("my chest feels heavy") through **fixed safety rules that override the AI**.
 - **Golden-hour emergency.** SOS from the button, the AI chat, a check-in reply or the fall sensor. Then: triage → **need-matched routing** (the nearest hospital *that can treat this patient*, ranked by time to definitive care and explained) → AI pre-arrival brief to the ER → a live ambulance on the map → ER "team ready" / "received" → family notified at every step.
 - **Medicines.** Schedules by time of day, one-tap confirmation, stock and refill warnings, 14-day adherence, and a safety check on every new medicine (duplicates, allergy conflicts like penicillin, interactions).
@@ -45,6 +46,8 @@ npm start                     # http://localhost:3000
 
 - **Without `ANTHROPIC_API_KEY`**, Saathi runs in **demo mode**: a rules engine answers chat, triage and questions, and the six sample papers have prepared readings. Uploading *new* papers needs the key.
 - **With the key**, all AI runs on Claude (`SAATHI_MODEL`, default `claude-opus-5-5`). Server-side fallback is enabled, so a safety-classifier refusal is retried on Anthropic's recommended fallback model.
+- **Voice calls** work out of the box: the Saathi ElevenLabs agent (`agent_3301m6qe86rjf4h87b0qkxnh15kz`) is public but only accepts calls from `saathi-app-eta.vercel.app` and `localhost`. To call from another address, add it to `ALLOWED_HOSTS` in `server/voice-setup.ts` and run `ELEVENLABS_API_KEY=... npm run voice:setup`. Microphone access needs https (or localhost).
+- `npm run test:voice` checks the call API (37 checks); `ELEVENLABS_API_KEY=... npm run test:voice-agent` runs 12 scenarios against the real agent (English and Tamil).
 - `DEMO_SPEED=20` makes the ambulance simulation run 20× faster, so a 15-minute trip takes about 45 seconds on stage.
 - `npm run seed` resets the demo family, hospitals and history.
 
@@ -84,6 +87,9 @@ web (React 18 + Vite + Tailwind, PWA)  ── REST /api ──►  Express serve
 | Path | What |
 |---|---|
 | `server/ai.ts` | Every AI feature: document reading (vision + PDF), cross-document insights, record Q&A, triage, ER brief, the companion, medicine checks, with deterministic fallbacks |
+| `server/voice.ts` | The voice call: agent instructions, 11 client tools and their server side, safety rule on every line, lessons |
+| `server/voice-setup.ts` | `npm run voice:setup`: creates or updates the Saathi ElevenLabs agent (never touches other agents) |
+| `src/pages/elder/Call.tsx`, `src/lib/voice/` | Call screen, call state machine and the ElevenLabs / phone-voice hook |
 | `server/routing.ts` | Need-matched routing and the transfer-penalty scoring |
 | `server/emergency.ts` | SOS lifecycle, ambulance simulation, ER actions, medicine relays |
 | `server/routes.ts` | REST API |

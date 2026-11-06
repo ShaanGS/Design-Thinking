@@ -7,7 +7,7 @@ Shaan (RA2511004010247) · Shrinavin (RA2511004010230) · Kishore (RA25110040102
 
 ## ⭐ The app
 
-**[`app/`](app/) is the real product**: a full-stack, installable app with three live sides (the elder's phone, the family app with the Health Vault, and the hospital console), Claude-powered AI, live sync across phones, and a one-click deploy. Start with [`app/README.md`](app/README.md):
+**[`app/`](app/) is the real product**: a full-stack, installable app with three live sides (the elder's phone, the family app with the Health Vault, and the hospital console), Claude-powered AI, live sync across phones, and a one-click deploy. Paati can also **call Saathi and talk in Tamil or English**: a live voice agent built on the call engine from our Callvi project. Start with [`app/README.md`](app/README.md):
 
 ```bash
 cd app && npm install && npm run dev     # then open http://localhost:5173

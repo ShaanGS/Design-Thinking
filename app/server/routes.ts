@@ -10,6 +10,7 @@ import * as E from "./emergency.ts";
 import * as AI from "./ai.ts";
 import { toFamily, toNetwork, userForToken, isOnline, disconnectToken, canSeeEmergency } from "./realtime.ts";
 import { limit, byUser, hashToken, newFamilyCode, safeEqual, sniffMime, isDemoUser } from "./security.ts";
+import { mountVoice, voiceMode } from "./voice.ts";
 import { seed, SAMPLE_BY_HASH, SAMPLE_DOCS, SEED_DOC_DIR, INVENTORY_LABEL } from "./seed.ts";
 import type { Condition, HelpStatus, Overview, Slot, User, Vital } from "../shared/types.ts";
 import { CONDITION_INFO, SLOT_LABEL } from "../shared/types.ts";
@@ -44,7 +45,7 @@ const clean = (v: unknown, max = 200) => String(v ?? "").trim().slice(0, max);
 
 /* ------------------------------------------------------------------ Info & auth */
 
-api.get("/info", (_req, res) => res.json({ ai: AI.aiMode(), model: AI.MODEL, demoSpeed: E.DEMO_SPEED }));
+api.get("/info", (_req, res) => res.json({ ai: AI.aiMode(), model: AI.MODEL, demoSpeed: E.DEMO_SPEED, voice: voiceMode() }));
 
 api.use("/auth", authLimit);
 api.post("/auth/demo", wrap((req, res) => {
@@ -255,6 +256,10 @@ api.post("/chat", aiLimit, wrap(async (req, res) => {
   pushOverview(p.id, p.familyId);
   res.json({ user: userTurn, reply, signals: r.signals, action: r.action, emergency });
 }));
+
+/* ------------------------------------------------------------------ Saathi voice call (Callvi's call engine) */
+
+mountVoice(api, { wrap, needFamily, fail, clean, announceDoses, pushOverview });
 
 /* ------------------------------------------------------------------ Health Vault */
 

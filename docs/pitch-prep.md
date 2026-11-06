@@ -41,12 +41,14 @@ Swap speakers freely; keep hand-offs on slide boundaries.
 3. Point at Karthik's phone / the stage view: the alert arrived in the same second, with the hospital and the ambulance on a real map.
 4. Point at the ER phone: "Suspected heart attack", her allergy and blood thinner, and **why Saathi chose this hospital** (cath lab, minutes saved). Tap **Page now**.
 5. Back on Paati's phone: "The doctors are getting ready", the countdown, her family's faces.
-6. Optional (30 s): open the CPR coach from Karthik's emergency screen and let it count a few pushes.
-7. Afterwards: reset the demo again so the next run starts clean.
+6. **Call Saathi (about 60 s, do this before the Help button if you prefer a calm opener):** on Paati's phone tap **Call Saathi**, choose **தமிழ்** or English, tap the call button. Saathi greets her. Say "I took my morning tablets" (Karthik's feed updates), then "Tell Karthik to call me tonight". Optional finale: say "My chest feels heavy and I'm sweating": the emergency starts from the conversation itself and Saathi stays on the line calming her. Use headphones or a quiet corner; speak after Saathi finishes.
+7. Optional (30 s): open the CPR coach from Karthik's emergency screen and let it count a few pushes.
+8. Afterwards: reset the demo again so the next run starts clean.
 
 **If something fails**
 - *Internet drops:* move straight to slides 9 and 10 (real screenshots of the same moment) and narrate them.
 - *The app is slow to wake:* talk through slide 7 for another 30 seconds; it will load.
+- *The voice call can't connect* (venue Wi-Fi blocking it): the call switches to the phone's own voice by itself (the screen says "Phone's voice (backup)"). If the mic is the problem, tap "Type to Saathi instead".
 - *Plan B on the laptop, no internet:* `cd app && npm ci && npm run build && npm start`, then open `http://localhost:3000/stage`.
 
 ## Before you present
@@ -60,9 +62,9 @@ Swap speakers freely; keep hand-offs on slide boundaries.
 
 ## What's real and what's simulated (say this if asked; never overclaim)
 
-- **Real:** the three apps, live sync between phones, road routing on OpenStreetMap (OSRM), the ranking of hospitals by what they can treat, the records vault and its answers, the QR card, the bystander page, the CPR coach, the security checks.
+- **Real:** the voice call with Saathi (live AI voice in Tamil or English; its actions really update the family app), the three apps, live sync between phones, road routing on OpenStreetMap (OSRM), the ranking of hospitals by what they can treat, the records vault and its answers, the QR card, the bystander page, the CPR coach, the security checks.
 - **Simulated:** the ambulance's movement (sped up 20×), the hospital network (five demo hospitals around Tambaram with sample beds and stock), the 45-minute transfer estimate, the sample medical papers. AI runs in demo mode unless an API key is set.
-- **Not built yet:** 108 integration, ABDM records, the pendant, the missed-call SOS, real hospital onboarding.
+- **Not built yet:** 108 integration, ABDM records, the pendant, the missed-call SOS, real hospital onboarding, Saathi calling her on a real phone line or on a schedule (today she calls Saathi from the app).
 
 ## Q&A bank
 
@@ -113,3 +115,13 @@ Minutes from SOS to the right treatment. Supporting metrics: transfers avoided, 
 
 **16. What's next, concretely?**
 A pilot with 50 families (SRM staff and students' grandparents) and one partner hospital near campus in the next six months.
+
+**17. Is the voice call real? What does it run on?**
+Yes, live. It is the call engine from our other project, Callvi: an ElevenLabs voice agent running Claude, with a natural Tamil–English voice. The agent can't touch the database; it can only use eleven narrow actions (log tablets after she confirms, tell the family, ask her papers, raise an emergency, and so on), each checked by our server with her own sign-in. Audio isn't recorded.
+
+**18. What if the AI misses an emergency on the call?**
+It doesn't have to catch it alone. Every line she says also goes through fixed safety rules on our server; words like chest pain, breathless or fell start the emergency even if the AI does nothing. We test both: 12 scenario tests against the live agent (English and Tamil) and 37 API checks.
+
+**19. Why a call and not an app?**
+Because an elder already knows how to answer a phone. In our interviews the screen was the barrier. The next step is Saathi calling her on an ordinary phone line every morning, so even a keypad phone works.
+

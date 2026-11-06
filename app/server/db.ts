@@ -55,6 +55,11 @@ CREATE TABLE IF NOT EXISTS visits (
   status TEXT NOT NULL, at TEXT NOT NULL, notes TEXT);
 CREATE TABLE IF NOT EXISTS chats (id TEXT PRIMARY KEY, patient_id TEXT NOT NULL, role TEXT NOT NULL, text TEXT NOT NULL, english TEXT, red_flag INTEGER NOT NULL DEFAULT 0, at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS checkins (id TEXT PRIMARY KEY, patient_id TEXT NOT NULL, requested_by TEXT NOT NULL, requested_at TEXT NOT NULL, answered_at TEXT, answer TEXT);
+CREATE TABLE IF NOT EXISTS voice_calls (
+  id TEXT PRIMARY KEY, patient_id TEXT NOT NULL, user_id TEXT NOT NULL, lang TEXT NOT NULL, provider TEXT NOT NULL,
+  started_at TEXT NOT NULL, ended_at TEXT, summary TEXT, follow_up TEXT, lines INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS lesson_progress (
+  id TEXT PRIMARY KEY, patient_id TEXT NOT NULL, topic TEXT NOT NULL, result TEXT NOT NULL, answer TEXT, at TEXT NOT NULL);
 `);
 
 /** Random, unguessable token printed (as a QR) on the elder's emergency card. Separate from the family code. */
