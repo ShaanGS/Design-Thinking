@@ -1,5 +1,7 @@
 # Saathi pitch prep (15+ minute review)
 
+> **New positioning after mentor feedback:** see [pitch-v2.md](pitch-v2.md). Saathi is the phone call that sends a trained local helper to a senior's door in about 15 minutes; the AI is the front desk, the people are the moat. Its slide outline replaces slides 1, 6, 11 and 13 below.
+
 Deck: 14 slides. The full script for each slide is in its speaker notes (open the deck, then Presenter view). This page is the run of show, the live demo run-sheet, the checklist and the Q&A bank.
 
 ## Run of show (about 17 minutes + Q&A)
