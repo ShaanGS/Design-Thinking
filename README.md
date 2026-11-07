@@ -15,6 +15,10 @@ cd app && npm install && npm run dev     # then open http://localhost:5173
 
 The HTML files in `prototype/` were the earlier design-thinking prototypes.
 
+## Also in this repo: Crash Check
+
+[`crash-check/`](crash-check/) is a second design-thinking project: crash detection for two-wheeler riders, built as a feature of Ride Nanba. The phone asks "Are you okay?" after a crash, tells chosen family only if there is no answer, and ignores a dropped phone. Start with [`crash-check/README.md`](crash-check/README.md).
+
 ## What's in this repo
 
 | Path | What it is |
