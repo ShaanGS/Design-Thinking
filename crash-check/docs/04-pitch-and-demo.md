@@ -21,11 +21,11 @@ About 10 minutes plus questions. The wow moment is slide 6: a real phone dropped
 
 **You need:** a laptop on the projector with https://crash-check.vercel.app open wide (both phones side by side); one phone with https://crash-check.vercel.app open, so its motion sensor works; a pillow and a sofa cushion; volume up.
 
-**Before:** on the phone, open Presenter controls, tap "Use this phone's motion sensor", allow motion. Turn on "Short countdown for the stage" (10 s). Check the Crash Check row shows a live reading near 1.0 g.
+**Before:** on the phone, open https://crash-check.vercel.app (or the installed Ride Nanba app), tap the **Crash Check** row on the trip screen, then **Allow motion and turn on**. Then **Account → Presenter controls** → turn on "Short countdown for the stage" (10 s). Check the Crash Check row shows a live reading near 1.0 g. On the laptop, the **Presenter controls** button sits above Priya's phone.
 
 **On stage (about 3 minutes):**
 
-1. "Priya is stopped at a signal." Presenter controls → **Stopped at a signal**. Hold the phone up and **drop it on the pillow**. Wait. The screen says *"Looks like a dropped phone. Nothing sent."* Amma's phone on the projector stays quiet. "That is the hard part."
+1. "Priya is stopped at a signal." Account → Presenter controls → **Stopped at a signal**, then **Done**. Hold the phone up and **drop it on the pillow**. Wait. The screen says *"Looks like a dropped phone. Nothing sent."* Amma's phone on the projector stays quiet. "That is the hard part."
 2. "Now she's riding at 32 km/h." Tap **Riding at 32 km/h**. **Throw the phone onto the cushion with a spin and step away.** The Crash Check row says *"Something happened. Checking."*, then **"Are you okay?"** fills the screen with an alarm and a countdown.
 3. Don't touch it. At zero, **Amma's phone on the projector rings**: "Priya may have crashed", the map, 32 km/h then stopped.
 4. On the projector, tap **I'm going** on Amma's phone. Priya's phone shows "Amma: On her way".

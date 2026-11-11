@@ -26,9 +26,10 @@ node crash-check/prototype/build.mjs     # rebuild the prototype after editing a
 python3 -m http.server 8000              # then open http://localhost:8000/crash-check/prototype/
 ```
 
-- **Wide screen:** two phones side by side, Priya's (riding) and Amma's (at home). Open Presenter controls (the round button on Priya's map) to act out a drop, a pothole or a crash.
-- **On a phone:** the page shows one phone. In Presenter controls, "Make this Amma's phone" switches it. Add `#amma` or `#priya` to the address to open straight into one.
-- **Real motion sensor:** phones only share motion with pages served over https (or localhost). Host the `prototype/` folder on GitHub Pages, Netlify Drop or Vercel, open it on a phone, then Presenter controls → "Use this phone's motion sensor".
+- **Wide screen:** two phones side by side, Priya's (riding) and Amma's (at home). The **Presenter controls** button above Priya's phone acts out a drop, a pothole or a crash.
+- **On a phone:** the page is the Ride Nanba app (Home, Activity, Account). Presenter controls are under **Account**. "Make this Amma's phone" in Account switches it. Add `#amma` or `#priya` to the address to open straight into one.
+- **Install it:** in Chrome on Android, menu → **Add to Home screen**; on an iPhone in Safari, Share → **Add to Home Screen**. It opens full screen with the Ride Nanba icon and works without signal.
+- **Real motion sensor:** phones only share motion with pages served over https (or localhost). Host the `prototype/` folder on GitHub Pages, Netlify Drop or Vercel, open it on a phone, then tap the **Crash Check** row on the trip screen → **Allow motion and turn on**.
 
 ## The design
 

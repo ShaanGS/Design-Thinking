@@ -26,6 +26,27 @@ const body = read("app.html")
 writeFileSync(join(here, "artifact.html"), body);
 writeFileSync(
   join(here, "index.html"),
-  `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n<meta name="theme-color" content="#ffffff">\n</head>\n<body>\n${body}\n</body>\n</html>\n`,
+  `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ride Nanba</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="description" content="Ride Nanba with Crash Check: after a crash it asks if you are okay, and tells your family only if you do not answer.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Ride Nanba">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+</head>
+<body>
+${body.replace("<title>Crash Check</title>", "")}
+<script>if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});</script>
+</body>
+</html>
+`,
 );
 console.log(`Built index.html and artifact.html (${Math.round(body.length / 1024)} KB, ${Object.keys(art).length} pictures)`);

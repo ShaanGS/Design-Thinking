@@ -49,7 +49,11 @@ a { color: inherit; }
 .phone-cap { display: none; text-align: center; }
 .phone-cap b { display: block; font-size: 1rem; }
 .phone-cap span { font-size: 0.875rem; color: var(--muted); }
-.screen { position: relative; width: 100%; height: 100%; background: var(--bg); overflow: hidden; isolation: isolate; }
+.screen { --sbar: 0px; position: relative; width: 100%; height: 100%; background: var(--bg); overflow: hidden; isolation: isolate; }
+/* The phone's own status bar, drawn only when the app sits in a phone frame on a wide screen */
+.sbar { display: none; }
+.cap-btn { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; min-height: 36px; padding: 0 16px; border-radius: 999px; background: var(--text); color: var(--bg); font-size: 0.875rem; font-weight: 600; }
+.cap-btn.ghost { visibility: hidden; }
 .scroll { height: 100%; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
 .scroll::-webkit-scrollbar { display: none; }
 .stage[data-only="rider"] .phone-col[data-role="guardian"],
@@ -59,9 +63,13 @@ a { color: inherit; }
   .stage { align-items: center; padding-block: 20px; }
   .phone-col { width: auto; height: auto; }
   .screen {
-    width: 390px; height: min(844px, calc(100dvh - 90px)); border-radius: 46px;
+    --sbar: 44px; padding-top: 44px;
+    width: 390px; height: min(844px, calc(100dvh - 136px)); border-radius: 46px;
     box-shadow: 0 0 0 10px #111111, 0 0 0 11px #2c2c31, 0 40px 80px rgb(0 0 0 / 0.25);
   }
+  .sbar { display: flex; position: absolute; inset: 0 0 auto 0; height: 44px; z-index: 90; align-items: center; justify-content: space-between; padding: 6px 30px 0 40px; background: var(--bg); font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .sbar::after { content: ""; position: absolute; left: 50%; top: 9px; width: 112px; height: 31px; margin-left: -56px; border-radius: 20px; background: #000000; }
+  .sbar .sicons { display: flex; align-items: center; gap: 6px; }
   .phone-cap { display: block; }
 }
 @media (min-width: 940px) and (min-height: 640px) {
@@ -154,13 +162,13 @@ p { text-wrap: pretty; }
 .checkbar i { display: block; height: 100%; width: 0; background: var(--text); }
 
 /* Bottom sheet (vaul in Ride Nanba) */
-.overlay { position: absolute; inset: 0; z-index: 40; background: rgb(0 0 0 / 0.4); }
+.overlay { position: absolute; inset: var(--sbar) 0 0 0; z-index: 40; background: rgb(0 0 0 / 0.4); }
 .bsheet { position: absolute; inset: auto 0 0 0; z-index: 50; max-height: 88%; display: flex; flex-direction: column; border-radius: 24px 24px 0 0; background: var(--bg); animation: up 260ms cubic-bezier(0.16, 1, 0.3, 1); }
 .bsheet .scroll { padding: 12px 16px max(env(safe-area-inset-bottom, 0px), 24px); height: auto; }
 @keyframes up { from { transform: translateY(40px); opacity: 0.6; } to { transform: none; opacity: 1; } }
 
 /* Full-screen takeover */
-.takeover { position: absolute; inset: 0; z-index: 60; background: var(--bg); display: flex; flex-direction: column; }
+.takeover { position: absolute; inset: var(--sbar) 0 0 0; z-index: 60; background: var(--bg); display: flex; flex-direction: column; }
 .takeover .scroll { flex: 1; }
 .ring { position: relative; width: 208px; height: 208px; margin: 0 auto; }
 .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
@@ -169,6 +177,24 @@ p { text-wrap: pretty; }
 .ring .num span { font-size: 0.875rem; color: var(--muted); }
 
 .toast { position: absolute; left: 16px; right: 16px; bottom: 96px; z-index: 70; background: var(--text); color: var(--bg); border-radius: 12px; padding: 14px 16px; font-size: 0.9375rem; font-weight: 500; box-shadow: 0 8px 24px rgb(0 0 0 / 0.2); animation: up 220ms ease; }
+
+/* Tab bar, as in Ride Nanba's shell */
+.has-tabs { padding-bottom: 96px; }
+.tabbar { position: absolute; inset: auto 0 0 0; z-index: 30; display: flex; justify-content: space-around; border-top: 1px solid var(--line); background: var(--bg); padding: 8px 16px max(env(safe-area-inset-bottom, 0px), 12px); }
+.tab { display: flex; min-height: 48px; min-width: 64px; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 0.75rem; font-weight: 600; color: var(--faint); }
+.tab[aria-current="page"] { color: var(--text); }
+.tab[aria-current="page"] .ic { stroke-width: 2.5; }
+
+/* Home */
+.search { display: flex; align-items: center; gap: 12px; min-height: 60px; border-radius: 999px; background: var(--surface); padding: 6px 6px 6px 20px; font-size: 1.25rem; font-weight: 600; width: 100%; text-align: left; }
+.search .nowpill { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; border-radius: 999px; background: var(--bg); font-size: 1rem; box-shadow: 0 1px 4px var(--shadow); }
+.wx { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: 999px; background: var(--surface); font-size: 0.875rem; font-weight: 500; white-space: nowrap; }
+.go { display: inline-flex; align-items: center; min-height: 32px; padding: 0 14px; border-radius: 999px; background: var(--text); color: var(--bg); font-size: 0.875rem; font-weight: 600; }
+.feature { display: block; width: 100%; border-radius: 12px; overflow: hidden; background: var(--surface); text-align: left; }
+.feature img { display: block; width: 100%; height: 132px; object-fit: cover; object-position: 50% 70%; }
+.feature .fbody { display: block; padding: 14px 16px 16px; }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.tile-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; border-radius: 12px; background: var(--surface); padding: 14px 8px; font-size: 1rem; font-weight: 500; }
 
 /* Chart */
 .chart { width: 100%; height: 170px; display: block; }
@@ -193,11 +219,11 @@ table.signals { width: 100%; border-collapse: collapse; font-size: 1rem; }
 
 <div class="stage" id="stage">
   <div class="phone-col" data-role="rider">
-    <div class="phone-cap"><b>Priya's phone</b><span>Riding her scooter to Tambaram</span></div>
+    <div class="phone-cap"><b>Priya's phone</b><span>Riding her scooter to Tambaram</span><br><button type="button" class="cap-btn" data-stage="presenter">Presenter controls</button></div>
     <div class="screen" id="rider"></div>
   </div>
   <div class="phone-col" data-role="guardian">
-    <div class="phone-cap"><b>Amma's phone</b><span>At home in Anna Nagar</span></div>
+    <div class="phone-cap"><b>Amma's phone</b><span>At home in Anna Nagar</span><br><button type="button" class="cap-btn ghost" tabindex="-1" aria-hidden="true">Presenter controls</button></div>
     <div class="screen" id="guardian"></div>
   </div>
 </div>
@@ -231,6 +257,11 @@ const ICON = {
   plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
   gauge: '<path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>',
   rotate: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
+  home: '<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  receipt: '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/>',
+  user: '<circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>',
+  search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
   trash: '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
 };
 const icon = (n, cls = "") => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`;
@@ -252,6 +283,12 @@ const row = ({ ic, artName, title, sub, trail, action, attrs = "", tag = "button
 };
 const switchRow = (title, sub, on, action) =>
   `<button type="button" class="row" role="switch" aria-checked="${on}" data-a="${action}"><span class="row-body"><span class="row-title">${title}</span><span class="row-sub">${sub}</span></span><span class="track"><span></span></span></button>`;
+
+const sbar = () => `<div class="sbar" aria-hidden="true"><span class="clock">${time12(new Date()).replace(/ [AP]M$/, "")}</span><span class="sicons">
+  <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1" fill="currentColor"/><rect x="5" y="5.5" width="3" height="6.5" rx="1" fill="currentColor"/><rect x="10" y="3" width="3" height="9" rx="1" fill="currentColor"/><rect x="15" y="0" width="3" height="12" rx="1" fill="currentColor"/></svg>
+  <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 11.5 10.3 9a3.3 3.3 0 0 0-4.6 0Z M8 3.5a7.6 7.6 0 0 1 5.4 2.2l1.3-1.4A9.6 9.6 0 0 0 8 1.5 9.6 9.6 0 0 0 1.3 4.3l1.3 1.4A7.6 7.6 0 0 1 8 3.5Zm0 3.2a4.6 4.6 0 0 1 3.2 1.3l1.3-1.4A6.5 6.5 0 0 0 8 4.8a6.5 6.5 0 0 0-4.5 1.8L4.8 8A4.6 4.6 0 0 1 8 6.7Z" fill="currentColor"/></svg>
+  <svg width="27" height="13" viewBox="0 0 27 13"><rect x="0.5" y="0.5" width="23" height="12" rx="3.5" fill="none" stroke="currentColor" opacity="0.4"/><rect x="2" y="2" width="18" height="9" rx="2" fill="currentColor"/><path d="M25 4.5v4a2 2 0 0 0 0-4Z" fill="currentColor" opacity="0.4"/></svg></span></div>`;
+setInterval(() => document.querySelectorAll(".sbar .clock").forEach((el) => { el.textContent = time12(new Date()).replace(/ [AP]M$/, ""); }), 15000);
 
 /* ---------- sound, voice, buzz: all optional ---------- */
 let audio = null;
@@ -343,7 +380,11 @@ function deliver(msg) {
 
 /* ================= RIDER: Priya ================= */
 const R = {
-  screen: "ride", // ride | decides | settings
+  screen: "ride", // home | ride | arrived | activity | account | decides | settings
+  from: "ride", // where Back goes from decides
+  trip: true, // a Ride Nanba trip is running
+  step: 0, // 0 scooter to Tambaram, 1 train to Chennai Central
+  toldAt: null, // when "Tell Amma" was last sent
   takeover: null, // ask | sent
   sheet: null, // presenter | fall | medical
   toast: null,
@@ -451,6 +492,7 @@ const SPEEDUP = 2;
 function play(id) {
   const tr = S.all().find((x) => x.id === id);
   if (!tr || R.takeover) return;
+  if (!R.trip || !["ride", "decides"].includes(R.screen)) { R.trip = true; R.screen = "ride"; }
   detector.reset(); R.checking = null;
   const base = mt + 20;
   R.playing = { tr, base, wall: performance.now(), i: 0, si: 0 };
@@ -479,7 +521,7 @@ function decided(d) {
   R.last = d;
   R.checks.unshift({ at: new Date(), d });
   R.checks = R.checks.slice(0, 5);
-  if (!R.set.on || R.takeover) { renderRider(); return; }
+  if (!R.set.on || R.takeover || (R.set.tripsOnly && !R.trip)) { renderRider(); return; }
   if (d.verdict === "crash" && !R.takeover) return startAsk();
   if (d.verdict === "fall" && !R.takeover) { R.sheet = "fall"; beep([660, 880], 120, 0.12); buzz([120, 80, 120]); renderRider(); return; }
   toast(d.words);
@@ -567,12 +609,17 @@ function rideScreen() {
   const kmh = Math.round(currentKmh());
   const mins = Math.max(4, Math.round((1 - R.progress) * 34));
   const eta = time12(new Date(Date.now() + mins * 60000));
-  const steps = [1, 1, 0, 0].map((on, i) => `<i class="${i < 2 ? "on" : ""}" style="flex:${[1, 3, 2, 1][i]}"></i>`).join("");
+  const steps = [1, 3, 2, 1].map((f, i) => `<i class="${i < 2 + R.step ? "on" : ""}" style="flex:${f}"></i>`).join("");
+  const leg = R.step === 0
+    ? { pic: "bike", title: "Ride to Tambaram on GST Road", meta: `${mins} min, about ${Math.max(1, Math.round((1 - R.progress) * 21))} km`, then: "Then: Take the train to Chennai Central", next: "Done, next step" }
+    : { pic: "train", title: "Take the train to Chennai Central", meta: "From Tambaram, platform 2, every 10 min", then: "Then: You are there", next: "I'm there" };
+  const toldLine = R.toldAt ? `Sent at ${time12(new Date(R.toldAt))}. Tap to send again.` : "\u201CPriya is on the " + (R.step === 0 ? "scooter" : "train") + ". At Chennai Central by " + eta + ".\u201D";
+  const touch = matchMedia("(pointer: coarse)").matches && typeof DeviceMotionEvent !== "undefined";
+  const ccAction = touch && R.sensor !== "on" ? "setup" : "decides";
   return `
   <div class="mapscreen">
     <div class="mapbox">${mapSvg("rm", "ride")}
-      <button type="button" class="round map-btn" style="left:16px" data-a="noop" aria-label="Back">${icon("back", "ic-24")}</button>
-      <button type="button" class="round map-btn" style="top:auto;bottom:30px;right:16px" data-a="presenter" aria-label="Presenter controls">${icon("sliders")}</button>
+      <button type="button" class="round map-btn" style="left:16px" data-a="home" aria-label="Back to Home">${icon("back", "ic-24")}</button>
     </div>
     <section class="sheet-body">
       <span class="grab" aria-hidden="true"></span>
@@ -583,16 +630,16 @@ function rideScreen() {
       </div>
       <div class="pad mt-4"><div class="progress">${steps}</div></div>
       <div class="pad mt-4" style="display:flex;gap:16px;align-items:flex-start">
-        ${art("bike", 72)}
+        ${art(leg.pic, 72)}
         <div class="row-body">
-          <p class="h-24">Ride to Tambaram on GST Road</p>
-          <p class="t-base muted mt-1 tn">${mins} min, about ${Math.max(1, Math.round((1 - R.progress) * 21))} km</p>
-          <p class="t-base muted mt-1">Then: Take the train to Chennai Central</p>
+          <p class="h-24">${leg.title}</p>
+          <p class="t-base muted mt-1 tn">${leg.meta}</p>
+          <p class="t-base muted mt-1">${leg.then}</p>
         </div>
       </div>
       <hr class="hair mt-4">
       <div class="pad">
-        <button type="button" class="row" data-a="decides" id="cc-row">
+        <button type="button" class="row" data-a="${ccAction}" id="cc-row">
           ${art("shield", 48)}
           <span class="row-body">
             <span class="row-title" id="cc-title">Crash Check is on</span>
@@ -601,11 +648,101 @@ function rideScreen() {
           </span>
           <span class="gread" id="cc-g"><span class="pulse"></span><span id="cc-gv">1.0 g</span></span>
         </button>
-        ${row({ ic: "send", title: "Tell Amma", sub: "“Priya is on the scooter. At Tambaram by " + eta + ".”", action: "noop" })}
+        ${row({ ic: "send", title: "Tell Amma", sub: toldLine, action: "tell" })}
       </div>
     </section>
-    <div class="footer"><button type="button" class="btn btn-primary" data-a="noop">Done, next step</button></div>
+    <div class="footer"><button type="button" class="btn btn-primary" data-a="next">${leg.next}</button></div>
   </div>`;
+}
+
+function tabBar(on) {
+  const t = (id, label, ic) => `<button type="button" class="tab" data-a="tab" data-to="${id}" ${on === id ? 'aria-current="page"' : ""}>${icon(ic, "ic-24")}${label}</button>`;
+  return `<nav class="tabbar" aria-label="Main">${t("home", "Home", "home")}${t("activity", "Activity", "receipt")}${t("account", "Account", "user")}</nav>`;
+}
+function tripEta() {
+  const mins = R.step === 0 ? Math.max(4, Math.round((1 - R.progress) * 34)) + 45 : 38;
+  return time12(new Date(Date.now() + mins * 60000));
+}
+function homeScreen() {
+  const tripRow = R.trip
+    ? row({ artName: R.step === 0 ? "bike" : "train", title: "Trip to Chennai Central", sub: `On your way. There by ${tripEta()}`, trail: `<span class="tag tag-ok"><span class="dot"></span>Now</span>`, action: "open-trip" })
+    : row({ ic: "pin", title: "Chennai Central", sub: "Scooter and train, about 1 h 5 min", action: "start-trip" });
+  return `<div class="page-top">
+    <div style="display:flex;align-items:flex-start;gap:12px">
+      <div style="flex:1;min-width:0"><h1 class="h-28">Ride Nanba</h1><p class="t-base muted mt-1 tn">SRM KTR, ${time12(new Date())}</p></div>
+      <span class="wx">${icon("sun")}No rain for now <span class="pulse"></span></span>
+    </div>
+    <button type="button" class="search mt-4" data-a="start-trip">${icon("search", "ic-24")}Where to?<span class="nowpill">${icon("clock")}Now</span></button>
+    <div class="mt-2">
+      ${tripRow}
+      ${row({ ic: "home", title: "Home", sub: "Anna Nagar, one tap", trail: `<span class="go">Go</span>`, action: "noop-home" })}
+    </div>
+    <button type="button" class="feature mt-4" data-a="settings">
+      <img src="${ART["banner-safe"]}" alt="">
+      <span class="fbody"><span class="h-20" style="display:block">${R.set.on ? "Crash Check is on" : "Turn on Crash Check"}</span>
+      <span class="t-base muted" style="display:block;margin-top:4px">If you crash and do not answer, Amma and Arjun get your location for one hour.</span></span>
+    </button>
+  </div>`;
+}
+function arrivedScreen() {
+  return `<div class="page-top center" style="padding-top:max(env(safe-area-inset-top,0px),56px);padding-bottom:32px">
+    ${art("house", 112)}
+    <h1 class="h-28 mt-4">You're at Chennai Central</h1>
+    <p class="t-base muted mt-2 tn">Arrived at ${time12(new Date())}. Scooter and train from SRM KTR.</p>
+    <div class="mt-6" style="text-align:left">
+      ${row({ ic: "send", title: "Amma knows you reached", sub: `Sent at ${time12(new Date(R.arrivedAt || Date.now()))}` })}
+      ${row({ artName: "shield", title: "Crash Check stopped", sub: "It only watches during a Ride Nanba trip" })}
+    </div>
+    <button type="button" class="btn btn-primary mt-6" data-a="home">Done</button>
+  </div>`;
+}
+function activityScreen() {
+  const checks = R.checks.map(({ at, d }) => row({ ic: "activity", title: esc(d.words), sub: `${time12(at)}. Score ${d.score} of 100.` })).join("");
+  const shares = R.log.map((e) => row({ ic: "pin", title: esc(e.what), sub: esc(`${new Date(e.at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}, ${time12(new Date(e.at))}. ${e.detail}`) })).join("");
+  return `<div class="page-top">
+    <h1 class="h-28">Activity</h1>
+    <h2 class="h-20 mt-6">Trips</h2>
+    <div class="mt-2">
+      ${R.trip ? row({ artName: R.step === 0 ? "bike" : "train", title: "SRM KTR to Chennai Central", sub: "On your way now", action: "open-trip" }) : ""}
+      ${row({ artName: "auto", title: "Potheri to Tambaram", sub: "Yesterday, 6:12 PM. Auto and train." })}
+    </div>
+    <h2 class="h-20 mt-6">Crash Check on this phone</h2>
+    <div class="mt-2">${checks || `<p class="t-base muted">No checks yet. Crash Check only checks after a hard hit.</p>`}</div>
+    <h2 class="h-20 mt-6">What was shared</h2>
+    <div class="mt-2">${shares || `<p class="t-base muted">Nothing has been shared.</p>`}</div>
+  </div>`;
+}
+function accountScreen() {
+  const narrow = matchMedia("(max-width: 939px)").matches;
+  return `<div class="page-top">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="flex:1;min-width:0"><h1 class="h-32">Priya</h1><p class="t-base muted mt-1">Anna Nagar is home</p></div>
+      <div class="avatar">P</div>
+    </div>
+    <div class="tiles mt-4">
+      <button type="button" class="tile-btn" data-a="settings">${art("shield", 56)}Crash Check</button>
+      <button type="button" class="tile-btn" data-a="medical">${art("ticket", 56)}Medical ID</button>
+    </div>
+    <div class="mt-2">
+      ${row({ ic: "users", title: "Who gets alerts", sub: "Amma and Arjun", action: "settings" })}
+      ${row({ ic: "activity", title: "How Crash Check decides", sub: "The points behind every check", action: "decides" })}
+      ${row({ ic: "sliders", title: "Presenter controls", sub: "Act out a drop, a pothole or a crash", action: "presenter" })}
+      ${narrow ? row({ ic: "phoneSm", title: "Make this Amma's phone", sub: "Show what her phone shows", action: "role-guardian" }) : ""}
+    </div>
+  </div>`;
+}
+function setupSheet() {
+  return sheet("Turn on Crash Check", `
+    <div class="center">${art("shield", 88)}</div>
+    <p class="t-base center mt-2">During a trip, Crash Check feels how this phone moves. After a crash it asks if you are okay. If you do not answer, Amma and Arjun get your location for one hour.</p>
+    <div class="tile stack gap-3 mt-4">
+      <div style="display:flex;gap:12px">${icon("phoneSm")}<span class="t-sm">Motion readings stay on this phone and are deleted after 12 seconds.</span></div>
+      <div style="display:flex;gap:12px">${icon("eyeoff")}<span class="t-sm">Nobody can see where you are on an ordinary day.</span></div>
+    </div>
+    <div class="stack gap-3 mt-4">
+      <button type="button" class="btn btn-primary" data-a="setup-on">Allow motion and turn on</button>
+      <button type="button" class="btn btn-soft" data-a="close">Not now</button>
+    </div>`);
 }
 
 function decidesScreen() {
@@ -658,6 +795,7 @@ function decidesScreen() {
 }
 
 function settingsScreen() {
+  // (Back returns to the screen this was opened from)
   const s = R.set;
   const waitChips = [15, 30, 60].map((w) => `<button type="button" class="chip tn" aria-pressed="${s.wait === w}" data-a="wait" data-w="${w}">${w} s</button>`).join("");
   const log = R.log.length
@@ -785,14 +923,17 @@ let savedScroll = 0;
 function renderRider() {
   const sc = rider.querySelector(".scroll.main");
   if (sc) savedScroll = sc.scrollTop;
-  const main = R.screen === "decides" ? decidesScreen() : R.screen === "settings" ? settingsScreen() : rideScreen();
+  const screens = { home: homeScreen, ride: rideScreen, arrived: arrivedScreen, activity: activityScreen, account: accountScreen, decides: decidesScreen, settings: settingsScreen };
+  const main = (screens[R.screen] || rideScreen)();
+  const tabbed = ["home", "activity", "account"].includes(R.screen);
   let over = "";
   if (R.takeover === "ask") over += askTakeover();
   if (R.takeover === "sent") over += sentTakeover();
   if (R.sheet === "presenter") over += presenterSheet();
   if (R.sheet === "fall") over += fallSheet();
   if (R.sheet === "medical") over += medicalSheet();
-  rider.innerHTML = `<div class="scroll main">${main}</div>${over}${R.toast ? `<div class="toast" role="status">${esc(R.toast)}</div>` : ""}`;
+  if (R.sheet === "setup") over += setupSheet();
+  rider.innerHTML = `${sbar()}<div class="scroll main${tabbed ? " has-tabs" : ""}">${main}</div>${tabbed ? tabBar(R.screen) : ""}${over}${R.toast ? `<div class="toast" role="status">${esc(R.toast)}</div>` : ""}`;
   const sc2 = rider.querySelector(".scroll.main");
   if (sc2 && R._keepScroll) sc2.scrollTop = savedScroll;
   R._keepScroll = false;
@@ -811,13 +952,35 @@ rider.addEventListener("click", (e) => {
   if (!b) return;
   detector.touch(mt);
   const a = b.dataset.a;
-  const go = (scr) => { R.screen = scr; R.sheet = null; renderRider(); const sc = rider.querySelector(".scroll.main"); if (sc) sc.scrollTop = 0; };
+  const go = (scr) => { if (scr === "decides" || scr === "settings") { if (!["decides", "settings"].includes(R.screen)) R.from = R.screen; } R.screen = scr; R.sheet = null; renderRider(); const sc = rider.querySelector(".scroll.main"); if (sc) sc.scrollTop = 0; };
   switch (a) {
+    case "home": return go("home");
+    case "tab": return go(b.dataset.to);
+    case "open-trip": return go("ride");
+    case "start-trip": R.trip = true; R.step = 0; R.progress = 0.34; R.toldAt = null; R.moving = true; return go("ride");
+    case "noop-home": toast("Planning a trip home is in the full Ride Nanba app."); return;
+    case "next":
+      if (R.step === 0) { R.step = 1; R._keepScroll = false; return go("ride"); }
+      R.trip = false; R.arrivedAt = Date.now();
+      send({ to: "guardian", type: "arrived", at: R.arrivedAt });
+      return go("arrived");
+    case "tell":
+      R.toldAt = Date.now();
+      send({ to: "guardian", type: "msg", at: R.toldAt, text: `Priya is on the ${R.step === 0 ? "scooter" : "train"}. At Chennai Central by ${tripEta()}.` });
+      toast("Sent to Amma."); R._keepScroll = true; return renderRider();
+    case "setup": R.sheet = "setup"; return renderRider();
+    case "setup-on":
+      R.sheet = null; R.set.on = true; store.set("settings", R.set);
+      startSensor().then(() => setTimeout(() => {
+        if (R.sensor === "on") toast("Crash Check is on and reading this phone's motion.");
+        else if (R.sensor === "none") toast("This browser did not share motion. Crash Check stays on with the presenter moments.");
+      }, 2700));
+      return renderRider();
     case "presenter": R.sheet = "presenter"; return renderRider();
     case "close": R.sheet = null; return renderRider();
     case "decides": return go("decides");
     case "settings": return go("settings");
-    case "back": return go(R.screen === "settings" ? "decides" : "ride");
+    case "back": return go(R.screen === "settings" && R.from === "decides" ? "decides" : R.from && !["decides", "settings"].includes(R.from) ? R.from : "ride");
     case "moving": R.moving = true; R._keepScroll = true; return renderRider();
     case "stopped": R.moving = false; R._keepScroll = true; return renderRider();
     case "play": R._keepScroll = true; return play(b.dataset.id);
@@ -835,6 +998,8 @@ rider.addEventListener("click", (e) => {
     case "role-guardian": return setRole("guardian");
     case "reset":
       R.log = []; store.set("log", []); R.checks = []; R.last = null; R.sheet = null; R.moving = true; R.progress = 0.34;
+      R.trip = true; R.step = 0; R.toldAt = null; R.screen = "ride";
+      send({ to: "guardian", type: "reset" });
       detector.reset(); return renderRider();
     default: return;
   }
@@ -910,7 +1075,7 @@ let lastScreenSig = "";
 })();
 
 /* ================= GUARDIAN: Amma ================= */
-const A = { screen: "idle", alert: null, going: false, safeAt: null, toast: null };
+const A = { screen: "idle", alert: null, going: false, safeAt: null, toast: null, msg: null, arrivedAt: null };
 const guardian = document.getElementById("guardian");
 let ringTimer = null;
 
@@ -923,6 +1088,9 @@ function guardianHear(msg) {
     ringTimer = setInterval(() => { beep([740, 988, 740], 140, 0.2); buzz([400, 200, 400]); if (++n >= 6) clearInterval(ringTimer); }, 1500);
     setTimeout(() => send({ to: "rider", type: "seen", by: "amma" }), 1500);
   }
+  if (msg.type === "msg") { A.msg = { at: msg.at, text: msg.text }; if (A.screen === "idle") { renderGuardian(); toast("Priya: " + msg.text, guardian); beep([660], 90, 0.08); } }
+  if (msg.type === "arrived") { A.arrivedAt = msg.at; A.msg = { at: msg.at, text: "Reached Chennai Central." }; if (A.screen === "idle") { renderGuardian(); toast("Priya reached Chennai Central.", guardian); } }
+  if (msg.type === "reset") { clearInterval(ringTimer); Object.assign(A, { screen: "idle", alert: null, going: false, msg: null, arrivedAt: null }); renderGuardian(); }
   if (msg.type === "safe") {
     clearInterval(ringTimer);
     A.screen = "safe"; A.safeAt = msg.at; A.alert = null;
@@ -932,11 +1100,12 @@ function guardianHear(msg) {
 function guardianIdle() {
   return `<div class="page-top" style="padding-bottom:32px">
     <div style="display:flex;align-items:center;gap:12px">
-      <div style="flex:1;min-width:0"><h1 class="h-28">Priya</h1><p class="t-base muted mt-1">On a Ride Nanba trip to Chennai Central</p></div>
+      <div style="flex:1;min-width:0"><h1 class="h-28">Priya</h1><p class="t-base muted mt-1 tn">${A.arrivedAt ? "Reached Chennai Central at " + time12(new Date(A.arrivedAt)) : "On a Ride Nanba trip to Chennai Central"}</p></div>
       <div class="avatar">P</div>
     </div>
     <div class="mt-4">
-      ${row({ artName: "shield", title: "Crash Check is on for this trip", sub: "You hear from it only if Priya needs help" })}
+      ${A.msg ? row({ ic: "send", title: esc(A.msg.text), sub: `From Priya at ${time12(new Date(A.msg.at))}` }) : ""}
+      ${A.arrivedAt ? row({ artName: "shield", title: "Crash Check has stopped", sub: "Her trip has ended" }) : row({ artName: "shield", title: "Crash Check is on for this trip", sub: "You hear from it only if Priya needs help" })}
       ${row({ ic: "eyeoff", title: "You cannot see where she is", sub: "Her location comes to you only after a crash she does not answer" })}
       ${row({ ic: "clock", title: `Trip started ${time12(R.startedAt)}`, sub: "Scooter to Tambaram, then the train" })}
     </div>
@@ -987,7 +1156,7 @@ function guardianSafe() {
 }
 function renderGuardian() {
   const main = A.screen === "alert" ? guardianAlert() : A.screen === "safe" ? guardianSafe() : guardianIdle();
-  guardian.innerHTML = `<div class="scroll main">${main}</div>`;
+  guardian.innerHTML = `${sbar()}<div class="scroll main">${main}</div>`;
 }
 guardian.addEventListener("click", (e) => {
   const b = e.target.closest("[data-a]");
@@ -997,6 +1166,12 @@ guardian.addEventListener("click", (e) => {
   if (a === "going") { A.going = true; send({ to: "rider", type: "going", by: "amma" }); toast("Priya can see you are on your way.", guardian); renderGuardian(); }
   if (a === "g-done") { A.screen = "idle"; renderGuardian(); }
   if (a === "role-rider") setRole("rider");
+});
+
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-stage]");
+  if (!b) return;
+  if (b.dataset.stage === "presenter") { R.sheet = R.sheet === "presenter" ? null : "presenter"; renderRider(); }
 });
 
 /* ================= which phone is this? ================= */
