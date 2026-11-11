@@ -14,6 +14,10 @@
 | [`model/signatures.js`](model/signatures.js) | Seven motion signatures (drop, bed toss, pothole, hard braking, crash, phone off the mount, slow skid) |
 | [`prototype/index.html`](prototype/index.html) | The working prototype, one file. Built from `prototype/app.html` |
 
+## Live
+
+**https://crash-check.vercel.app** opens on any phone or laptop. On a phone it can read the real motion sensor.
+
 ## Run it
 
 ```bash

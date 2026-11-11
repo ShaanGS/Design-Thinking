@@ -19,7 +19,7 @@ About 10 minutes plus questions. The wow moment is slide 6: a real phone dropped
 
 ## Live demo run-sheet
 
-**You need:** a laptop on the projector with the prototype open wide (both phones side by side); one phone with the prototype open from its own web address (https) so its motion sensor works; a pillow and a sofa cushion; volume up.
+**You need:** a laptop on the projector with https://crash-check.vercel.app open wide (both phones side by side); one phone with https://crash-check.vercel.app open, so its motion sensor works; a pillow and a sofa cushion; volume up.
 
 **Before:** on the phone, open Presenter controls, tap "Use this phone's motion sensor", allow motion. Turn on "Short countdown for the stage" (10 s). Check the Crash Check row shows a live reading near 1.0 g.
 
