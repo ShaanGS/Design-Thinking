@@ -413,11 +413,13 @@ function currentKmh() {
 
 /* real sensors, outside the claude.ai frame */
 let motionSeen = false;
+let lastMotionAt = null; // wall time of the previous sensor reading
 function onMotion(e) {
-  if (R.playing) return;
+  if (R.playing) { lastMotionAt = null; return; }
   const now = performance.now();
-  mt += Math.max(1, Math.min(100, now - lastWall));
-  lastWall = now;
+  // Model time moves by the real gap since the previous reading (phones send 16 to 100 per second).
+  mt += lastMotionAt == null ? 20 : Math.max(1, Math.min(100, now - lastMotionAt));
+  lastMotionAt = now;
   const s = M.fromDeviceMotion(e, mt);
   if (!s) return;
   motionSeen = true;
@@ -426,9 +428,10 @@ function onMotion(e) {
 async function startSensor() {
   try {
     if (typeof DeviceMotionEvent === "undefined") throw new Error("none");
+    // iPhones, and newer Chrome, ask first. Some browsers answer "prompt" or "denied" and then
+    // send readings anyway, so what decides is whether readings arrive, checked below.
     if (typeof DeviceMotionEvent.requestPermission === "function") {
-      const p = await DeviceMotionEvent.requestPermission();
-      if (p !== "granted") throw new Error("denied");
+      try { await DeviceMotionEvent.requestPermission(); } catch {}
     }
     window.addEventListener("devicemotion", onMotion);
     R.sensor = "on";
@@ -438,7 +441,7 @@ async function startSensor() {
         (p) => { R.gps = { kmh: p.coords.speed == null ? null : p.coords.speed * 3.6, lat: p.coords.latitude, lng: p.coords.longitude }; },
         () => {}, { enableHighAccuracy: true, maximumAge: 1000 });
     } catch {}
-    setTimeout(() => { if (!motionSeen) { R.sensor = "none"; window.removeEventListener("devicemotion", onMotion); renderRider(); } }, 1500);
+    setTimeout(() => { if (!motionSeen) { R.sensor = "none"; window.removeEventListener("devicemotion", onMotion); renderRider(); } }, 2500);
   } catch { R.sensor = "none"; }
   renderRider();
 }
@@ -751,7 +754,8 @@ function presenterSheet() {
       ${switchRow("Short countdown for the stage", "10 seconds instead of " + R.set.wait, R.set.stage, "t-stage")}
       ${narrow ? row({ ic: "users", title: "Make this Amma's phone", sub: room ? (R.peers ? `${R.peers} other phone${R.peers > 1 ? "s" : ""} on this page now` : "Open this page on a second phone and choose Amma") : "For a second phone in the same browser, open another tab", action: "role-guardian" }) : ""}
       ${row({ ic: "rotate", title: "Start over", sub: "Clear checks and what was shared", action: "reset" })}
-    </div>`);
+    </div>
+    <button type="button" class="btn btn-primary mt-4" data-a="close">Done</button>`);
 }
 function fallSheet() {
   return sheet("That looked like a fall", `
