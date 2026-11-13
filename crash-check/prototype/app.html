@@ -187,7 +187,7 @@ p { text-wrap: pretty; }
 
 /* Home */
 .search { display: flex; align-items: center; gap: 12px; min-height: 60px; border-radius: 999px; background: var(--surface); padding: 6px 6px 6px 20px; font-size: 1.25rem; font-weight: 600; width: 100%; text-align: left; }
-.search .nowpill { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; border-radius: 999px; background: var(--bg); font-size: 1rem; box-shadow: 0 1px 4px var(--shadow); }
+.nowpill { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; border-radius: 999px; background: var(--bg); font-size: 1rem; box-shadow: 0 1px 4px var(--shadow); }
 .wx { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: 999px; background: var(--surface); font-size: 0.875rem; font-weight: 500; white-space: nowrap; }
 .go { display: inline-flex; align-items: center; min-height: 32px; padding: 0 14px; border-radius: 999px; background: var(--text); color: var(--bg); font-size: 0.875rem; font-weight: 600; }
 .feature { display: block; width: 100%; border-radius: 12px; overflow: hidden; background: var(--surface); text-align: left; }
@@ -195,6 +195,16 @@ p { text-wrap: pretty; }
 .feature .fbody { display: block; padding: 14px 16px 16px; }
 .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .tile-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; border-radius: 12px; background: var(--surface); padding: 14px 8px; font-size: 1rem; font-weight: 500; }
+
+/* Search sheet */
+.bsheet.tall { height: 88%; }
+.field { display: flex; align-items: center; gap: 10px; min-height: 52px; border-radius: 8px; background: var(--surface); padding: 0 14px; }
+.field input { flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 1rem; color: var(--text); outline: none; height: 48px; }
+.field:focus-within { box-shadow: inset 0 0 0 2px var(--text); }
+.field input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+.err { color: var(--flood); font-size: 0.875rem; margin-top: 8px; }
+.search-row { display: flex; gap: 8px; align-items: center; min-height: 60px; border-radius: 999px; background: var(--surface); padding: 6px; }
+.search-row .search { flex: 1; min-height: 48px; background: transparent; padding-left: 14px; }
 
 /* Chart */
 .chart { width: 100%; height: 170px; display: block; }
@@ -385,6 +395,13 @@ const R = {
   trip: true, // a Ride Nanba trip is running
   step: 0, // 0 scooter to Tambaram, 1 train to Chennai Central
   toldAt: null, // when "Tell Amma" was last sent
+  dest: "Chennai Central", // where this trip goes
+  leave: "Now", // when the next trip leaves
+  contact: null, // id of the contact open in a sheet
+  contacts: [
+    { id: "amma", name: "Amma", rel: "Mother", phone: "+91 98400 21136", since: "Accepted on 2 Oct", ok: true },
+    { id: "arjun", name: "Arjun", rel: "Friend from SRM", phone: "+91 99620 48817", since: "Accepted on 9 Oct", ok: true },
+  ],
   takeover: null, // ask | sent
   sheet: null, // presenter | fall | medical
   toast: null,
@@ -610,10 +627,12 @@ function rideScreen() {
   const mins = Math.max(4, Math.round((1 - R.progress) * 34));
   const eta = time12(new Date(Date.now() + mins * 60000));
   const steps = [1, 3, 2, 1].map((f, i) => `<i class="${i < 2 + R.step ? "on" : ""}" style="flex:${f}"></i>`).join("");
-  const leg = R.step === 0
-    ? { pic: "bike", title: "Ride to Tambaram on GST Road", meta: `${mins} min, about ${Math.max(1, Math.round((1 - R.progress) * 21))} km`, then: "Then: Take the train to Chennai Central", next: "Done, next step" }
-    : { pic: "train", title: "Take the train to Chennai Central", meta: "From Tambaram, platform 2, every 10 min", then: "Then: You are there", next: "I'm there" };
-  const toldLine = R.toldAt ? `Sent at ${time12(new Date(R.toldAt))}. Tap to send again.` : "\u201CPriya is on the " + (R.step === 0 ? "scooter" : "train") + ". At Chennai Central by " + eta + ".\u201D";
+  const leg = oneLeg()
+    ? { pic: "bike", title: `Ride to ${esc(R.dest)}`, meta: `${mins} min, about ${Math.max(1, Math.round((1 - R.progress) * 21))} km`, then: "Then: You are there", next: "I'm there" }
+    : R.step === 0
+    ? { pic: "bike", title: "Ride to Tambaram on GST Road", meta: `${mins} min, about ${Math.max(1, Math.round((1 - R.progress) * 21))} km`, then: `Then: Take the train to ${esc(R.dest)}`, next: "Done, next step" }
+    : { pic: "train", title: `Take the train to ${esc(R.dest)}`, meta: "From Tambaram, platform 2, every 10 min", then: "Then: You are there", next: "I'm there" };
+  const toldLine = R.toldAt ? `Sent at ${time12(new Date(R.toldAt))}. Tap to send again.` : "\u201CPriya is on the " + (R.step === 0 ? "scooter" : "train") + ". At " + esc(R.dest) + " by " + tripEta() + ".\u201D";
   const touch = matchMedia("(pointer: coarse)").matches && typeof DeviceMotionEvent !== "undefined";
   const ccAction = touch && R.sensor !== "on" ? "setup" : "decides";
   return `
@@ -625,7 +644,7 @@ function rideScreen() {
       <span class="grab" aria-hidden="true"></span>
       <h1 class="sheet-title">On your way</h1>
       <div class="pad center mt-4">
-        <p class="h-28 tn">There by ${eta}</p>
+        <p class="h-28 tn">There by ${R.step === 0 && !oneLeg() ? tripEta() : eta}</p>
         <p class="t-base muted mt-1 tn">${mins} min to go, ${R.moving ? kmh + " km/h" : "stopped at a signal"}</p>
       </div>
       <div class="pad mt-4"><div class="progress">${steps}</div></div>
@@ -655,27 +674,93 @@ function rideScreen() {
   </div>`;
 }
 
+const PLACES = [
+  { name: "Chennai Central", sub: "Railway station, Park Town" },
+  { name: "Chennai Egmore", sub: "Railway station, Egmore" },
+  { name: "Tambaram", sub: "Railway station, GST Road" },
+  { name: "Anna Nagar", sub: "Home" },
+  { name: "T Nagar", sub: "Pondy Bazaar, shopping" },
+  { name: "Guindy", sub: "Metro and railway station" },
+  { name: "Chennai Airport", sub: "Meenambakkam" },
+  { name: "Marina Beach", sub: "Kamarajar Salai" },
+  { name: "Velachery", sub: "MRTS station" },
+  { name: "Potheri", sub: "Railway station, near SRM KTR" },
+];
+// One leg (scooter) when the place is on the way to Tambaram, else scooter then train.
+const oneLeg = () => R.dest === "Tambaram" || R.dest === "Potheri";
+function placeRows(q) {
+  const t = q.trim().toLowerCase();
+  const hits = PLACES.filter((p) => !t || p.name.toLowerCase().includes(t) || p.sub.toLowerCase().includes(t));
+  if (!hits.length) return `<p class="t-base muted mt-4">No places match \u201C${esc(q.trim())}\u201D. Try Central, Guindy or Airport.</p>`;
+  return hits.map((p) => row({ ic: p.name === "Anna Nagar" ? "home" : "pin", title: esc(p.name), sub: esc(p.sub), action: "go-place", attrs: `data-place="${esc(p.name)}"` })).join("");
+}
+function whereSheet() {
+  return sheet("Where to?", `
+    <label class="field" for="where">${icon("search")}<input id="where" type="search" placeholder="Search a place" autocomplete="off" enterkeyhint="go"></label>
+    <h3 class="t-sm med mt-4">${"Places near SRM KTR"}</h3>
+    <div id="place-list" class="mt-1">${placeRows("")}</div>`, true);
+}
+function whenSheet() {
+  const opts = ["Now", "In 15 min", "In 30 min", "In 1 hour"];
+  return sheet("When do you want to leave?", `
+    <div class="chips">${opts.map((o) => `<button type="button" class="chip" aria-pressed="${R.leave === o}" data-a="leave" data-v="${o}">${o}</button>`).join("")}</div>
+    <p class="t-sm muted mt-3">Crash Check starts when the trip starts.</p>
+    <button type="button" class="btn btn-primary mt-4" data-a="close">Done</button>`);
+}
+function contactSheet() {
+  const c = R.contacts.find((x) => x.id === R.contact);
+  if (!c) return "";
+  return sheet(c.name, `
+    <div style="display:flex;align-items:center;gap:12px"><div class="avatar">${esc(c.name.slice(0, 1).toUpperCase())}</div>
+      <div class="row-body"><p class="t-lg med">${esc(c.name)}</p><p class="t-sm muted">${esc(c.rel)}</p></div></div>
+    <div class="mt-3">
+      ${row({ ic: "phone", title: esc(c.phone), sub: "Phone" })}
+      ${row({ ic: c.ok ? "check" : "clock", title: esc(c.since), sub: c.ok ? "Gets an alert if you crash and do not answer" : "They need to accept before they get alerts" })}
+    </div>
+    <div class="stack gap-3 mt-4">
+      ${c.ok ? `<button type="button" class="btn btn-primary" data-a="test-alert">Send a test alert</button>` : ""}
+      <button type="button" class="btn btn-soft" data-a="close">Done</button>
+    </div>`);
+}
+function addSheet() {
+  return sheet("Add someone", `
+    <p class="t-sm muted center">They get a request by text message. Alerts reach them only after they accept.</p>
+    <label class="t-sm med mt-4" style="display:block" for="add-name">Name</label>
+    <div class="field mt-1"><input id="add-name" type="text" placeholder="For example, Appa" autocomplete="off"></div>
+    <label class="t-sm med mt-3" style="display:block" for="add-phone">Phone number</label>
+    <div class="field mt-1"><span class="muted">+91</span><input id="add-phone" type="tel" inputmode="numeric" placeholder="98765 43210" autocomplete="off"></div>
+    <p class="err" id="add-err" hidden></p>
+    <div class="stack gap-3 mt-4">
+      <button type="button" class="btn btn-primary" data-a="add-send">Send request</button>
+      <button type="button" class="btn btn-soft" data-a="close">Cancel</button>
+    </div>`);
+}
+
 function tabBar(on) {
   const t = (id, label, ic) => `<button type="button" class="tab" data-a="tab" data-to="${id}" ${on === id ? 'aria-current="page"' : ""}>${icon(ic, "ic-24")}${label}</button>`;
   return `<nav class="tabbar" aria-label="Main">${t("home", "Home", "home")}${t("activity", "Activity", "receipt")}${t("account", "Account", "user")}</nav>`;
 }
 function tripEta() {
-  const mins = R.step === 0 ? Math.max(4, Math.round((1 - R.progress) * 34)) + 45 : 38;
+  const ride = Math.max(4, Math.round((1 - R.progress) * 34));
+  const mins = oneLeg() ? ride : R.step === 0 ? ride + 45 : 38;
   return time12(new Date(Date.now() + mins * 60000));
 }
 function homeScreen() {
   const tripRow = R.trip
-    ? row({ artName: R.step === 0 ? "bike" : "train", title: "Trip to Chennai Central", sub: `On your way. There by ${tripEta()}`, trail: `<span class="tag tag-ok"><span class="dot"></span>Now</span>`, action: "open-trip" })
-    : row({ ic: "pin", title: "Chennai Central", sub: "Scooter and train, about 1 h 5 min", action: "start-trip" });
+    ? row({ artName: R.step === 0 ? "bike" : "train", title: `Trip to ${esc(R.dest)}`, sub: `On your way. There by ${tripEta()}`, trail: `<span class="tag tag-ok"><span class="dot"></span>Now</span>`, action: "open-trip" })
+    : row({ ic: "pin", title: "Chennai Central", sub: "Scooter and train, about 1 h 5 min", action: "go-place", attrs: 'data-place="Chennai Central"' });
   return `<div class="page-top">
     <div style="display:flex;align-items:flex-start;gap:12px">
       <div style="flex:1;min-width:0"><h1 class="h-28">Ride Nanba</h1><p class="t-base muted mt-1 tn">SRM KTR, ${time12(new Date())}</p></div>
-      <span class="wx">${icon("sun")}No rain for now <span class="pulse"></span></span>
+      <button type="button" class="wx" data-a="weather">${icon("sun")}No rain for now <span class="pulse"></span></button>
     </div>
-    <button type="button" class="search mt-4" data-a="start-trip">${icon("search", "ic-24")}Where to?<span class="nowpill">${icon("clock")}Now</span></button>
+    <div class="search-row mt-4">
+      <button type="button" class="search" data-a="where">${icon("search", "ic-24")}Where to?</button>
+      <button type="button" class="nowpill" data-a="when">${icon("clock")}${esc(R.leave)}</button>
+    </div>
     <div class="mt-2">
       ${tripRow}
-      ${row({ ic: "home", title: "Home", sub: "Anna Nagar, one tap", trail: `<span class="go">Go</span>`, action: "noop-home" })}
+      ${row({ ic: "home", title: "Home", sub: "Anna Nagar, one tap", trail: `<span class="go">Go</span>`, action: "go-home" })}
     </div>
     <button type="button" class="feature mt-4" data-a="settings">
       <img src="${ART["banner-safe"]}" alt="">
@@ -687,8 +772,8 @@ function homeScreen() {
 function arrivedScreen() {
   return `<div class="page-top center" style="padding-top:max(env(safe-area-inset-top,0px),56px);padding-bottom:32px">
     ${art("house", 112)}
-    <h1 class="h-28 mt-4">You're at Chennai Central</h1>
-    <p class="t-base muted mt-2 tn">Arrived at ${time12(new Date())}. Scooter and train from SRM KTR.</p>
+    <h1 class="h-28 mt-4">You're at ${esc(R.dest)}</h1>
+    <p class="t-base muted mt-2 tn">Arrived at ${time12(new Date())}. ${oneLeg() ? "Scooter" : "Scooter and train"} from SRM KTR.</p>
     <div class="mt-6" style="text-align:left">
       ${row({ ic: "send", title: "Amma knows you reached", sub: `Sent at ${time12(new Date(R.arrivedAt || Date.now()))}` })}
       ${row({ artName: "shield", title: "Crash Check stopped", sub: "It only watches during a Ride Nanba trip" })}
@@ -703,7 +788,7 @@ function activityScreen() {
     <h1 class="h-28">Activity</h1>
     <h2 class="h-20 mt-6">Trips</h2>
     <div class="mt-2">
-      ${R.trip ? row({ artName: R.step === 0 ? "bike" : "train", title: "SRM KTR to Chennai Central", sub: "On your way now", action: "open-trip" }) : ""}
+      ${R.trip ? row({ artName: R.step === 0 ? "bike" : "train", title: `SRM KTR to ${esc(R.dest)}`, sub: "On your way now", action: "open-trip" }) : ""}
       ${row({ artName: "auto", title: "Potheri to Tambaram", sub: "Yesterday, 6:12 PM. Auto and train." })}
     </div>
     <h2 class="h-20 mt-6">Crash Check on this phone</h2>
@@ -818,9 +903,8 @@ function settingsScreen() {
     <div class="chips mt-3">${waitChips}</div>
     <h2 class="h-20 mt-8">Who gets the alert</h2>
     <div class="mt-2">
-      ${row({ ic: "users", title: "Amma", sub: "Mother. Accepted on 2 Oct.", action: "noop" })}
-      ${row({ ic: "users", title: "Arjun", sub: "Friend from SRM. Accepted on 9 Oct.", action: "noop" })}
-      ${row({ ic: "plus", title: "Add someone", sub: "They get a request and must accept it", action: "noop" })}
+      ${R.contacts.map((c) => row({ ic: "users", title: esc(c.name), sub: esc(`${c.rel}. ${c.since}.`), action: "contact", attrs: `data-id="${c.id}"` })).join("")}
+      ${row({ ic: "plus", title: "Add someone", sub: "They get a request and must accept it", action: "add" })}
       ${row({ ic: "card", title: "Medical ID", sub: "Blood group and allergies, for whoever helps you", action: "medical" })}
     </div>
     <div class="tile mt-6 stack gap-3">
@@ -915,8 +999,8 @@ function medicalSheet() {
     <p class="t-sm muted mt-3">Not shown: your address, your trips, your other contacts.</p>
     <button type="button" class="btn btn-primary mt-4" data-a="close">Done</button>`);
 }
-function sheet(title, body) {
-  return `<div class="overlay" data-a="close"></div><div class="bsheet" role="dialog" aria-label="${esc(title)}"><span class="grab"></span><div class="scroll"><h2 class="sheet-title" style="margin-top:0">${esc(title)}</h2><div class="mt-4">${body}</div></div></div>`;
+function sheet(title, body, tall) {
+  return `<div class="overlay" data-a="close"></div><div class="bsheet${tall ? " tall" : ""}" role="dialog" aria-label="${esc(title)}"><span class="grab"></span><div class="scroll"><h2 class="sheet-title" style="margin-top:0">${esc(title)}</h2><div class="mt-4">${body}</div></div></div>`;
 }
 
 let savedScroll = 0;
@@ -933,6 +1017,10 @@ function renderRider() {
   if (R.sheet === "fall") over += fallSheet();
   if (R.sheet === "medical") over += medicalSheet();
   if (R.sheet === "setup") over += setupSheet();
+  if (R.sheet === "where") over += whereSheet();
+  if (R.sheet === "when") over += whenSheet();
+  if (R.sheet === "contact") over += contactSheet();
+  if (R.sheet === "add") over += addSheet();
   rider.innerHTML = `${sbar()}<div class="scroll main${tabbed ? " has-tabs" : ""}">${main}</div>${tabbed ? tabBar(R.screen) : ""}${over}${R.toast ? `<div class="toast" role="status">${esc(R.toast)}</div>` : ""}`;
   const sc2 = rider.querySelector(".scroll.main");
   if (sc2 && R._keepScroll) sc2.scrollTop = savedScroll;
@@ -947,6 +1035,24 @@ function updateRing() {
   arc.setAttribute("stroke-dashoffset", String(603.2 * (1 - R.ask.left / R.ask.total)));
 }
 
+function startTrip(dest) {
+  R.dest = dest || "Chennai Central";
+  R.trip = true; R.step = 0; R.progress = 0.34; R.toldAt = null; R.moving = true;
+  R.sheet = null; R.screen = "ride"; R.startedAt = new Date();
+  send({ to: "guardian", type: "trip", dest: R.dest, at: R.startedAt.getTime() });
+  renderRider();
+  const sc = rider.querySelector(".scroll.main"); if (sc) sc.scrollTop = 0;
+}
+rider.addEventListener("input", (e) => {
+  if (e.target.id === "where") { const list = rider.querySelector("#place-list"); if (list) list.innerHTML = placeRows(e.target.value); }
+  if (e.target.id === "add-name" || e.target.id === "add-phone") { const err = rider.querySelector("#add-err"); if (err) err.hidden = true; }
+});
+rider.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter") return;
+  if (e.target.id === "where") { const first = rider.querySelector("#place-list [data-place]"); if (first) startTrip(first.dataset.place); }
+  if (e.target.id === "add-phone") { const b = rider.querySelector('[data-a="add-send"]'); if (b) b.click(); }
+});
+
 rider.addEventListener("click", (e) => {
   const b = e.target.closest("[data-a]");
   if (!b) return;
@@ -957,16 +1063,45 @@ rider.addEventListener("click", (e) => {
     case "home": return go("home");
     case "tab": return go(b.dataset.to);
     case "open-trip": return go("ride");
-    case "start-trip": R.trip = true; R.step = 0; R.progress = 0.34; R.toldAt = null; R.moving = true; return go("ride");
-    case "noop-home": toast("Planning a trip home is in the full Ride Nanba app."); return;
+    case "start-trip": startTrip(R.dest); return;
+    case "where":
+      R.sheet = "where"; renderRider();
+      setTimeout(() => { const i = rider.querySelector("#where"); if (i) i.focus(); }, 60);
+      return;
+    case "when": R.sheet = "when"; return renderRider();
+    case "leave": R.leave = b.dataset.v; R._keepScroll = true; return renderRider();
+    case "weather": toast("No rain on GST Road for the next 2 hours."); return;
+    case "go-home": startTrip("Anna Nagar"); return;
+    case "go-place": startTrip(b.dataset.place); return;
+    case "contact": R.contact = b.dataset.id; R.sheet = "contact"; R._keepScroll = true; return renderRider();
+    case "test-alert": {
+      const c = R.contacts.find((x) => x.id === R.contact);
+      R.sheet = null; R._keepScroll = true; renderRider();
+      if (c && c.id === "amma") { send({ to: "guardian", type: "test", at: Date.now() }); toast("Test alert sent to Amma."); }
+      else if (c) toast(`Test alert sent to ${c.name} by text message.`);
+      return;
+    }
+    case "add": R.sheet = "add"; R._keepScroll = true; renderRider(); setTimeout(() => { const i = rider.querySelector("#add-name"); if (i) i.focus(); }, 60); return;
+    case "add-send": {
+      const name = (rider.querySelector("#add-name") || {}).value || "";
+      const digits = ((rider.querySelector("#add-phone") || {}).value || "").replace(/\D/g, "").slice(-10);
+      const err = rider.querySelector("#add-err");
+      const fail = (m) => { if (err) { err.textContent = m; err.hidden = false; } };
+      if (!name.trim()) return fail("Enter their name.");
+      if (digits.length !== 10) return fail("Enter a 10-digit mobile number.");
+      R.contacts.push({ id: "c" + Date.now(), name: name.trim().slice(0, 30), rel: "Added by you", phone: `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`, since: "Waiting for them to accept", ok: false });
+      R.sheet = null; R._keepScroll = true; renderRider();
+      toast(`Request sent to ${name.trim().slice(0, 30)}.`);
+      return;
+    }
     case "next":
-      if (R.step === 0) { R.step = 1; R._keepScroll = false; return go("ride"); }
+      if (R.step === 0 && !oneLeg()) { R.step = 1; R._keepScroll = false; return go("ride"); }
       R.trip = false; R.arrivedAt = Date.now();
-      send({ to: "guardian", type: "arrived", at: R.arrivedAt });
+      send({ to: "guardian", type: "arrived", at: R.arrivedAt, dest: R.dest });
       return go("arrived");
     case "tell":
       R.toldAt = Date.now();
-      send({ to: "guardian", type: "msg", at: R.toldAt, text: `Priya is on the ${R.step === 0 ? "scooter" : "train"}. At Chennai Central by ${tripEta()}.` });
+      send({ to: "guardian", type: "msg", at: R.toldAt, text: `Priya is on the ${R.step === 0 ? "scooter" : "train"}. At ${R.dest} by ${tripEta()}.` });
       toast("Sent to Amma."); R._keepScroll = true; return renderRider();
     case "setup": R.sheet = "setup"; return renderRider();
     case "setup-on":
@@ -998,7 +1133,7 @@ rider.addEventListener("click", (e) => {
     case "role-guardian": return setRole("guardian");
     case "reset":
       R.log = []; store.set("log", []); R.checks = []; R.last = null; R.sheet = null; R.moving = true; R.progress = 0.34;
-      R.trip = true; R.step = 0; R.toldAt = null; R.screen = "ride";
+      R.trip = true; R.step = 0; R.toldAt = null; R.screen = "ride"; R.dest = "Chennai Central"; R.leave = "Now";
       send({ to: "guardian", type: "reset" });
       detector.reset(); return renderRider();
     default: return;
@@ -1075,7 +1210,7 @@ let lastScreenSig = "";
 })();
 
 /* ================= GUARDIAN: Amma ================= */
-const A = { screen: "idle", alert: null, going: false, safeAt: null, toast: null, msg: null, arrivedAt: null };
+const A = { screen: "idle", alert: null, going: false, safeAt: null, toast: null, msg: null, arrivedAt: null, dest: "Chennai Central", startedAt: null };
 const guardian = document.getElementById("guardian");
 let ringTimer = null;
 
@@ -1089,8 +1224,10 @@ function guardianHear(msg) {
     setTimeout(() => send({ to: "rider", type: "seen", by: "amma" }), 1500);
   }
   if (msg.type === "msg") { A.msg = { at: msg.at, text: msg.text }; if (A.screen === "idle") { renderGuardian(); toast("Priya: " + msg.text, guardian); beep([660], 90, 0.08); } }
-  if (msg.type === "arrived") { A.arrivedAt = msg.at; A.msg = { at: msg.at, text: "Reached Chennai Central." }; if (A.screen === "idle") { renderGuardian(); toast("Priya reached Chennai Central.", guardian); } }
-  if (msg.type === "reset") { clearInterval(ringTimer); Object.assign(A, { screen: "idle", alert: null, going: false, msg: null, arrivedAt: null }); renderGuardian(); }
+  if (msg.type === "arrived") { const d = String(msg.dest || A.dest).slice(0, 40); A.arrivedAt = msg.at; A.msg = { at: msg.at, text: `Reached ${d}.` }; if (A.screen === "idle") { renderGuardian(); toast(`Priya reached ${d}.`, guardian); } }
+  if (msg.type === "trip") { A.dest = String(msg.dest || "Chennai Central").slice(0, 40); A.startedAt = msg.at; A.arrivedAt = null; A.msg = null; if (A.screen === "idle") renderGuardian(); }
+  if (msg.type === "test") { if (A.screen === "idle") { toast("Test alert from Priya's Crash Check. Nothing is wrong.", guardian); beep([740, 988], 120, 0.12); buzz([200]); } }
+  if (msg.type === "reset") { clearInterval(ringTimer); Object.assign(A, { screen: "idle", alert: null, going: false, msg: null, arrivedAt: null, dest: "Chennai Central", startedAt: null }); renderGuardian(); }
   if (msg.type === "safe") {
     clearInterval(ringTimer);
     A.screen = "safe"; A.safeAt = msg.at; A.alert = null;
@@ -1100,14 +1237,14 @@ function guardianHear(msg) {
 function guardianIdle() {
   return `<div class="page-top" style="padding-bottom:32px">
     <div style="display:flex;align-items:center;gap:12px">
-      <div style="flex:1;min-width:0"><h1 class="h-28">Priya</h1><p class="t-base muted mt-1 tn">${A.arrivedAt ? "Reached Chennai Central at " + time12(new Date(A.arrivedAt)) : "On a Ride Nanba trip to Chennai Central"}</p></div>
+      <div style="flex:1;min-width:0"><h1 class="h-28">Priya</h1><p class="t-base muted mt-1 tn">${A.arrivedAt ? `Reached ${esc(A.dest)} at ` + time12(new Date(A.arrivedAt)) : `On a Ride Nanba trip to ${esc(A.dest)}`}</p></div>
       <div class="avatar">P</div>
     </div>
     <div class="mt-4">
       ${A.msg ? row({ ic: "send", title: esc(A.msg.text), sub: `From Priya at ${time12(new Date(A.msg.at))}` }) : ""}
       ${A.arrivedAt ? row({ artName: "shield", title: "Crash Check has stopped", sub: "Her trip has ended" }) : row({ artName: "shield", title: "Crash Check is on for this trip", sub: "You hear from it only if Priya needs help" })}
       ${row({ ic: "eyeoff", title: "You cannot see where she is", sub: "Her location comes to you only after a crash she does not answer" })}
-      ${row({ ic: "clock", title: `Trip started ${time12(R.startedAt)}`, sub: "Scooter to Tambaram, then the train" })}
+      ${row({ ic: "clock", title: `Trip started ${time12(A.startedAt ? new Date(A.startedAt) : R.startedAt)}`, sub: A.dest === "Tambaram" || A.dest === "Potheri" ? "By scooter" : "Scooter to Tambaram, then the train" })}
     </div>
     <div class="tile mt-4 stack gap-3">
       <h3 class="t-sm med">If Priya crashes and does not answer</h3>
