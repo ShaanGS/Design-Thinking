@@ -1,0 +1,1330 @@
+<title>Crash Check</title>
+<style>
+/* Ride Nanba's own system (ride-nanba/docs/DESIGN.md, app/globals.css): Uber light. White page,
+   #f3f3f3 tiles, black text and buttons. Colour comes from the 3D art and from meaning only:
+   green for live and safe, red for a crash, purple for the safety shield.
+   Layout: on a wide screen, two phones side by side (Priya riding, Amma at home); on a phone,
+   the one phone this device is playing. */
+:root {
+  --bg: #ffffff;
+  --surface: #f3f3f3;
+  --surface-2: #e8e8e8;
+  --line: rgb(0 0 0 / 0.08);
+  --text: #000000;
+  --muted: #5e5e5e;
+  --faint: #6f6f6f;
+  --flood: #c0341d;
+  --flood-soft: rgb(192 52 29 / 0.12);
+  --ok: #0a7d44;
+  --ok-soft: rgb(10 125 68 / 0.13);
+  --safe: #5b3fd6;
+  --stage: #e9e9e9;
+  --map: #f1f1ef;
+  --map-road: #ffffff;
+  --map-green: #e3ece0;
+  --rider: #276ef1;
+  --shadow: rgb(0 0 0 / 0.14);
+  --font: system-ui, -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--stage);
+  color: var(--text);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: inherit; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; border-radius: 8px; }
+.tn { font-variant-numeric: tabular-nums; }
+
+/* Stage */
+.stage { height: 100%; display: flex; justify-content: center; align-items: stretch; gap: 48px; }
+.phone-col { display: flex; flex-direction: column; align-items: center; gap: 14px; height: 100%; width: 100%; max-width: 430px; }
+.phone-cap { display: none; text-align: center; }
+.phone-cap b { display: block; font-size: 1rem; }
+.phone-cap span { font-size: 0.875rem; color: var(--muted); }
+.screen { --sbar: 0px; position: relative; width: 100%; height: 100%; background: var(--bg); overflow: hidden; isolation: isolate; }
+/* The phone's own status bar, drawn only when the app sits in a phone frame on a wide screen */
+.sbar { display: none; }
+.cap-btn { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; min-height: 36px; padding: 0 16px; border-radius: 999px; background: var(--text); color: var(--bg); font-size: 0.875rem; font-weight: 600; }
+.cap-btn.ghost { visibility: hidden; }
+.scroll { height: 100%; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+.scroll::-webkit-scrollbar { display: none; }
+.stage[data-only="rider"] .phone-col[data-role="guardian"],
+.stage[data-only="guardian"] .phone-col[data-role="rider"] { display: none; }
+
+@media (min-width: 640px) and (min-height: 640px) {
+  .stage { align-items: center; padding-block: 20px; }
+  .phone-col { width: auto; height: auto; }
+  .screen {
+    --sbar: 44px; padding-top: 44px;
+    width: 390px; height: min(844px, calc(100dvh - 136px)); border-radius: 46px;
+    box-shadow: 0 0 0 10px #111111, 0 0 0 11px #2c2c31, 0 40px 80px rgb(0 0 0 / 0.25);
+  }
+  .sbar { display: flex; position: absolute; inset: 0 0 auto 0; height: 44px; z-index: 90; align-items: center; justify-content: space-between; padding: 6px 30px 0 40px; background: var(--bg); font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .sbar::after { content: ""; position: absolute; left: 50%; top: 9px; width: 112px; height: 31px; margin-left: -56px; border-radius: 20px; background: #000000; }
+  .sbar .sicons { display: flex; align-items: center; gap: 6px; }
+  .phone-cap { display: block; }
+}
+@media (min-width: 940px) and (min-height: 640px) {
+  .stage[data-only] .phone-col { display: flex !important; }
+}
+
+/* Type, Ride Nanba scale: 12 14 16 18 at 400/500, headings 20 24 28 32 at 700 */
+.t-xs { font-size: 0.75rem; }
+.t-sm { font-size: 0.875rem; }
+.t-base { font-size: 1rem; }
+.t-lg { font-size: 1.125rem; }
+.h-20 { font-size: 1.25rem; font-weight: 700; }
+.h-24 { font-size: 1.5rem; font-weight: 700; }
+.h-28 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.01em; }
+.h-32 { font-size: 2rem; font-weight: 700; letter-spacing: -0.015em; }
+.muted { color: var(--muted); }
+.faint { color: var(--faint); }
+.med { font-weight: 500; }
+h1, h2, h3, p { margin: 0; text-wrap: balance; }
+p { text-wrap: pretty; }
+
+.pad { padding-inline: 16px; }
+.page-top { padding: max(env(safe-area-inset-top, 0px), 20px) 16px 0; }
+.stack { display: flex; flex-direction: column; }
+.gap-1 { gap: 4px; } .gap-2 { gap: 8px; } .gap-3 { gap: 12px; } .gap-4 { gap: 16px; }
+.mt-1 { margin-top: 4px; } .mt-2 { margin-top: 8px; } .mt-3 { margin-top: 12px; } .mt-4 { margin-top: 16px; } .mt-6 { margin-top: 24px; } .mt-8 { margin-top: 32px; }
+.center { text-align: center; }
+.ic { width: 20px; height: 20px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ic-24 { width: 24px; height: 24px; }
+
+/* Buttons */
+.btn { display: inline-flex; min-height: 56px; align-items: center; justify-content: center; gap: 8px; border-radius: 12px; padding: 0 20px; font-size: 1.0625rem; font-weight: 600; transition: transform 120ms ease; width: 100%; text-align: center; }
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: var(--text); color: var(--bg); }
+.btn-soft { background: var(--surface-2); color: var(--text); }
+.btn-danger { background: var(--flood); color: #ffffff; }
+.btn[disabled] { opacity: 0.45; }
+.btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.chip { min-height: 40px; border-radius: 999px; padding: 0 16px; font-size: 0.875rem; font-weight: 500; background: var(--surface); flex-shrink: 0; }
+.chip[aria-pressed="true"] { background: var(--text); color: var(--bg); }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.round { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 999px; background: var(--bg); box-shadow: 0 2px 8px var(--shadow); flex-shrink: 0; }
+.round-flat { box-shadow: none; background: var(--surface-2); }
+.tag { display: inline-flex; height: 24px; align-items: center; gap: 6px; border-radius: 999px; padding: 0 10px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
+.tag-ok { background: var(--ok-soft); color: var(--ok); }
+.tag-flood { background: var(--flood-soft); color: var(--flood); }
+.tag-neutral { background: var(--surface-2); color: var(--muted); }
+.tag-best { background: var(--text); color: var(--bg); }
+.dot { width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
+.link { text-decoration: underline; text-underline-offset: 4px; font-weight: 500; }
+
+/* Rows */
+.row { display: flex; min-height: 64px; width: 100%; align-items: center; gap: 12px; border-bottom: 1px solid var(--line); padding-block: 12px; text-align: left; }
+.row:last-child { border-bottom: 0; }
+.row-ic { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 999px; background: var(--surface); flex-shrink: 0; }
+.row-body { min-width: 0; flex: 1; }
+.row-title { display: block; font-size: 1rem; font-weight: 500; }
+.row-sub { display: block; font-size: 0.875rem; color: var(--muted); }
+.chev { color: var(--faint); }
+.art { flex-shrink: 0; object-fit: contain; pointer-events: none; user-select: none; }
+
+.tile { background: var(--surface); border-radius: 12px; padding: 16px; }
+.banner { width: 100%; height: 128px; object-fit: cover; object-position: 50% 70%; border-radius: 12px; display: block; }
+.hair { border: 0; border-top: 1px solid var(--line); margin: 0; }
+
+/* Switch, exactly Ride Nanba's SwitchTrack */
+.track { display: flex; width: 52px; height: 32px; border-radius: 999px; padding: 2px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line); flex-shrink: 0; transition: background-color 160ms; }
+.track span { width: 28px; height: 28px; border-radius: 999px; background: var(--bg); transition: transform 160ms; }
+[aria-checked="true"] .track { background: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
+[aria-checked="true"] .track span { transform: translateX(20px); }
+
+/* Map screen: map on top, sheet over it, one pinned button */
+.mapscreen { position: relative; display: flex; min-height: 100%; flex-direction: column; }
+.mapbox { position: sticky; top: 0; z-index: 0; height: 290px; background: var(--map); }
+.mapbox svg { display: block; width: 100%; height: 100%; }
+.map-btn { position: absolute; top: max(env(safe-area-inset-top, 0px), 14px); z-index: 2; }
+.sheet-body { position: relative; z-index: 1; margin-top: -16px; flex: 1; border-radius: 16px 16px 0 0; background: var(--bg); padding-bottom: 16px; box-shadow: 0 -4px 16px rgb(0 0 0 / 0.08); }
+.grab { display: block; margin: 8px auto 0; width: 40px; height: 4px; border-radius: 999px; background: var(--surface-2); }
+.sheet-title { margin-top: 12px; border-bottom: 1px solid var(--line); padding-bottom: 12px; text-align: center; font-size: 1.25rem; font-weight: 700; }
+.footer { position: sticky; bottom: 0; z-index: 3; border-top: 1px solid var(--line); background: var(--bg); padding: 12px 16px max(env(safe-area-inset-bottom, 0px), 12px); }
+.progress { display: flex; gap: 4px; }
+.progress i { height: 4px; border-radius: 999px; background: var(--surface-2); }
+.progress i.on { background: var(--text); }
+
+/* Live g readout in the Crash Check row */
+.gread { display: inline-flex; align-items: center; gap: 6px; font-size: 0.875rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pulse { width: 8px; height: 8px; border-radius: 999px; background: var(--ok); }
+.checking .pulse { background: var(--text); }
+.checkbar { height: 2px; background: var(--surface-2); border-radius: 999px; overflow: hidden; margin-top: 8px; }
+.checkbar i { display: block; height: 100%; width: 0; background: var(--text); }
+
+/* Bottom sheet (vaul in Ride Nanba) */
+.overlay { position: absolute; inset: var(--sbar) 0 0 0; z-index: 40; background: rgb(0 0 0 / 0.4); }
+.bsheet { position: absolute; inset: auto 0 0 0; z-index: 50; max-height: 88%; display: flex; flex-direction: column; border-radius: 24px 24px 0 0; background: var(--bg); animation: up 260ms cubic-bezier(0.16, 1, 0.3, 1); }
+.bsheet .scroll { padding: 12px 16px max(env(safe-area-inset-bottom, 0px), 24px); height: auto; }
+@keyframes up { from { transform: translateY(40px); opacity: 0.6; } to { transform: none; opacity: 1; } }
+
+/* Full-screen takeover */
+.takeover { position: absolute; inset: var(--sbar) 0 0 0; z-index: 60; background: var(--bg); display: flex; flex-direction: column; }
+.takeover .scroll { flex: 1; }
+.ring { position: relative; width: 208px; height: 208px; margin: 0 auto; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring .num { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+.ring .num b { display: block; font-size: 4.5rem; font-weight: 700; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.ring .num span { font-size: 0.875rem; color: var(--muted); }
+
+.toast { position: absolute; left: 16px; right: 16px; bottom: 96px; z-index: 70; background: var(--text); color: var(--bg); border-radius: 12px; padding: 14px 16px; font-size: 0.9375rem; font-weight: 500; box-shadow: 0 8px 24px rgb(0 0 0 / 0.2); animation: up 220ms ease; }
+
+/* Tab bar, as in Ride Nanba's shell */
+.has-tabs { padding-bottom: 96px; }
+.tabbar { position: absolute; inset: auto 0 0 0; z-index: 30; display: flex; justify-content: space-around; border-top: 1px solid var(--line); background: var(--bg); padding: 8px 16px max(env(safe-area-inset-bottom, 0px), 12px); }
+.tab { display: flex; min-height: 48px; min-width: 64px; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 0.75rem; font-weight: 600; color: var(--faint); }
+.tab[aria-current="page"] { color: var(--text); }
+.tab[aria-current="page"] .ic { stroke-width: 2.5; }
+
+/* Home */
+.search { display: flex; align-items: center; gap: 12px; min-height: 60px; border-radius: 999px; background: var(--surface); padding: 6px 6px 6px 20px; font-size: 1.25rem; font-weight: 600; width: 100%; text-align: left; }
+.nowpill { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 16px; border-radius: 999px; background: var(--bg); font-size: 1rem; box-shadow: 0 1px 4px var(--shadow); }
+.wx { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: 999px; background: var(--surface); font-size: 0.875rem; font-weight: 500; white-space: nowrap; }
+.go { display: inline-flex; align-items: center; min-height: 32px; padding: 0 14px; border-radius: 999px; background: var(--text); color: var(--bg); font-size: 0.875rem; font-weight: 600; }
+.feature { display: block; width: 100%; border-radius: 12px; overflow: hidden; background: var(--surface); text-align: left; }
+.feature img { display: block; width: 100%; height: 132px; object-fit: cover; object-position: 50% 70%; }
+.feature .fbody { display: block; padding: 14px 16px 16px; }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.tile-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; border-radius: 12px; background: var(--surface); padding: 14px 8px; font-size: 1rem; font-weight: 500; }
+
+/* Search sheet */
+.bsheet.tall { height: 88%; }
+.field { display: flex; align-items: center; gap: 10px; min-height: 52px; border-radius: 8px; background: var(--surface); padding: 0 14px; }
+.field input { flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 1rem; color: var(--text); outline: none; height: 48px; }
+.field:focus-within { box-shadow: inset 0 0 0 2px var(--text); }
+.field input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+.err { color: var(--flood); font-size: 0.875rem; margin-top: 8px; }
+.search-row { display: flex; gap: 8px; align-items: center; min-height: 60px; border-radius: 999px; background: var(--surface); padding: 6px; }
+.search-row .search { flex: 1; min-height: 48px; background: transparent; padding-left: 14px; }
+
+/* Chart */
+.chart { width: 100%; height: 170px; display: block; }
+table.signals { width: 100%; border-collapse: collapse; font-size: 1rem; }
+.signals th { padding-bottom: 8px; font-size: 0.75rem; font-weight: 400; color: var(--muted); text-align: left; }
+.signals th:last-child, .signals td:last-child { text-align: right; }
+.signals td { border-top: 1px solid var(--line); padding: 11px 0; font-variant-numeric: tabular-nums; }
+.signals td:nth-child(2) { color: var(--muted); font-size: 0.875rem; }
+.signals tr.off td:first-child { color: var(--faint); }
+.signals tr.total td { font-weight: 700; border-top: 2px solid var(--text); }
+.pts-neg { color: var(--flood); }
+
+.avatar { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 999px; background: var(--text); color: var(--bg); font-size: 1.75rem; font-weight: 700; flex-shrink: 0; }
+.medid { border-radius: 16px; background: var(--surface); padding: 4px 16px; }
+.medid .row { min-height: 52px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bsheet, .toast { animation: none; }
+  .btn { transition: none; }
+}
+</style>
+
+<div class="stage" id="stage">
+  <div class="phone-col" data-role="rider">
+    <div class="phone-cap"><b>Priya's phone</b><span>Riding her scooter to Tambaram</span><br><button type="button" class="cap-btn" data-stage="presenter">Presenter controls</button></div>
+    <div class="screen" id="rider"></div>
+  </div>
+  <div class="phone-col" data-role="guardian">
+    <div class="phone-cap"><b>Amma's phone</b><span>At home in Anna Nagar</span><br><button type="button" class="cap-btn ghost" tabindex="-1" aria-hidden="true">Presenter controls</button></div>
+    <div class="screen" id="guardian"></div>
+  </div>
+</div>
+
+<script>/*@@MODEL@@*/</script>
+<script>/*@@SIGNATURES@@*/</script>
+<script>
+"use strict";
+(() => {
+const M = window.CrashModel;
+const S = window.CrashSignatures;
+const ART = /*@@ART@@*/ {};
+
+/* ---------- small helpers ---------- */
+const ICON = {
+  back: '<path d="m15 18-6-6 6-6"/>',
+  chev: '<path d="m9 18 6-6-6-6"/>',
+  sliders: '<line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/>',
+  shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+  phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
+  send: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
+  pin: '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  card: '<rect width="18" height="14" x="3" y="5" rx="2"/><path d="M7 15h4"/><path d="M7 11h10"/>',
+  eyeoff: '<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/>',
+  phoneSm: '<rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/>',
+  clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+  users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  nav: '<polygon points="3 11 22 2 13 21 11 13 3 11"/>',
+  activity: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+  plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
+  gauge: '<path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>',
+  rotate: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
+  home: '<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  receipt: '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/>',
+  user: '<circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>',
+  search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+  trash: '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
+};
+const icon = (n, cls = "") => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`;
+const art = (n, size = 64, cls = "") => `<img class="art ${cls}" src="${ART[n]}" width="${size}" height="${size}" alt="">`;
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const time12 = (d) => {
+  let h = d.getHours(); const m = String(d.getMinutes()).padStart(2, "0");
+  const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; return `${h}:${m} ${ap}`;
+};
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("cc:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("cc:" + k, JSON.stringify(v)); } catch {} },
+};
+const row = ({ ic, artName, title, sub, trail, action, attrs = "", tag = "button" }) => {
+  const lead = artName ? art(artName, 48) : ic ? `<span class="row-ic">${icon(ic)}</span>` : "";
+  const tail = trail != null ? trail : action ? icon("chev", "chev") : "";
+  const el = action ? tag : "div";
+  return `<${el} class="row" ${action ? `type="button" data-a="${action}"` : ""} ${attrs}>${lead}<span class="row-body"><span class="row-title">${title}</span>${sub ? `<span class="row-sub">${sub}</span>` : ""}</span>${tail}</${el}>`;
+};
+const switchRow = (title, sub, on, action) =>
+  `<button type="button" class="row" role="switch" aria-checked="${on}" data-a="${action}"><span class="row-body"><span class="row-title">${title}</span><span class="row-sub">${sub}</span></span><span class="track"><span></span></span></button>`;
+
+const sbar = () => `<div class="sbar" aria-hidden="true"><span class="clock">${time12(new Date()).replace(/ [AP]M$/, "")}</span><span class="sicons">
+  <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1" fill="currentColor"/><rect x="5" y="5.5" width="3" height="6.5" rx="1" fill="currentColor"/><rect x="10" y="3" width="3" height="9" rx="1" fill="currentColor"/><rect x="15" y="0" width="3" height="12" rx="1" fill="currentColor"/></svg>
+  <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 11.5 10.3 9a3.3 3.3 0 0 0-4.6 0Z M8 3.5a7.6 7.6 0 0 1 5.4 2.2l1.3-1.4A9.6 9.6 0 0 0 8 1.5 9.6 9.6 0 0 0 1.3 4.3l1.3 1.4A7.6 7.6 0 0 1 8 3.5Zm0 3.2a4.6 4.6 0 0 1 3.2 1.3l1.3-1.4A6.5 6.5 0 0 0 8 4.8a6.5 6.5 0 0 0-4.5 1.8L4.8 8A4.6 4.6 0 0 1 8 6.7Z" fill="currentColor"/></svg>
+  <svg width="27" height="13" viewBox="0 0 27 13"><rect x="0.5" y="0.5" width="23" height="12" rx="3.5" fill="none" stroke="currentColor" opacity="0.4"/><rect x="2" y="2" width="18" height="9" rx="2" fill="currentColor"/><path d="M25 4.5v4a2 2 0 0 0 0-4Z" fill="currentColor" opacity="0.4"/></svg></span></div>`;
+setInterval(() => document.querySelectorAll(".sbar .clock").forEach((el) => { el.textContent = time12(new Date()).replace(/ [AP]M$/, ""); }), 15000);
+
+/* ---------- sound, voice, buzz: all optional ---------- */
+let audio = null;
+function unlockAudio() {
+  if (audio) return;
+  try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch { audio = null; }
+}
+document.addEventListener("pointerdown", unlockAudio, { capture: true });
+function beep(freqs, ms = 160, vol = 0.18) {
+  if (!audio) return;
+  try {
+    let t = audio.currentTime;
+    for (const f of freqs) {
+      const o = audio.createOscillator(); const g = audio.createGain();
+      o.type = "square"; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000);
+      o.connect(g).connect(audio.destination); o.start(t); o.stop(t + ms / 1000 + 0.02);
+      t += ms / 1000 + 0.05;
+    }
+  } catch {}
+}
+function say(text) {
+  try { const u = new SpeechSynthesisUtterance(text); u.rate = 0.95; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch {}
+}
+function buzz(p) { try { navigator.vibrate && navigator.vibrate(p); } catch {} }
+
+/* ---------- the map: a drawn GST Road, Ride Nanba's grey map with a black route ---------- */
+const ROUTE = "M44 262 L96 222 L128 206 L170 168 L214 142 L246 112 L290 88 L340 46";
+const CRASH = { x: 214, y: 142 };
+function mapSvg(id, mode) {
+  const roads = `
+    <path d="M0 120 L390 210" stroke="var(--map-road)" stroke-width="7"/>
+    <path d="M60 0 L150 320" stroke="var(--map-road)" stroke-width="6"/>
+    <path d="M250 0 L300 320" stroke="var(--map-road)" stroke-width="5"/>
+    <path d="M0 40 L180 0" stroke="var(--map-road)" stroke-width="5"/>
+    <path d="M200 320 L390 250" stroke="var(--map-road)" stroke-width="6"/>
+    <path d="M30 262 L344 44" stroke="var(--map-road)" stroke-width="12" stroke-linecap="round"/>
+    <path d="M232 160 q30 -10 60 18 q20 22 -6 46 q-36 14 -58 -16 q-14 -30 4 -48z" fill="var(--map-green)"/>
+    <path d="M28 70 q34 -18 70 6 q16 26 -16 40 q-40 6 -54 -16z" fill="var(--map-green)"/>`;
+  const label = (x, y, text, anchor = "middle") => {
+    const w = text.length * 7.4 + 24;
+    const lx = anchor === "start" ? x : anchor === "end" ? x - w : x - w / 2;
+    return `<g><rect x="${lx}" y="${y - 15}" width="${w}" height="30" rx="15" fill="var(--bg)" filter="url(#${id}-sh)"/><text x="${lx + w / 2}" y="${y + 5}" text-anchor="middle" font-size="13" font-family="var(--font)" font-weight="500" fill="var(--text)">${esc(text)}</text></g>`;
+  };
+  let marks = "";
+  if (mode === "ride") {
+    marks = `
+      <path id="${id}-route" d="${ROUTE}" fill="none" stroke="var(--text)" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+      <rect x="333" y="39" width="14" height="14" fill="var(--text)" stroke="var(--bg)" stroke-width="2"/>
+      ${label(330, 22, "Tambaram")}
+      ${label(4, 212, "SRM KTR", "start")}
+      <g id="${id}-me"><circle r="18" fill="var(--rider)" opacity="0.18"/><circle r="8" fill="var(--rider)" stroke="var(--bg)" stroke-width="3"/></g>`;
+  } else {
+    marks = `
+      <path d="${ROUTE}" fill="none" stroke="var(--text)" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" opacity="0.18"/>
+      <g transform="translate(${CRASH.x} ${CRASH.y})"><circle r="26" fill="var(--flood)" opacity="0.14"/><circle r="10" fill="var(--flood)" stroke="var(--bg)" stroke-width="3"/></g>
+      ${label(CRASH.x, CRASH.y - 40, "Priya, " + mode)}`;
+  }
+  return `<svg viewBox="0 0 390 300" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Map of GST Road from SRM KTR to Tambaram">
+    <defs><filter id="${id}-sh" x="-20%" y="-40%" width="140%" height="180%"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#000" flood-opacity="0.18"/></filter></defs>
+    <rect width="390" height="300" fill="var(--map)"/>${roads}${marks}</svg>`;
+}
+
+/* ---------- messages between the two phones ---------- */
+const ME = Math.random().toString(36).slice(2, 10);
+let room = null;
+let bc = null;
+try { bc = new BroadcastChannel("crash-check"); bc.onmessage = (e) => deliver(e.data); } catch {}
+function send(msg) {
+  msg = { ...msg, from: ME };
+  deliver(msg);
+  try { bc && bc.postMessage(msg); } catch {}
+  if (room) room.emit("cc", msg).catch(() => {});
+}
+function deliver(msg) {
+  if (!msg || typeof msg !== "object") return;
+  if (msg.to === "guardian") guardianHear(msg);
+  else if (msg.to === "rider") riderHear(msg);
+}
+(async () => {
+  try {
+    if (!window.claude || !window.claude.use) return;
+    room = await window.claude.use("room");
+    if (!room) return;
+    room.on("cc", (m) => { if (!m.sameTab && m.data && m.data.from !== ME) deliver(m.data); });
+    room.onPeers(() => { R.peers = room.peers().filter((p) => !p.sameTab).length; if (R.sheet === "presenter") renderRider(); });
+  } catch { room = null; }
+})();
+
+/* ================= RIDER: Priya ================= */
+const R = {
+  screen: "ride", // home | ride | arrived | activity | account | decides | settings
+  from: "ride", // where Back goes from decides
+  trip: true, // a Ride Nanba trip is running
+  step: 0, // 0 scooter to Tambaram, 1 train to Chennai Central
+  toldAt: null, // when "Tell Amma" was last sent
+  dest: "Chennai Central", // where this trip goes
+  leave: "Now", // when the next trip leaves
+  contact: null, // id of the contact open in a sheet
+  contacts: [
+    { id: "amma", name: "Amma", rel: "Mother", phone: "+91 98400 21136", since: "Accepted on 2 Oct", ok: true },
+    { id: "arjun", name: "Arjun", rel: "Friend from SRM", phone: "+91 99620 48817", since: "Accepted on 9 Oct", ok: true },
+  ],
+  takeover: null, // ask | sent
+  sheet: null, // presenter | fall | medical
+  toast: null,
+  moving: true,
+  checking: null, // model time of the hit
+  last: null,
+  checks: [],
+  log: store.get("log", []),
+  set: Object.assign({ on: true, tripsOnly: true, wait: 30, stage: false }, store.get("settings", {})),
+  sensor: "off", // off | on | none
+  gps: null, // { kmh, lat, lng }
+  playing: null,
+  progress: 0.34,
+  ask: null, // { left, total, startedAt }
+  alert: null,
+  people: [
+    { id: "amma", name: "Amma", rel: "Mother", status: "Not sent" },
+    { id: "arjun", name: "Arjun", rel: "Friend from SRM", status: "Not sent" },
+  ],
+  peers: 0,
+  startedAt: new Date(Date.now() - 16 * 60000),
+};
+const rider = document.getElementById("rider");
+
+const detector = M.createDetector({
+  onTrigger: (e) => { R.checking = e.t; updateLive(true); },
+  onDecision: (d) => decided(d),
+});
+
+/* model clock: every sample carries model time in ms */
+let mt = 0;
+let lastWall = performance.now();
+const trace = []; // { t, g }
+let lastG = 1;
+function feed(s) {
+  detector.push(s);
+  trace.push({ t: s.t, g: s.g });
+  while (trace.length && trace[0].t < s.t - 10000) trace.shift();
+  lastG = s.g;
+}
+
+/* idle motion: a phone in a pocket on a scooter, or at a signal */
+const rnd = () => Math.random() - 0.5;
+let lastSpeedAt = -1e9;
+setInterval(() => {
+  const now = performance.now();
+  if (R.playing) { playTick(now); lastWall = now; return; }
+  if (R.sensor !== "on") {
+    mt += 20;
+    const still = R.takeover === "sent" || R.takeover === "ask";
+    const g = still ? 1 + rnd() * 0.02 : R.moving ? 1 + rnd() * 0.22 : 1 + rnd() * 0.08;
+    feed({ t: mt, g, rot: still ? 1 : R.moving ? 14 + Math.random() * 18 : 8 });
+  }
+  if (mt - lastSpeedAt >= 1000) {
+    lastSpeedAt = mt;
+    if (!detector.busy() && !R.takeover) detector.speed(mt, currentKmh());
+    if (R.moving && !R.takeover) R.progress = Math.min(0.92, R.progress + 0.0006);
+  }
+  lastWall = now;
+}, 20);
+// GPS speed wins when it shows real movement (out on the road). Indoors, on stage, GPS reads
+// about 0, so the presenter's setting decides.
+function currentKmh() {
+  if (R.gps && R.gps.kmh != null && R.gps.kmh > 3) return R.gps.kmh;
+  return R.moving ? 30 + Math.random() * 4 : 0;
+}
+
+/* real sensors, outside the claude.ai frame */
+let motionSeen = false;
+let lastMotionAt = null; // wall time of the previous sensor reading
+function onMotion(e) {
+  if (R.playing) { lastMotionAt = null; return; }
+  const now = performance.now();
+  // Model time moves by the real gap since the previous reading (phones send 16 to 100 per second).
+  mt += lastMotionAt == null ? 20 : Math.max(1, Math.min(100, now - lastMotionAt));
+  lastMotionAt = now;
+  const s = M.fromDeviceMotion(e, mt);
+  if (!s) return;
+  motionSeen = true;
+  feed(s);
+}
+async function startSensor() {
+  try {
+    if (typeof DeviceMotionEvent === "undefined") throw new Error("none");
+    // iPhones, and newer Chrome, ask first. Some browsers answer "prompt" or "denied" and then
+    // send readings anyway, so what decides is whether readings arrive, checked below.
+    if (typeof DeviceMotionEvent.requestPermission === "function") {
+      try { await DeviceMotionEvent.requestPermission(); } catch {}
+    }
+    window.addEventListener("devicemotion", onMotion);
+    R.sensor = "on";
+    try { navigator.wakeLock && navigator.wakeLock.request("screen").catch(() => {}); } catch {}
+    try {
+      navigator.geolocation.watchPosition(
+        (p) => { R.gps = { kmh: p.coords.speed == null ? null : p.coords.speed * 3.6, lat: p.coords.latitude, lng: p.coords.longitude }; },
+        () => {}, { enableHighAccuracy: true, maximumAge: 1000 });
+    } catch {}
+    setTimeout(() => { if (!motionSeen) { R.sensor = "none"; window.removeEventListener("devicemotion", onMotion); renderRider(); } }, 2500);
+  } catch { R.sensor = "none"; }
+  renderRider();
+}
+
+/* playing a recorded moment through the live pipeline, at double speed */
+const SPEEDUP = 2;
+function play(id) {
+  const tr = S.all().find((x) => x.id === id);
+  if (!tr || R.takeover) return;
+  if (!R.trip || !["ride", "decides"].includes(R.screen)) { R.trip = true; R.screen = "ride"; }
+  detector.reset(); R.checking = null;
+  const base = mt + 20;
+  R.playing = { tr, base, wall: performance.now(), i: 0, si: 0 };
+  R.sheet = null;
+  if (tr.touchAt != null) R.playing.touchAt = base + tr.touchAt;
+  renderRider();
+}
+function playTick(now) {
+  const p = R.playing;
+  const traceT = (now - p.wall) * SPEEDUP;
+  const { samples, speeds } = p.tr;
+  while (p.si < speeds.length && speeds[p.si].t <= traceT) { detector.speed(p.base + speeds[p.si].t, speeds[p.si].kmh); p.si++; }
+  while (p.i < samples.length && samples[p.i].t <= traceT) {
+    const s = samples[p.i];
+    if (p.touchAt != null && p.base + s.t >= p.touchAt && !p.touched) { detector.touch(p.touchAt); p.touched = true; }
+    feed({ t: p.base + s.t, g: s.g, rot: s.rot });
+    mt = p.base + s.t;
+    p.i++;
+  }
+  if (p.i >= samples.length) { R.playing = null; lastSpeedAt = mt; }
+}
+
+/* the model has decided */
+function decided(d) {
+  R.checking = null;
+  R.last = d;
+  R.checks.unshift({ at: new Date(), d });
+  R.checks = R.checks.slice(0, 5);
+  if (!R.set.on || R.takeover || (R.set.tripsOnly && !R.trip)) { renderRider(); return; }
+  if (d.verdict === "crash" && !R.takeover) return startAsk();
+  if (d.verdict === "fall" && !R.takeover) { R.sheet = "fall"; beep([660, 880], 120, 0.12); buzz([120, 80, 120]); renderRider(); return; }
+  toast(d.words);
+  renderRider();
+}
+
+/* ----- Are you okay? ----- */
+let askTimer = null;
+function startAsk() {
+  const total = R.set.stage ? 10 : R.set.wait;
+  R.takeover = "ask";
+  R.sheet = null;
+  R.ask = { total, left: total, startedAt: performance.now() };
+  renderRider();
+  say("Are you okay? Tap I'm okay. If you do not answer, Ride Nanba will tell Amma and Arjun where you are.");
+  clearInterval(askTimer);
+  askTimer = setInterval(() => {
+    const left = Math.max(0, R.ask.total - Math.floor((performance.now() - R.ask.startedAt) / 1000));
+    if (left !== R.ask.left) {
+      R.ask.left = left;
+      beep(left <= 5 ? [988, 988] : [880, 660], 150, left <= 5 ? 0.24 : 0.16);
+      buzz(left <= 5 ? [300] : [160]);
+      updateRing();
+    }
+    if (left <= 0) { clearInterval(askTimer); sendAlert("no answer"); }
+  }, 100);
+}
+function okay() {
+  clearInterval(askTimer);
+  const took = Math.round((performance.now() - R.ask.startedAt) / 1000);
+  R.takeover = null; R.ask = null;
+  addLog({ what: "Crash Check asked if you were okay", detail: `You answered in ${took} s. Nothing was shared.` });
+  toast("Glad you are okay. Nothing was sent.");
+  renderRider();
+}
+function sendAlert(why) {
+  clearInterval(askTimer);
+  const at = new Date();
+  const until = new Date(at.getTime() + 60 * 60000);
+  const where = R.gps && R.gps.lat ? { lat: R.gps.lat, lng: R.gps.lng, place: "Your location from GPS" } : { lat: 12.8925, lng: 80.0809, place: "GST Road, near Vandalur" };
+  const f = R.last ? R.last.features : {};
+  R.alert = { at: at.getTime(), until: until.getTime(), ...where, before: f.speedBefore != null ? Math.round(f.speedBefore) : null, why };
+  R.takeover = "sent"; R.ask = null;
+  R.people = R.people.map((p) => ({ ...p, status: p.id === "amma" ? "Sent" : "Sent by text message" }));
+  addLog({ what: "Location sent to Amma and Arjun", detail: `${why === "asked" ? "You asked for help" : "You did not answer"} at ${time12(at)}. Shared until ${time12(until)}.` });
+  send({ to: "guardian", type: "alert", alert: { ...R.alert, name: "Priya" } });
+  say("Sending your location to Amma and Arjun.");
+  renderRider();
+}
+function imSafe() {
+  const at = new Date();
+  send({ to: "guardian", type: "safe", at: at.getTime() });
+  addLog({ what: "Location sharing stopped", detail: `You tapped I'm safe at ${time12(at)}.` });
+  R.takeover = null; R.alert = null;
+  R.people = R.people.map((p) => ({ ...p, status: "Not sent" }));
+  R.moving = false;
+  toast("Location sharing stopped. Amma and Arjun know you are safe.");
+  renderRider();
+}
+function riderHear(msg) {
+  if (msg.type === "seen" || msg.type === "going") {
+    R.people = R.people.map((p) => (p.id === "amma" ? { ...p, status: msg.type === "going" ? "On her way" : `Seen at ${time12(new Date())}` } : p));
+    if (msg.type === "going") { say("Amma is on her way."); beep([523, 659, 784], 140, 0.12); }
+    if (R.takeover === "sent") renderRider();
+  }
+}
+function addLog(e) {
+  R.log.unshift({ at: Date.now(), ...e });
+  R.log = R.log.slice(0, 8);
+  store.set("log", R.log);
+}
+
+let toastTimer = null;
+function toast(text, root = rider) {
+  const st = root === rider ? R : A;
+  st.toast = text;
+  clearTimeout(st._tt);
+  st._tt = setTimeout(() => { st.toast = null; const el = root.querySelector(".toast"); if (el) el.remove(); }, 3800);
+  const old = root.querySelector(".toast"); if (old) old.remove();
+  root.insertAdjacentHTML("beforeend", `<div class="toast" role="status">${esc(text)}</div>`);
+}
+
+/* ----- rider screens ----- */
+function rideScreen() {
+  const kmh = Math.round(currentKmh());
+  const mins = Math.max(4, Math.round((1 - R.progress) * 34));
+  const eta = time12(new Date(Date.now() + mins * 60000));
+  const steps = [1, 3, 2, 1].map((f, i) => `<i class="${i < 2 + R.step ? "on" : ""}" style="flex:${f}"></i>`).join("");
+  const leg = oneLeg()
+    ? { pic: "bike", title: `Ride to ${esc(R.dest)}`, meta: `${mins} min, about ${Math.max(1, Math.round((1 - R.progress) * 21))} km`, then: "Then: You are there", next: "I'm there" }
+    : R.step === 0
+    ? { pic: "bike", title: "Ride to Tambaram on GST Road", meta: `${mins} min, about ${Math.max(1, Math.round((1 - R.progress) * 21))} km`, then: `Then: Take the train to ${esc(R.dest)}`, next: "Done, next step" }
+    : { pic: "train", title: `Take the train to ${esc(R.dest)}`, meta: "From Tambaram, platform 2, every 10 min", then: "Then: You are there", next: "I'm there" };
+  const toldLine = R.toldAt ? `Sent at ${time12(new Date(R.toldAt))}. Tap to send again.` : "\u201CPriya is on the " + (R.step === 0 ? "scooter" : "train") + ". At " + esc(R.dest) + " by " + tripEta() + ".\u201D";
+  const touch = matchMedia("(pointer: coarse)").matches && typeof DeviceMotionEvent !== "undefined";
+  const ccAction = touch && R.sensor !== "on" ? "setup" : "decides";
+  return `
+  <div class="mapscreen">
+    <div class="mapbox">${mapSvg("rm", "ride")}
+      <button type="button" class="round map-btn" style="left:16px" data-a="home" aria-label="Back to Home">${icon("back", "ic-24")}</button>
+    </div>
+    <section class="sheet-body">
+      <span class="grab" aria-hidden="true"></span>
+      <h1 class="sheet-title">On your way</h1>
+      <div class="pad center mt-4">
+        <p class="h-28 tn">There by ${R.step === 0 && !oneLeg() ? tripEta() : eta}</p>
+        <p class="t-base muted mt-1 tn">${mins} min to go, ${R.moving ? kmh + " km/h" : "stopped at a signal"}</p>
+      </div>
+      <div class="pad mt-4"><div class="progress">${steps}</div></div>
+      <div class="pad mt-4" style="display:flex;gap:16px;align-items:flex-start">
+        ${art(leg.pic, 72)}
+        <div class="row-body">
+          <p class="h-24">${leg.title}</p>
+          <p class="t-base muted mt-1 tn">${leg.meta}</p>
+          <p class="t-base muted mt-1">${leg.then}</p>
+        </div>
+      </div>
+      <hr class="hair mt-4">
+      <div class="pad">
+        <button type="button" class="row" data-a="${ccAction}" id="cc-row">
+          ${art("shield", 48)}
+          <span class="row-body">
+            <span class="row-title" id="cc-title">Crash Check is on</span>
+            <span class="row-sub" id="cc-sub">Watching for a crash. Nothing leaves your phone.</span>
+            <span class="checkbar" id="cc-bar" hidden><i></i></span>
+          </span>
+          <span class="gread" id="cc-g"><span class="pulse"></span><span id="cc-gv">1.0 g</span></span>
+        </button>
+        ${row({ ic: "send", title: "Tell Amma", sub: toldLine, action: "tell" })}
+      </div>
+    </section>
+    <div class="footer"><button type="button" class="btn btn-primary" data-a="next">${leg.next}</button></div>
+  </div>`;
+}
+
+const PLACES = [
+  { name: "Chennai Central", sub: "Railway station, Park Town" },
+  { name: "Chennai Egmore", sub: "Railway station, Egmore" },
+  { name: "Tambaram", sub: "Railway station, GST Road" },
+  { name: "Anna Nagar", sub: "Home" },
+  { name: "T Nagar", sub: "Pondy Bazaar, shopping" },
+  { name: "Guindy", sub: "Metro and railway station" },
+  { name: "Chennai Airport", sub: "Meenambakkam" },
+  { name: "Marina Beach", sub: "Kamarajar Salai" },
+  { name: "Velachery", sub: "MRTS station" },
+  { name: "Potheri", sub: "Railway station, near SRM KTR" },
+];
+// One leg (scooter) when the place is on the way to Tambaram, else scooter then train.
+const oneLeg = () => R.dest === "Tambaram" || R.dest === "Potheri";
+function placeRows(q) {
+  const t = q.trim().toLowerCase();
+  const hits = PLACES.filter((p) => !t || p.name.toLowerCase().includes(t) || p.sub.toLowerCase().includes(t));
+  if (!hits.length) return `<p class="t-base muted mt-4">No places match \u201C${esc(q.trim())}\u201D. Try Central, Guindy or Airport.</p>`;
+  return hits.map((p) => row({ ic: p.name === "Anna Nagar" ? "home" : "pin", title: esc(p.name), sub: esc(p.sub), action: "go-place", attrs: `data-place="${esc(p.name)}"` })).join("");
+}
+function whereSheet() {
+  return sheet("Where to?", `
+    <label class="field" for="where">${icon("search")}<input id="where" type="search" placeholder="Search a place" autocomplete="off" enterkeyhint="go"></label>
+    <h3 class="t-sm med mt-4">${"Places near SRM KTR"}</h3>
+    <div id="place-list" class="mt-1">${placeRows("")}</div>`, true);
+}
+function whenSheet() {
+  const opts = ["Now", "In 15 min", "In 30 min", "In 1 hour"];
+  return sheet("When do you want to leave?", `
+    <div class="chips">${opts.map((o) => `<button type="button" class="chip" aria-pressed="${R.leave === o}" data-a="leave" data-v="${o}">${o}</button>`).join("")}</div>
+    <p class="t-sm muted mt-3">Crash Check starts when the trip starts.</p>
+    <button type="button" class="btn btn-primary mt-4" data-a="close">Done</button>`);
+}
+function contactSheet() {
+  const c = R.contacts.find((x) => x.id === R.contact);
+  if (!c) return "";
+  return sheet(c.name, `
+    <div style="display:flex;align-items:center;gap:12px"><div class="avatar">${esc(c.name.slice(0, 1).toUpperCase())}</div>
+      <div class="row-body"><p class="t-lg med">${esc(c.name)}</p><p class="t-sm muted">${esc(c.rel)}</p></div></div>
+    <div class="mt-3">
+      ${row({ ic: "phone", title: esc(c.phone), sub: "Phone" })}
+      ${row({ ic: c.ok ? "check" : "clock", title: esc(c.since), sub: c.ok ? "Gets an alert if you crash and do not answer" : "They need to accept before they get alerts" })}
+    </div>
+    <div class="stack gap-3 mt-4">
+      ${c.ok ? `<button type="button" class="btn btn-primary" data-a="test-alert">Send a test alert</button>` : ""}
+      <button type="button" class="btn btn-soft" data-a="close">Done</button>
+    </div>`);
+}
+function addSheet() {
+  return sheet("Add someone", `
+    <p class="t-sm muted center">They get a request by text message. Alerts reach them only after they accept.</p>
+    <label class="t-sm med mt-4" style="display:block" for="add-name">Name</label>
+    <div class="field mt-1"><input id="add-name" type="text" placeholder="For example, Appa" autocomplete="off"></div>
+    <label class="t-sm med mt-3" style="display:block" for="add-phone">Phone number</label>
+    <div class="field mt-1"><span class="muted">+91</span><input id="add-phone" type="tel" inputmode="numeric" placeholder="98765 43210" autocomplete="off"></div>
+    <p class="err" id="add-err" hidden></p>
+    <div class="stack gap-3 mt-4">
+      <button type="button" class="btn btn-primary" data-a="add-send">Send request</button>
+      <button type="button" class="btn btn-soft" data-a="close">Cancel</button>
+    </div>`);
+}
+
+function tabBar(on) {
+  const t = (id, label, ic) => `<button type="button" class="tab" data-a="tab" data-to="${id}" ${on === id ? 'aria-current="page"' : ""}>${icon(ic, "ic-24")}${label}</button>`;
+  return `<nav class="tabbar" aria-label="Main">${t("home", "Home", "home")}${t("activity", "Activity", "receipt")}${t("account", "Account", "user")}</nav>`;
+}
+function tripEta() {
+  const ride = Math.max(4, Math.round((1 - R.progress) * 34));
+  const mins = oneLeg() ? ride : R.step === 0 ? ride + 45 : 38;
+  return time12(new Date(Date.now() + mins * 60000));
+}
+function homeScreen() {
+  const tripRow = R.trip
+    ? row({ artName: R.step === 0 ? "bike" : "train", title: `Trip to ${esc(R.dest)}`, sub: `On your way. There by ${tripEta()}`, trail: `<span class="tag tag-ok"><span class="dot"></span>Now</span>`, action: "open-trip" })
+    : row({ ic: "pin", title: "Chennai Central", sub: "Scooter and train, about 1 h 5 min", action: "go-place", attrs: 'data-place="Chennai Central"' });
+  return `<div class="page-top">
+    <div style="display:flex;align-items:flex-start;gap:12px">
+      <div style="flex:1;min-width:0"><h1 class="h-28">Ride Nanba</h1><p class="t-base muted mt-1 tn">SRM KTR, ${time12(new Date())}</p></div>
+      <button type="button" class="wx" data-a="weather">${icon("sun")}No rain for now <span class="pulse"></span></button>
+    </div>
+    <div class="search-row mt-4">
+      <button type="button" class="search" data-a="where">${icon("search", "ic-24")}Where to?</button>
+      <button type="button" class="nowpill" data-a="when">${icon("clock")}${esc(R.leave)}</button>
+    </div>
+    <div class="mt-2">
+      ${tripRow}
+      ${row({ ic: "home", title: "Home", sub: "Anna Nagar, one tap", trail: `<span class="go">Go</span>`, action: "go-home" })}
+    </div>
+    <button type="button" class="feature mt-4" data-a="settings">
+      <img src="${ART["banner-safe"]}" alt="">
+      <span class="fbody"><span class="h-20" style="display:block">${R.set.on ? "Crash Check is on" : "Turn on Crash Check"}</span>
+      <span class="t-base muted" style="display:block;margin-top:4px">If you crash and do not answer, Amma and Arjun get your location for one hour.</span></span>
+    </button>
+  </div>`;
+}
+function arrivedScreen() {
+  return `<div class="page-top center" style="padding-top:max(env(safe-area-inset-top,0px),56px);padding-bottom:32px">
+    ${art("house", 112)}
+    <h1 class="h-28 mt-4">You're at ${esc(R.dest)}</h1>
+    <p class="t-base muted mt-2 tn">Arrived at ${time12(new Date())}. ${oneLeg() ? "Scooter" : "Scooter and train"} from SRM KTR.</p>
+    <div class="mt-6" style="text-align:left">
+      ${row({ ic: "send", title: "Amma knows you reached", sub: `Sent at ${time12(new Date(R.arrivedAt || Date.now()))}` })}
+      ${row({ artName: "shield", title: "Crash Check stopped", sub: "It only watches during a Ride Nanba trip" })}
+    </div>
+    <button type="button" class="btn btn-primary mt-6" data-a="home">Done</button>
+  </div>`;
+}
+function activityScreen() {
+  const checks = R.checks.map(({ at, d }) => row({ ic: "activity", title: esc(d.words), sub: `${time12(at)}. Score ${d.score} of 100.` })).join("");
+  const shares = R.log.map((e) => row({ ic: "pin", title: esc(e.what), sub: esc(`${new Date(e.at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}, ${time12(new Date(e.at))}. ${e.detail}`) })).join("");
+  return `<div class="page-top">
+    <h1 class="h-28">Activity</h1>
+    <h2 class="h-20 mt-6">Trips</h2>
+    <div class="mt-2">
+      ${R.trip ? row({ artName: R.step === 0 ? "bike" : "train", title: `SRM KTR to ${esc(R.dest)}`, sub: "On your way now", action: "open-trip" }) : ""}
+      ${row({ artName: "auto", title: "Potheri to Tambaram", sub: "Yesterday, 6:12 PM. Auto and train." })}
+    </div>
+    <h2 class="h-20 mt-6">Crash Check on this phone</h2>
+    <div class="mt-2">${checks || `<p class="t-base muted">No checks yet. Crash Check only checks after a hard hit.</p>`}</div>
+    <h2 class="h-20 mt-6">What was shared</h2>
+    <div class="mt-2">${shares || `<p class="t-base muted">Nothing has been shared.</p>`}</div>
+  </div>`;
+}
+function accountScreen() {
+  const narrow = matchMedia("(max-width: 939px)").matches;
+  return `<div class="page-top">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="flex:1;min-width:0"><h1 class="h-32">Priya</h1><p class="t-base muted mt-1">Anna Nagar is home</p></div>
+      <div class="avatar">P</div>
+    </div>
+    <div class="tiles mt-4">
+      <button type="button" class="tile-btn" data-a="settings">${art("shield", 56)}Crash Check</button>
+      <button type="button" class="tile-btn" data-a="medical">${art("ticket", 56)}Medical ID</button>
+    </div>
+    <div class="mt-2">
+      ${row({ ic: "users", title: "Who gets alerts", sub: "Amma and Arjun", action: "settings" })}
+      ${row({ ic: "activity", title: "How Crash Check decides", sub: "The points behind every check", action: "decides" })}
+      ${row({ ic: "sliders", title: "Presenter controls", sub: "Act out a drop, a pothole or a crash", action: "presenter" })}
+      ${narrow ? row({ ic: "phoneSm", title: "Make this Amma's phone", sub: "Show what her phone shows", action: "role-guardian" }) : ""}
+    </div>
+  </div>`;
+}
+function setupSheet() {
+  return sheet("Turn on Crash Check", `
+    <div class="center">${art("shield", 88)}</div>
+    <p class="t-base center mt-2">During a trip, Crash Check feels how this phone moves. After a crash it asks if you are okay. If you do not answer, Amma and Arjun get your location for one hour.</p>
+    <div class="tile stack gap-3 mt-4">
+      <div style="display:flex;gap:12px">${icon("phoneSm")}<span class="t-sm">Motion readings stay on this phone and are deleted after 12 seconds.</span></div>
+      <div style="display:flex;gap:12px">${icon("eyeoff")}<span class="t-sm">Nobody can see where you are on an ordinary day.</span></div>
+    </div>
+    <div class="stack gap-3 mt-4">
+      <button type="button" class="btn btn-primary" data-a="setup-on">Allow motion and turn on</button>
+      <button type="button" class="btn btn-soft" data-a="close">Not now</button>
+    </div>`);
+}
+
+function decidesScreen() {
+  const d = R.last;
+  const pts = (p) => (p > 0 ? `+${p}` : p < 0 ? `<span class="pts-neg">${p}</span>` : "0");
+  const table = d
+    ? `<table class="signals"><thead><tr><th scope="col">Signal</th><th scope="col">Reading</th><th scope="col">Points</th></tr></thead><tbody>
+        ${d.signals.map((s) => `<tr class="${s.met ? "" : "off"}"><td>${esc(s.label)}</td><td>${esc(s.value)}</td><td>${pts(s.points)}</td></tr>`).join("")}
+        <tr class="total"><td>Total</td><td></td><td class="tn">${d.score}</td></tr></tbody></table>
+       <p class="t-base med mt-3">${esc(d.words)}</p>`
+    : `<p class="t-base muted">No checks yet on this trip. Play a moment below, or open Presenter controls and use this phone's motion sensor.</p>`;
+  const moments = S.all().map((tr) => {
+    const want = tr.expect[0];
+    const tagHtml = want === "crash" ? `<span class="tag tag-flood">Asks you</span>` : want === "fall" ? `<span class="tag tag-neutral">Quiet check</span>` : `<span class="tag tag-ok">Nothing sent</span>`;
+    const pic = ["drop", "bed"].includes(tr.id) ? "house" : tr.id === "brake" ? "auto" : "bike";
+    return row({ artName: pic, title: esc(tr.title), sub: esc(tr.sub), trail: tagHtml, action: "play", attrs: `data-id="${tr.id}"` });
+  }).join("");
+  return `
+  <header class="page-top" style="display:flex;align-items:center;gap:8px;padding-bottom:8px">
+    <button type="button" class="round round-flat" data-a="back" aria-label="Back">${icon("back", "ic-24")}</button>
+    <h1 class="t-lg" style="font-weight:700;flex:1;min-width:0">How Crash Check decides</h1>
+  </header>
+  <div class="pad stack gap-4" style="padding-bottom:32px">
+    <div class="tile" style="padding:12px 12px 8px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <span class="t-sm med">Your phone's motion, last 10 seconds</span>
+        <span class="t-sm med tn" id="chart-g">1.0 g</span>
+      </div>
+      <canvas class="chart mt-2" id="chart" width="700" height="340" aria-label="Line chart of g-force over the last 10 seconds"></canvas>
+      <p class="t-xs muted mt-1" id="chart-state">${R.playing ? "Playing " + esc(R.playing.tr.title.toLowerCase()) + " at double speed" : R.sensor === "on" ? "Live from this phone's motion sensor" : "Riding along GST Road"}</p>
+    </div>
+    <p class="t-base">A hit above 2.5 g, or a fall longer than 0.15 seconds, starts a check. Crash Check then watches for 6 seconds and scores what happened.</p>
+    <div>
+      <h2 class="h-20">The last check</h2>
+      <div class="mt-3">${table}</div>
+    </div>
+    <div class="tile stack gap-3">
+      <h3 class="t-sm med">What the score does</h3>
+      <div style="display:flex;gap:12px;align-items:baseline"><b class="tn" style="width:64px">60+</b><span>Asks if you are okay, then tells your family</span></div>
+      <div style="display:flex;gap:12px;align-items:baseline"><b class="tn" style="width:64px">35 to 59</b><span>A quiet check on your screen. Nothing is sent.</span></div>
+      <div style="display:flex;gap:12px;align-items:baseline"><b class="tn" style="width:64px">0 to 34</b><span>Nothing happens</span></div>
+    </div>
+    <div>
+      <h2 class="h-20">Play a moment</h2>
+      <p class="t-sm muted mt-1">Recorded motion, run through the same check your phone runs</p>
+      <div class="mt-2">${moments}</div>
+    </div>
+    <button type="button" class="btn btn-soft" data-a="settings">Crash Check settings</button>
+  </div>`;
+}
+
+function settingsScreen() {
+  // (Back returns to the screen this was opened from)
+  const s = R.set;
+  const waitChips = [15, 30, 60].map((w) => `<button type="button" class="chip tn" aria-pressed="${s.wait === w}" data-a="wait" data-w="${w}">${w} s</button>`).join("");
+  const log = R.log.length
+    ? R.log.map((e) => row({ ic: "clock", title: esc(e.what), sub: esc(`${new Date(e.at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}, ${time12(new Date(e.at))}. ${e.detail}`) })).join("") +
+      `<button type="button" class="link t-sm mt-2" data-a="clearlog">Delete this history</button>`
+    : `<p class="t-base muted">Nothing has been shared.</p>`;
+  return `
+  <header class="page-top" style="display:flex;align-items:center;gap:8px;padding-bottom:8px">
+    <button type="button" class="round round-flat" data-a="back" aria-label="Back">${icon("back", "ic-24")}</button>
+    <h1 class="t-lg" style="font-weight:700;flex:1">Crash Check</h1>
+  </header>
+  <div class="pad" style="padding-bottom:32px">
+    <img class="banner" src="${ART["banner-safe"]}" alt="">
+    <div class="mt-2">
+      ${switchRow("Crash Check", "Ask if you are okay after a crash, then tell your family", s.on, "t-on")}
+      ${switchRow("Only on Ride Nanba trips", "Motion is not read at any other time", s.tripsOnly, "t-trips")}
+    </div>
+    <h2 class="h-20 mt-6">Wait before telling family</h2>
+    <p class="t-sm muted mt-1">How long Crash Check waits for you to answer</p>
+    <div class="chips mt-3">${waitChips}</div>
+    <h2 class="h-20 mt-8">Who gets the alert</h2>
+    <div class="mt-2">
+      ${R.contacts.map((c) => row({ ic: "users", title: esc(c.name), sub: esc(`${c.rel}. ${c.since}.`), action: "contact", attrs: `data-id="${c.id}"` })).join("")}
+      ${row({ ic: "plus", title: "Add someone", sub: "They get a request and must accept it", action: "add" })}
+      ${row({ ic: "card", title: "Medical ID", sub: "Blood group and allergies, for whoever helps you", action: "medical" })}
+    </div>
+    <div class="tile mt-6 stack gap-3">
+      <h3 class="t-sm med">What leaves your phone</h3>
+      <div style="display:flex;gap:12px">${icon("phoneSm")}<span class="t-sm">Motion and speed readings stay on this phone. Each one is deleted after 12 seconds.</span></div>
+      <div style="display:flex;gap:12px">${icon("pin")}<span class="t-sm">Your location is sent only when you do not answer after a crash, or you ask for help.</span></div>
+      <div style="display:flex;gap:12px">${icon("eyeoff")}<span class="t-sm">Family see it for one hour, or until you tap I'm safe. They cannot see where you are at any other time.</span></div>
+    </div>
+    <h2 class="h-20 mt-8">What was shared</h2>
+    <div class="mt-2">${log}</div>
+  </div>`;
+}
+
+function askTakeover() {
+  const a = R.ask;
+  return `<div class="takeover" role="alertdialog" aria-labelledby="ask-h" aria-describedby="ask-d">
+    <div class="scroll"><div class="page-top center" style="padding-top:max(env(safe-area-inset-top,0px),48px)">
+      <span class="tag tag-flood">Crash Check</span>
+      <h1 class="h-32 mt-3" id="ask-h">Are you okay?</h1>
+      <p class="t-lg muted mt-2" id="ask-d">It looks like you crashed. If you do not answer, Amma and Arjun get your location.</p>
+      <div class="ring mt-8" aria-live="polite">
+        <svg viewBox="0 0 208 208"><circle cx="104" cy="104" r="96" fill="none" stroke="var(--surface-2)" stroke-width="10"/>
+          <circle id="ring-arc" cx="104" cy="104" r="96" fill="none" stroke="var(--flood)" stroke-width="10" stroke-linecap="round" stroke-dasharray="603.2" stroke-dashoffset="0"/></svg>
+        <div class="num"><div><b id="ring-n">${a.left}</b><span>seconds</span></div></div>
+      </div>
+      <p class="t-sm muted mt-6">Your location has not been shared.</p>
+    </div></div>
+    <div class="pad stack gap-3" style="padding-bottom:max(env(safe-area-inset-bottom,0px),20px);padding-top:12px">
+      <button type="button" class="btn btn-primary" data-a="okay">I'm okay</button>
+      <button type="button" class="btn btn-danger" data-a="help">Get help now</button>
+    </div>
+  </div>`;
+}
+
+function sentTakeover() {
+  const a = R.alert;
+  const people = R.people.map((p) => row({ ic: "users", title: `${p.name}`, sub: `${p.rel}`, trail: `<span class="tag ${/way|Seen/.test(p.status) ? "tag-ok" : "tag-neutral"}">${esc(p.status)}</span>` })).join("");
+  return `<div class="takeover" role="dialog" aria-labelledby="sent-h">
+    <div class="scroll"><div class="page-top" style="padding-bottom:16px">
+      <span class="tag tag-flood"><span class="dot"></span>Sharing your location</span>
+      <h1 class="h-28 mt-3" id="sent-h">Amma and Arjun know</h1>
+      <p class="t-base muted mt-1 tn">Sent at ${time12(new Date(a.at))}. They can see where you are until ${time12(new Date(a.until))}, or until you tap I'm safe.</p>
+      <div class="mt-4">${people}</div>
+      <div class="mt-2">
+        <div class="row"><span class="row-ic">${icon("phone")}</span><span class="row-body"><span class="row-title">Ambulance: 108</span><span class="row-sub">Call if you are hurt. Ride Nanba does not call for you.</span></span><a class="chip" style="display:grid;place-items:center;text-decoration:none" href="tel:108">Call</a></div>
+        ${row({ ic: "pin", title: esc(a.place), sub: `Shared with 2 people until ${time12(new Date(a.until))}` })}
+        ${row({ ic: "card", title: "Medical ID", sub: "Show your blood group and allergies to someone helping you", action: "medical" })}
+      </div>
+    </div></div>
+    <div class="footer"><button type="button" class="btn btn-primary" data-a="safe">I'm safe, stop sharing</button></div>
+  </div>`;
+}
+
+function presenterSheet() {
+  const sensorLine = R.sensor === "on" ? (R.gps && R.gps.kmh != null && R.gps.kmh > 3 ? "Reading motion and GPS speed on this phone" : "Reading motion. Speed comes from the setting above.") : R.sensor === "none" ? "This browser is not sharing motion here. Open the page from its own web address on a phone, or use the moments below." : "Drop it on a pillow, or throw it onto a sofa and leave it";
+  const moments = [["drop", "Drop from my hand"], ["pothole", "Pothole at 30 km/h"], ["crash", "Crash at 34 km/h"], ["mount", "Phone falls off the mount"], ["slip", "Slow skid, I get up"]]
+    .map(([id, t]) => `<button type="button" class="chip" data-a="play" data-id="${id}">${t}</button>`).join("");
+  const narrow = matchMedia("(max-width: 939px)").matches;
+  return sheet("Presenter controls", `
+    <h3 class="t-sm med">Priya is</h3>
+    <div class="chips mt-2">
+      <button type="button" class="chip" aria-pressed="${R.moving}" data-a="moving">Riding at 32 km/h</button>
+      <button type="button" class="chip" aria-pressed="${!R.moving}" data-a="stopped">Stopped at a signal</button>
+    </div>
+    <h3 class="t-sm med mt-6">Act it out</h3>
+    <div class="chips mt-2">${moments}</div>
+    <div class="mt-4">
+      ${R.sensor === "on" ? row({ ic: "activity", title: "Motion sensor is on", sub: sensorLine, trail: `<span class="tag tag-ok"><span class="dot"></span>Live</span>` }) : row({ ic: "phoneSm", title: "Use this phone's motion sensor", sub: sensorLine, action: "sensor" })}
+      ${switchRow("Short countdown for the stage", "10 seconds instead of " + R.set.wait, R.set.stage, "t-stage")}
+      ${narrow ? row({ ic: "users", title: "Make this Amma's phone", sub: room ? (R.peers ? `${R.peers} other phone${R.peers > 1 ? "s" : ""} on this page now` : "Open this page on a second phone and choose Amma") : "For a second phone in the same browser, open another tab", action: "role-guardian" }) : ""}
+      ${row({ ic: "rotate", title: "Start over", sub: "Clear checks and what was shared", action: "reset" })}
+    </div>
+    <button type="button" class="btn btn-primary mt-4" data-a="close">Done</button>`);
+}
+function fallSheet() {
+  return sheet("That looked like a fall", `
+    <p class="t-base muted center">Crash Check saw a hit while you were riding, then you moved. Nothing has been sent.</p>
+    <div class="stack gap-3 mt-6">
+      <button type="button" class="btn btn-primary" data-a="fine">I'm fine</button>
+      <button type="button" class="btn btn-soft" data-a="help">Tell Amma and Arjun</button>
+    </div>`);
+}
+function medicalSheet() {
+  return sheet("Medical ID", `
+    <p class="t-sm muted center">On your lock screen only after a crash, for whoever helps you. You choose what is here.</p>
+    <div class="medid mt-4">
+      ${row({ title: "Priya, 19", sub: "Name and age" })}
+      ${row({ title: "O positive", sub: "Blood group" })}
+      ${row({ title: "Penicillin", sub: "Allergies" })}
+      ${row({ title: "Amma, +91 98400 21136", sub: "Call first" })}
+    </div>
+    <p class="t-sm muted mt-3">Not shown: your address, your trips, your other contacts.</p>
+    <button type="button" class="btn btn-primary mt-4" data-a="close">Done</button>`);
+}
+function sheet(title, body, tall) {
+  return `<div class="overlay" data-a="close"></div><div class="bsheet${tall ? " tall" : ""}" role="dialog" aria-label="${esc(title)}"><span class="grab"></span><div class="scroll"><h2 class="sheet-title" style="margin-top:0">${esc(title)}</h2><div class="mt-4">${body}</div></div></div>`;
+}
+
+let savedScroll = 0;
+function renderRider() {
+  const sc = rider.querySelector(".scroll.main");
+  if (sc) savedScroll = sc.scrollTop;
+  const screens = { home: homeScreen, ride: rideScreen, arrived: arrivedScreen, activity: activityScreen, account: accountScreen, decides: decidesScreen, settings: settingsScreen };
+  const main = (screens[R.screen] || rideScreen)();
+  const tabbed = ["home", "activity", "account"].includes(R.screen);
+  let over = "";
+  if (R.takeover === "ask") over += askTakeover();
+  if (R.takeover === "sent") over += sentTakeover();
+  if (R.sheet === "presenter") over += presenterSheet();
+  if (R.sheet === "fall") over += fallSheet();
+  if (R.sheet === "medical") over += medicalSheet();
+  if (R.sheet === "setup") over += setupSheet();
+  if (R.sheet === "where") over += whereSheet();
+  if (R.sheet === "when") over += whenSheet();
+  if (R.sheet === "contact") over += contactSheet();
+  if (R.sheet === "add") over += addSheet();
+  rider.innerHTML = `${sbar()}<div class="scroll main${tabbed ? " has-tabs" : ""}">${main}</div>${tabbed ? tabBar(R.screen) : ""}${over}${R.toast ? `<div class="toast" role="status">${esc(R.toast)}</div>` : ""}`;
+  const sc2 = rider.querySelector(".scroll.main");
+  if (sc2 && R._keepScroll) sc2.scrollTop = savedScroll;
+  R._keepScroll = false;
+  if (R.takeover === "ask") updateRing();
+  updateLive(true);
+}
+function updateRing() {
+  const arc = rider.querySelector("#ring-arc"); const n = rider.querySelector("#ring-n");
+  if (!arc || !R.ask) return;
+  n.textContent = R.ask.left;
+  arc.setAttribute("stroke-dashoffset", String(603.2 * (1 - R.ask.left / R.ask.total)));
+}
+
+function startTrip(dest) {
+  R.dest = dest || "Chennai Central";
+  R.trip = true; R.step = 0; R.progress = 0.34; R.toldAt = null; R.moving = true;
+  R.sheet = null; R.screen = "ride"; R.startedAt = new Date();
+  send({ to: "guardian", type: "trip", dest: R.dest, at: R.startedAt.getTime() });
+  renderRider();
+  const sc = rider.querySelector(".scroll.main"); if (sc) sc.scrollTop = 0;
+}
+rider.addEventListener("input", (e) => {
+  if (e.target.id === "where") { const list = rider.querySelector("#place-list"); if (list) list.innerHTML = placeRows(e.target.value); }
+  if (e.target.id === "add-name" || e.target.id === "add-phone") { const err = rider.querySelector("#add-err"); if (err) err.hidden = true; }
+});
+rider.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter") return;
+  if (e.target.id === "where") { const first = rider.querySelector("#place-list [data-place]"); if (first) startTrip(first.dataset.place); }
+  if (e.target.id === "add-phone") { const b = rider.querySelector('[data-a="add-send"]'); if (b) b.click(); }
+});
+
+rider.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-a]");
+  if (!b) return;
+  detector.touch(mt);
+  const a = b.dataset.a;
+  const go = (scr) => { if (scr === "decides" || scr === "settings") { if (!["decides", "settings"].includes(R.screen)) R.from = R.screen; } R.screen = scr; R.sheet = null; renderRider(); const sc = rider.querySelector(".scroll.main"); if (sc) sc.scrollTop = 0; };
+  switch (a) {
+    case "home": return go("home");
+    case "tab": return go(b.dataset.to);
+    case "open-trip": return go("ride");
+    case "start-trip": startTrip(R.dest); return;
+    case "where":
+      R.sheet = "where"; renderRider();
+      setTimeout(() => { const i = rider.querySelector("#where"); if (i) i.focus(); }, 60);
+      return;
+    case "when": R.sheet = "when"; return renderRider();
+    case "leave": R.leave = b.dataset.v; R._keepScroll = true; return renderRider();
+    case "weather": toast("No rain on GST Road for the next 2 hours."); return;
+    case "go-home": startTrip("Anna Nagar"); return;
+    case "go-place": startTrip(b.dataset.place); return;
+    case "contact": R.contact = b.dataset.id; R.sheet = "contact"; R._keepScroll = true; return renderRider();
+    case "test-alert": {
+      const c = R.contacts.find((x) => x.id === R.contact);
+      R.sheet = null; R._keepScroll = true; renderRider();
+      if (c && c.id === "amma") { send({ to: "guardian", type: "test", at: Date.now() }); toast("Test alert sent to Amma."); }
+      else if (c) toast(`Test alert sent to ${c.name} by text message.`);
+      return;
+    }
+    case "add": R.sheet = "add"; R._keepScroll = true; renderRider(); setTimeout(() => { const i = rider.querySelector("#add-name"); if (i) i.focus(); }, 60); return;
+    case "add-send": {
+      const name = (rider.querySelector("#add-name") || {}).value || "";
+      const digits = ((rider.querySelector("#add-phone") || {}).value || "").replace(/\D/g, "").slice(-10);
+      const err = rider.querySelector("#add-err");
+      const fail = (m) => { if (err) { err.textContent = m; err.hidden = false; } };
+      if (!name.trim()) return fail("Enter their name.");
+      if (digits.length !== 10) return fail("Enter a 10-digit mobile number.");
+      R.contacts.push({ id: "c" + Date.now(), name: name.trim().slice(0, 30), rel: "Added by you", phone: `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`, since: "Waiting for them to accept", ok: false });
+      R.sheet = null; R._keepScroll = true; renderRider();
+      toast(`Request sent to ${name.trim().slice(0, 30)}.`);
+      return;
+    }
+    case "next":
+      if (R.step === 0 && !oneLeg()) { R.step = 1; R._keepScroll = false; return go("ride"); }
+      R.trip = false; R.arrivedAt = Date.now();
+      send({ to: "guardian", type: "arrived", at: R.arrivedAt, dest: R.dest });
+      return go("arrived");
+    case "tell":
+      R.toldAt = Date.now();
+      send({ to: "guardian", type: "msg", at: R.toldAt, text: `Priya is on the ${R.step === 0 ? "scooter" : "train"}. At ${R.dest} by ${tripEta()}.` });
+      toast("Sent to Amma."); R._keepScroll = true; return renderRider();
+    case "setup": R.sheet = "setup"; return renderRider();
+    case "setup-on":
+      R.sheet = null; R.set.on = true; store.set("settings", R.set);
+      startSensor().then(() => setTimeout(() => {
+        if (R.sensor === "on") toast("Crash Check is on and reading this phone's motion.");
+        else if (R.sensor === "none") toast("This browser did not share motion. Crash Check stays on with the presenter moments.");
+      }, 2700));
+      return renderRider();
+    case "presenter": R.sheet = "presenter"; return renderRider();
+    case "close": R.sheet = null; return renderRider();
+    case "decides": return go("decides");
+    case "settings": return go("settings");
+    case "back": return go(R.screen === "settings" && R.from === "decides" ? "decides" : R.from && !["decides", "settings"].includes(R.from) ? R.from : "ride");
+    case "moving": R.moving = true; R._keepScroll = true; return renderRider();
+    case "stopped": R.moving = false; R._keepScroll = true; return renderRider();
+    case "play": R._keepScroll = true; return play(b.dataset.id);
+    case "sensor": return startSensor();
+    case "okay": return okay();
+    case "help": R.sheet = null; return sendAlert("asked");
+    case "fine": R.sheet = null; addLog({ what: "Crash Check saw a fall", detail: "You said you were fine. Nothing was shared." }); toast("Okay. Nothing was sent."); return renderRider();
+    case "safe": return imSafe();
+    case "medical": R.sheet = "medical"; return renderRider();
+    case "wait": R.set.wait = Number(b.dataset.w); store.set("settings", R.set); R._keepScroll = true; return renderRider();
+    case "t-on": R.set.on = !R.set.on; store.set("settings", R.set); R._keepScroll = true; return renderRider();
+    case "t-trips": R.set.tripsOnly = !R.set.tripsOnly; store.set("settings", R.set); R._keepScroll = true; return renderRider();
+    case "t-stage": R.set.stage = !R.set.stage; store.set("settings", R.set); return renderRider();
+    case "clearlog": R.log = []; store.set("log", []); R._keepScroll = true; return renderRider();
+    case "role-guardian": return setRole("guardian");
+    case "reset":
+      R.log = []; store.set("log", []); R.checks = []; R.last = null; R.sheet = null; R.moving = true; R.progress = 0.34;
+      R.trip = true; R.step = 0; R.toldAt = null; R.screen = "ride"; R.dest = "Chennai Central"; R.leave = "Now";
+      send({ to: "guardian", type: "reset" });
+      detector.reset(); return renderRider();
+    default: return;
+  }
+});
+
+/* live bits, without re-rendering: g readout, the rider dot, the chart */
+function updateLive(force) {
+  const gv = rider.querySelector("#cc-gv");
+  if (gv) {
+    gv.textContent = lastG.toFixed(1) + " g";
+    const rowEl = rider.querySelector("#cc-row");
+    const bar = rider.querySelector("#cc-bar");
+    const checking = R.checking != null;
+    rowEl.classList.toggle("checking", checking);
+    rider.querySelector("#cc-title").textContent = !R.set.on ? "Crash Check is off" : checking ? "Something happened. Checking." : R.playing ? "Crash Check is on" : "Crash Check is on";
+    rider.querySelector("#cc-sub").textContent = !R.set.on ? "Turn it on in Crash Check settings" : checking ? "Watching how you move for 6 seconds" : R.sensor === "on" ? "Reading this phone's motion. Nothing leaves it." : "Watching for a crash. Nothing leaves your phone.";
+    bar.hidden = !checking;
+    if (checking) bar.firstElementChild.style.width = Math.min(100, ((mt - R.checking) / M.T.settleMs) * 100) + "%";
+  }
+  const me = rider.querySelector("#rm-me");
+  const path = rider.querySelector("#rm-route");
+  if (me && path) {
+    const p = path.getPointAtLength(path.getTotalLength() * R.progress);
+    me.setAttribute("transform", `translate(${p.x} ${p.y})`);
+  }
+  const cg = rider.querySelector("#chart-g");
+  if (cg) cg.textContent = lastG.toFixed(1) + " g";
+  drawChart();
+}
+function drawChart() {
+  const c = rider.querySelector("#chart");
+  if (!c) return;
+  const ctx = c.getContext("2d");
+  const W = c.width, H = c.height, padL = 54, padB = 8, padT = 10;
+  const css = getComputedStyle(document.documentElement);
+  const col = (n) => css.getPropertyValue(n).trim();
+  ctx.clearRect(0, 0, W, H);
+  const maxG = 8;
+  const y = (g) => padT + (H - padT - padB) * (1 - Math.min(g, maxG) / maxG);
+  ctx.font = "22px system-ui, -apple-system, sans-serif";
+  ctx.textBaseline = "middle";
+  for (const g of [0, 1, 2.5, 5, 8]) {
+    ctx.strokeStyle = g === 2.5 ? col("--flood") : col("--surface-2");
+    ctx.setLineDash(g === 2.5 ? [8, 8] : []);
+    ctx.lineWidth = g === 2.5 ? 2 : 1.5;
+    ctx.beginPath(); ctx.moveTo(padL, y(g)); ctx.lineTo(W, y(g)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = g === 2.5 ? col("--flood") : col("--muted");
+    if (g) ctx.fillText((g === 2.5 ? "2.5" : String(g)) + " g", 0, Math.min(H - 12, Math.max(12, y(g))));
+  }
+  if (!trace.length) return;
+  const t1 = trace[trace.length - 1].t, t0 = t1 - 10000;
+  const x = (t) => padL + ((t - t0) / 10000) * (W - padL);
+  if (R.checking != null && R.checking > t0) {
+    ctx.fillStyle = col("--surface-2");
+    ctx.fillRect(x(R.checking), padT, Math.max(2, x(Math.min(t1, R.checking + M.T.settleMs)) - x(R.checking)), H - padT - padB);
+  }
+  ctx.strokeStyle = col("--text"); ctx.lineWidth = 3; ctx.lineJoin = "round";
+  ctx.beginPath();
+  trace.forEach((s, i) => (i ? ctx.lineTo(x(s.t), y(s.g)) : ctx.moveTo(x(s.t), y(s.g))));
+  ctx.stroke();
+  const end = trace[trace.length - 1];
+  ctx.fillStyle = col("--text");
+  ctx.beginPath(); ctx.arc(x(end.t), y(end.g), 6, 0, Math.PI * 2); ctx.fill();
+}
+let lastScreenSig = "";
+(function frame() {
+  updateLive();
+  // re-render the decides page when a playback ends or a new check lands, so its table and caption are current
+  const sig = `${R.screen}|${!!R.playing}|${R.last ? R.last.at : 0}|${R.moving}`;
+  if (sig !== lastScreenSig) { const changed = lastScreenSig !== ""; lastScreenSig = sig; if (changed && !R.takeover && R.screen !== "settings") { R._keepScroll = true; renderRider(); } }
+  requestAnimationFrame(frame);
+})();
+
+/* ================= GUARDIAN: Amma ================= */
+const A = { screen: "idle", alert: null, going: false, safeAt: null, toast: null, msg: null, arrivedAt: null, dest: "Chennai Central", startedAt: null };
+const guardian = document.getElementById("guardian");
+let ringTimer = null;
+
+function guardianHear(msg) {
+  if (msg.type === "alert") {
+    A.screen = "alert"; A.alert = msg.alert; A.going = false;
+    renderGuardian();
+    clearInterval(ringTimer);
+    let n = 0;
+    ringTimer = setInterval(() => { beep([740, 988, 740], 140, 0.2); buzz([400, 200, 400]); if (++n >= 6) clearInterval(ringTimer); }, 1500);
+    setTimeout(() => send({ to: "rider", type: "seen", by: "amma" }), 1500);
+  }
+  if (msg.type === "msg") { A.msg = { at: msg.at, text: msg.text }; if (A.screen === "idle") { renderGuardian(); toast("Priya: " + msg.text, guardian); beep([660], 90, 0.08); } }
+  if (msg.type === "arrived") { const d = String(msg.dest || A.dest).slice(0, 40); A.arrivedAt = msg.at; A.msg = { at: msg.at, text: `Reached ${d}.` }; if (A.screen === "idle") { renderGuardian(); toast(`Priya reached ${d}.`, guardian); } }
+  if (msg.type === "trip") { A.dest = String(msg.dest || "Chennai Central").slice(0, 40); A.startedAt = msg.at; A.arrivedAt = null; A.msg = null; if (A.screen === "idle") renderGuardian(); }
+  if (msg.type === "test") { if (A.screen === "idle") { toast("Test alert from Priya's Crash Check. Nothing is wrong.", guardian); beep([740, 988], 120, 0.12); buzz([200]); } }
+  if (msg.type === "reset") { clearInterval(ringTimer); Object.assign(A, { screen: "idle", alert: null, going: false, msg: null, arrivedAt: null, dest: "Chennai Central", startedAt: null }); renderGuardian(); }
+  if (msg.type === "safe") {
+    clearInterval(ringTimer);
+    A.screen = "safe"; A.safeAt = msg.at; A.alert = null;
+    renderGuardian();
+  }
+}
+function guardianIdle() {
+  return `<div class="page-top" style="padding-bottom:32px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="flex:1;min-width:0"><h1 class="h-28">Priya</h1><p class="t-base muted mt-1 tn">${A.arrivedAt ? `Reached ${esc(A.dest)} at ` + time12(new Date(A.arrivedAt)) : `On a Ride Nanba trip to ${esc(A.dest)}`}</p></div>
+      <div class="avatar">P</div>
+    </div>
+    <div class="mt-4">
+      ${A.msg ? row({ ic: "send", title: esc(A.msg.text), sub: `From Priya at ${time12(new Date(A.msg.at))}` }) : ""}
+      ${A.arrivedAt ? row({ artName: "shield", title: "Crash Check has stopped", sub: "Her trip has ended" }) : row({ artName: "shield", title: "Crash Check is on for this trip", sub: "You hear from it only if Priya needs help" })}
+      ${row({ ic: "eyeoff", title: "You cannot see where she is", sub: "Her location comes to you only after a crash she does not answer" })}
+      ${row({ ic: "clock", title: `Trip started ${time12(A.startedAt ? new Date(A.startedAt) : R.startedAt)}`, sub: A.dest === "Tambaram" || A.dest === "Potheri" ? "By scooter" : "Scooter to Tambaram, then the train" })}
+    </div>
+    <div class="tile mt-4 stack gap-3">
+      <h3 class="t-sm med">If Priya crashes and does not answer</h3>
+      <div style="display:flex;gap:12px">${icon("activity")}<span class="t-sm">This phone rings, even on silent</span></div>
+      <div style="display:flex;gap:12px">${icon("pin")}<span class="t-sm">You see where she is for one hour</span></div>
+      <div style="display:flex;gap:12px">${icon("gauge")}<span class="t-sm">You see how fast she was going, and whether she has moved since</span></div>
+    </div>
+    <p class="t-sm muted mt-4">Priya added you on 2 Oct. You can leave her circle at any time.</p>
+    ${matchMedia("(max-width: 939px)").matches ? `<button type="button" class="link t-sm mt-4" data-a="role-rider">Make this Priya's phone</button>` : ""}
+  </div>`;
+}
+function guardianAlert() {
+  const a = A.alert;
+  const when = time12(new Date(a.at));
+  const maps = `https://www.google.com/maps?q=${a.lat},${a.lng}`;
+  return `<div class="mapscreen">
+    <div class="mapbox" style="height:250px">${mapSvg("gm", when)}</div>
+    <section class="sheet-body">
+      <span class="grab" aria-hidden="true"></span>
+      <div class="page-top" style="padding-top:16px">
+        <span class="tag tag-flood"><span class="dot"></span>Possible crash</span>
+        <h1 class="h-28 mt-2">Priya may have crashed</h1>
+        <p class="t-base muted mt-1 tn">${a.why === "asked" ? "She asked for help" : "She did not answer Crash Check"} at ${when}.</p>
+        <div class="mt-2">
+          ${row({ ic: "pin", title: esc(a.place), sub: `Shared with you until ${time12(new Date(a.until))}`, trail: `<a class="link t-sm" href="${maps}" target="_blank" rel="noopener">Open in Maps</a>` })}
+          ${row({ ic: "gauge", title: a.before != null ? `${a.before} km/h, then stopped` : "Stopped suddenly", sub: "Her phone has not moved since" })}
+        </div>
+      </div>
+    </section>
+    <div class="footer stack gap-3">
+      <a class="btn btn-primary" style="text-decoration:none" href="tel:+919840021136">${icon("phone")}Call Priya</a>
+      <div class="btn-row">
+        <a class="btn btn-soft" style="text-decoration:none" href="tel:108">Call 108</a>
+        <button type="button" class="btn btn-soft" data-a="going" ${A.going ? "disabled" : ""}>${A.going ? "She knows" : "I'm going"}</button>
+      </div>
+    </div>
+  </div>`;
+}
+function guardianSafe() {
+  return `<div class="page-top center" style="padding-top:max(env(safe-area-inset-top,0px),64px)">
+    ${art("shield", 112)}
+    <h1 class="h-28 mt-4">Priya is safe</h1>
+    <p class="t-base muted mt-2 tn">She tapped I'm safe at ${time12(new Date(A.safeAt))}. Her location is no longer shared with you.</p>
+    <div class="pad mt-8"><button type="button" class="btn btn-primary" data-a="g-done">Done</button></div>
+  </div>`;
+}
+function renderGuardian() {
+  const main = A.screen === "alert" ? guardianAlert() : A.screen === "safe" ? guardianSafe() : guardianIdle();
+  guardian.innerHTML = `${sbar()}<div class="scroll main">${main}</div>`;
+}
+guardian.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-a]");
+  if (!b) return;
+  clearInterval(ringTimer);
+  const a = b.dataset.a;
+  if (a === "going") { A.going = true; send({ to: "rider", type: "going", by: "amma" }); toast("Priya can see you are on your way.", guardian); renderGuardian(); }
+  if (a === "g-done") { A.screen = "idle"; renderGuardian(); }
+  if (a === "role-rider") setRole("rider");
+});
+
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-stage]");
+  if (!b) return;
+  if (b.dataset.stage === "presenter") { R.sheet = R.sheet === "presenter" ? null : "presenter"; renderRider(); }
+});
+
+/* ================= which phone is this? ================= */
+const stage = document.getElementById("stage");
+function setRole(role) {
+  stage.dataset.only = role;
+  store.set("role", role);
+  if (room) room.presence({ role }).catch(() => {});
+  R.sheet = null;
+  renderRider(); renderGuardian();
+}
+const saved = store.get("role", null);
+const hash = (location.hash || "").replace("#", "");
+stage.dataset.only = hash === "amma" ? "guardian" : hash === "priya" ? "rider" : saved || "rider";
+
+renderRider();
+renderGuardian();
+})();
+</script>
